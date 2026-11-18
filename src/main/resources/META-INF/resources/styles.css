@@ -14,3 +14,66 @@ html {
     min-height: 100vh;
     background: linear-gradient(160deg, var(--lumo-contrast-5pct), var(--lumo-base-color));
 }
+
+/* ---- Layout responsive ----
+   Staff: pensato per il monitor del Mac (usa tutta la larghezza, più colonne).
+   Cliente: pensato per il telefono (una colonna, centrata anche su schermi grandi). */
+
+.boff-pagina {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--lumo-space-m);
+}
+
+.boff-pagina-cliente {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.boff-griglia {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--lumo-space-m);
+    width: 100%;
+}
+
+.boff-kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--lumo-space-m);
+    width: 100%;
+    margin-bottom: var(--lumo-space-l);
+}
+
+.boff-kpi .boff-card .valore {
+    font-size: var(--lumo-font-size-xxxl);
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.boff-kpi .boff-card .etichetta {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+/* Su desktop la bacheca mette il pannello principale accanto alla colonna laterale */
+@media (min-width: 1100px) {
+    .boff-pagina { padding: var(--lumo-space-l) var(--lumo-space-xl); }
+    .boff-bacheca-corpo {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--lumo-space-l);
+        align-items: start;
+    }
+}
+
+.boff-bacheca-corpo > * + * { margin-top: var(--lumo-space-m); }
+@media (min-width: 1100px) {
+    .boff-bacheca-corpo > * + * { margin-top: 0; }
+}
+
+.boff-colonna {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-m);
+}

@@ -1,5 +1,6 @@
 package it.boff.bike.ui;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.avatar.Avatar;
@@ -14,52 +15,90 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.Layout;
-import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import it.boff.bike.security.UtenteCorrente;
 import it.boff.bike.ui.views.BachecaView;
 import it.boff.bike.ui.views.ImpostazioniView;
-import it.boff.bike.ui.views.LeMieBiciView;
+import it.boff.bike.utente.Utente;
+import jakarta.annotation.security.PermitAll;
 
-/** Layout principale: barra in alto + menu laterale (a scomparsa su mobile). */
+/**
+ * Layout principale.
+ * <ul>
+ *   <li>Staff: menu laterale sempre visibile sul monitor del Mac, a scomparsa sul telefono.</li>
+ *   <li>Cliente: solo barra in alto, pensata per il telefono.</li>
+ * </ul>
+ */
 @Layout
 @PermitAll
 public class MainLayout extends AppLayout {
 
-    public MainLayout(UtenteCorrente utenteCorrente) {
-        setPrimarySection(Section.DRAWER);
+    private final UtenteCorrente utenteCorrente;
 
-        H1 titolo = new H1("Boff Bike");
-        titolo.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
-        addToNavbar(new DrawerToggle(), titolo);
+    public MainLayout(UtenteCorrente utenteCorrente) {
+        this.utenteCorrente = utenteCorrente;
+        if (utenteCorrente.isStaff()) {
+            layoutStaff();
+        } else {
+            layoutCliente();
+        }
+    }
+
+    private void layoutStaff() {
+        setPrimarySection(Section.DRAWER);
+        addToNavbar(new DrawerToggle(), titolo());
 
         SideNav nav = new SideNav();
-        if (utenteCorrente.isStaff()) {
-            nav.addItem(new SideNavItem("Bacheca", BachecaView.class, VaadinIcon.DASHBOARD.create()));
-        } else {
-            nav.addItem(new SideNavItem("Le mie bici", LeMieBiciView.class, VaadinIcon.WRENCH.create()));
-        }
+        nav.addItem(new SideNavItem("Bacheca", BachecaView.class, VaadinIcon.DASHBOARD.create()));
         if (utenteCorrente.isTitolare()) {
             nav.addItem(new SideNavItem("Impostazioni", ImpostazioniView.class, VaadinIcon.COG.create()));
         }
 
         VerticalLayout drawer = new VerticalLayout(nav);
         drawer.setPadding(true);
-
+        drawer.setHeightFull();
         utenteCorrente.get().ifPresent(utente -> {
-            Avatar avatar = new Avatar(utente.getNomeCompleto());
-            Span nome = new Span(utente.getNomeCompleto());
-            Button esci = new Button("Esci", VaadinIcon.SIGN_OUT.create(), e -> utenteCorrente.logout());
-            esci.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            HorizontalLayout profilo = new HorizontalLayout(avatar, nome);
-            profilo.setAlignItems(FlexComponent.Alignment.CENTER);
-            VerticalLayout footer = new VerticalLayout(profilo, esci);
+            VerticalLayout footer = new VerticalLayout(profilo(utente, true), pulsanteEsci());
             footer.setPadding(false);
             footer.addClassNames(LumoUtility.Margin.Top.AUTO);
             drawer.add(footer);
-            drawer.setHeightFull();
         });
-
         addToDrawer(drawer);
+    }
+
+    private void layoutCliente() {
+        HorizontalLayout barra = new HorizontalLayout(titolo());
+        barra.setWidthFull();
+        barra.setAlignItems(FlexComponent.Alignment.CENTER);
+        barra.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM);
+        utenteCorrente.get().ifPresent(utente -> {
+            Component profilo = profilo(utente, false);
+            barra.add(profilo, pulsanteEsci());
+            barra.setFlexGrow(1, barra.getComponentAt(0));
+        });
+        addToNavbar(barra);
+    }
+
+    private static H1 titolo() {
+        H1 titolo = new H1("Boff Bike");
+        titolo.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
+        return titolo;
+    }
+
+    private static Component profilo(Utente utente, boolean conNome) {
+        Avatar avatar = new Avatar(utente.getNomeCompleto());
+        avatar.setTooltipEnabled(true);
+        if (!conNome) {
+            return avatar;
+        }
+        HorizontalLayout profilo = new HorizontalLayout(avatar, new Span(utente.getNomeCompleto()));
+        profilo.setAlignItems(FlexComponent.Alignment.CENTER);
+        return profilo;
+    }
+
+    private Button pulsanteEsci() {
+        Button esci = new Button("Esci", VaadinIcon.SIGN_OUT.create(), e -> utenteCorrente.logout());
+        esci.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        return esci;
     }
 }

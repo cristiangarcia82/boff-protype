@@ -13,6 +13,21 @@ pianificazione della manutenzione su 2 unità lavorative, separando le ore di ve
 5. Notifiche **Web Push** (PWA) con email come riserva. Su iPhone richiedono iOS ≥ 16.4
    e l'app aggiunta alla schermata Home.
 
+## Due esperienze d'uso
+| | Cliente | Staff (titolare e collaboratore) |
+|---|---|---|
+| Dispositivo principale | **Telefono** | **Mac in ufficio** (monitor grande), ma usabile anche da telefono in negozio |
+| Impostazione | Mobile-first: una colonna, pulsanti grandi, barra in alto senza menu laterale | Desktop-first: menu laterale fisso, pagine a tutta larghezza su più colonne |
+| Schermate chiave | Le mie bici, annuncia lavoro, stato del lavoro | Bacheca con indicatori, calendario settimanale a colonne (una per persona), elenco lavori con dettaglio affiancato |
+
+Accorgimenti per il Mac:
+- L'app si installa come **app desktop**: Safari → File → "Aggiungi al Dock" (macOS Sonoma o successivi),
+  oppure Chrome/Edge → "Installa app". Si apre in una finestra sua, con le notifiche push di macOS.
+- **Calendario settimanale** con trascinamento dei lavori tra giorni e persone (fasi 3–4).
+- **Elenchi con dettaglio affiancato**: si sceglie un lavoro a sinistra e si modifica a destra, senza cambiare pagina.
+- Tabelle con filtri, ordinamento e **scorciatoie da tastiera** per le azioni frequenti (nuovo lavoro, cerca cliente).
+- Sotto i 1100 px di larghezza le stesse schermate si impilano in una colonna sola (telefono e tablet).
+
 ## Ruoli
 | Ruolo | Chi | Permessi |
 |---|---|---|

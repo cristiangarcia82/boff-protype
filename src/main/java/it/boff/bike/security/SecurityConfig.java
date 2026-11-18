@@ -1,5 +1,6 @@
 package it.boff.bike.security;
 
+import com.vaadin.flow.spring.security.VaadinDefaultRequestCache;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import it.boff.bike.ui.views.LoginView;
 import org.springframework.context.annotation.Bean;
@@ -9,13 +10,19 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, VaadinDefaultRequestCache requestCache) throws Exception {
+        // Dopo il login torna alla pagina richiesta senza aggiungere "?continue" all'indirizzo
+        HttpSessionRequestCache sessionCache = new HttpSessionRequestCache();
+        sessionCache.setMatchingRequestParameterName(null);
+        requestCache.setDelegateRequestCache(sessionCache);
+
         http.authorizeHttpRequests(auth -> auth.requestMatchers("/icons/**", "/images/**", "/styles.css").permitAll());
         http.rememberMe(rm -> rm.key("boff-bike-remember-me").tokenValiditySeconds(60 * 60 * 24 * 30));
         http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> vaadin.loginView(LoginView.class));
