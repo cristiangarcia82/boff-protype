@@ -147,3 +147,40 @@ html {
 }
 
 .boff-link-profilo, .boff-link-titolo { color: inherit; text-decoration: none; }
+
+/* ---- Lavori ---- */
+.boff-testo-secondario { color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
+.boff-indietro { display: inline-flex; align-items: center; gap: var(--lumo-space-xs); text-decoration: none; }
+.boff-bici-testi [theme~="badge"] { align-self: flex-start; margin-top: var(--lumo-space-xs); }
+.boff-lavoro-corrente { border-left: 4px solid var(--lumo-primary-color); }
+.boff-righe-cliente { margin: 0; padding-left: var(--lumo-space-l); }
+.boff-righe-cliente li { margin: var(--lumo-space-xs) 0; }
+.boff-righe-cliente li.fatto { color: var(--lumo-success-text-color); list-style: none; margin-left: calc(-1 * var(--lumo-space-l)); }
+.boff-righe-cliente li vaadin-icon { width: 16px; height: 16px; margin-right: var(--lumo-space-xs); }
+.boff-storico > div:first-child { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+.boff-azioni { display: flex; flex-wrap: wrap; gap: var(--lumo-space-s); }
+.boff-riga-lavoro {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-xs) 0;
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+.boff-riga-lavoro.fatto span.descr { text-decoration: line-through; color: var(--lumo-secondary-text-color); }
+.boff-riga-lavoro vaadin-integer-field { width: 7.5em; }
+.boff-totale { display: flex; justify-content: space-between; font-weight: 600; padding-top: var(--lumo-space-s); }
+.boff-urgente { color: var(--lumo-error-text-color); }
+.boff-riga-aggiungi { display: flex; gap: var(--lumo-space-s); align-items: center; }
+.boff-riga-aggiungi vaadin-text-field { flex-grow: 1; }
+.boff-voce-elenco {
+    display: flex;
+    flex-direction: column;
+    padding: var(--lumo-space-s) 0;
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+    text-decoration: none;
+    color: inherit;
+}
+.boff-voce-elenco:hover { background: var(--lumo-contrast-5pct); }
+.boff-voce-elenco [theme~="badge"] { align-self: flex-start; }
+.boff-bici-nome-piccolo { font-weight: 600; }

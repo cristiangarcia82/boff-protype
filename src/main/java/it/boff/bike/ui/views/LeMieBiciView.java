@@ -10,29 +10,38 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
 import it.boff.bike.bicicletta.Bicicletta;
 import it.boff.bike.bicicletta.BiciclettaService;
 import it.boff.bike.bicicletta.DatiBicicletta;
+import it.boff.bike.lavoro.Lavoro;
+import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.security.Ruoli;
 import it.boff.bike.security.UtenteCorrente;
 import it.boff.bike.ui.componenti.Avvisi;
+import it.boff.bike.ui.componenti.BadgeStato;
 import it.boff.bike.ui.componenti.SchedaBici;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-/** Area del cliente: le sue biciclette. Pensata per il telefono. */
+/** Area del cliente: le sue biciclette con lo stato dell'eventuale lavoro in corso. */
 @Route("le-mie-bici")
 @PageTitle("Le mie bici | Boff Bike")
 @RolesAllowed(Ruoli.CLIENTE)
 public class LeMieBiciView extends Div {
 
     private final BiciclettaService service;
+    private final LavoroService lavori;
     private final Long utenteId;
     private final Div elenco = new Div();
 
-    public LeMieBiciView(BiciclettaService service, UtenteCorrente utenteCorrente) {
+    public LeMieBiciView(BiciclettaService service, LavoroService lavori, UtenteCorrente utenteCorrente) {
         this.service = service;
+        this.lavori = lavori;
         this.utenteId = utenteCorrente.get().orElseThrow().getId();
         addClassNames("boff-pagina", "boff-pagina-cliente", "boff-colonna");
 
@@ -44,8 +53,7 @@ public class LeMieBiciView extends Div {
         intestazione.addClassName("boff-intestazione");
 
         elenco.addClassName("boff-colonna");
-        add(intestazione, elenco,
-                new Segnaposto("Annuncia un lavoro", "Indica cosa va fatto prima di portare la bici in negozio.", "fase 2"));
+        add(intestazione, elenco);
         aggiorna();
     }
 
@@ -57,9 +65,22 @@ public class LeMieBiciView extends Div {
                     new Paragraph("Aggiungila ora: quando la porterai in negozio potrai indicarci cosa fare."));
             vuoto.addClassNames("boff-card", "boff-vuoto");
             elenco.add(vuoto);
-        } else {
-            bici.forEach(b -> elenco.add(new SchedaBici(b, () -> apriModifica(b))));
+            return;
         }
+        Map<Long, Lavoro> aperti = lavori.lavoriDelCliente(utenteId).stream()
+                .filter(l -> l.getStato().isAperto())
+                .collect(Collectors.toMap(l -> l.getBicicletta().getId(), Function.identity(), (a, b) -> a));
+        bici.forEach(b -> {
+            Lavoro l = aperti.get(b.getId());
+            elenco.add(new SchedaBici(b, l == null ? null : new BadgeStato(l.getStato()), () -> apri(b)));
+        });
+        Paragraph suggerimento = new Paragraph("Tocca una bici per annunciare un lavoro o vedere lo storico.");
+        suggerimento.addClassName("boff-testo-secondario");
+        elenco.add(suggerimento);
+    }
+
+    private void apri(Bicicletta b) {
+        getUI().ifPresent(ui -> ui.navigate(BiciView.class, new RouteParameters("id", String.valueOf(b.getId()))));
     }
 
     private void apriNuova() {
@@ -69,17 +90,4 @@ public class LeMieBiciView extends Div {
             aggiorna();
         }, null).open();
     }
-
-    private void apriModifica(Bicicletta b) {
-        new BiciclettaDialog(DatiBicicletta.da(b), false, dati -> {
-            service.modifica(utenteId, b.getId(), dati);
-            Avvisi.ok("Modifiche salvate");
-            aggiorna();
-        }, () -> {
-            service.rimuovi(utenteId, b.getId());
-            Avvisi.ok("Bici rimossa");
-            aggiorna();
-        }).open();
-    }
-
 }

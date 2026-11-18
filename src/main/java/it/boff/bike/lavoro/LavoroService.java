@@ -1,0 +1,248 @@
+package it.boff.bike.lavoro;
+
+import it.boff.bike.bicicletta.Bicicletta;
+import it.boff.bike.bicicletta.BiciclettaNonTrovataException;
+import it.boff.bike.bicicletta.BiciclettaRepository;
+import it.boff.bike.catalogo.TipoIntervento;
+import it.boff.bike.catalogo.TipoInterventoRepository;
+import it.boff.bike.common.ErroreDominio;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Consumer;
+
+/**
+ * Lavori di officina. I metodi "…DelCliente" verificano che il lavoro appartenga al
+ * cliente; gli altri sono per lo staff (l'accesso è limitato dalle viste con @RolesAllowed).
+ */
+@Service
+@Transactional
+public class LavoroService {
+
+    public static final int MAX_NOTE = 1000;
+
+    private final LavoroRepository lavori;
+    private final RigaLavoroRepository righe;
+    private final BiciclettaRepository biciclette;
+    private final TipoInterventoRepository catalogo;
+    private final ApplicationEventPublisher eventi;
+    private final Clock clock;
+
+    public LavoroService(LavoroRepository lavori, RigaLavoroRepository righe, BiciclettaRepository biciclette,
+                         TipoInterventoRepository catalogo, ApplicationEventPublisher eventi, Clock clock) {
+        this.lavori = lavori;
+        this.righe = righe;
+        this.biciclette = biciclette;
+        this.catalogo = catalogo;
+        this.eventi = eventi;
+        this.clock = clock;
+    }
+
+    // =====================================================================
+    // Cliente
+    // =====================================================================
+
+    /** Il cliente annuncia cosa fare sulla sua bici, prima di portarla in negozio. */
+    public Lavoro annuncia(Long clienteId, Long biciId, Collection<Long> tipiIntervento, String note) {
+        Bicicletta bici = biciclette.findByIdAndProprietarioIdAndArchiviataFalse(biciId, clienteId)
+                .orElseThrow(BiciclettaNonTrovataException::new);
+        return crea(bici, StatoLavoro.ANNUNCIATO, tipiIntervento, note);
+    }
+
+    /** Il cliente può annullare solo finché la bici non è in negozio. */
+    public void annullaDelCliente(Long clienteId, Long lavoroId) {
+        Lavoro l = delCliente(clienteId, lavoroId);
+        if (l.getStato() != StatoLavoro.ANNUNCIATO) {
+            throw new ErroreDominio("La bici è già in negozio: per annullare contatta il negozio");
+        }
+        cambia(l, x -> x.annulla(adesso()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Lavoro> lavoriDelCliente(Long clienteId) {
+        return lavori.delCliente(clienteId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Lavoro> storicoBiciDelCliente(Long clienteId, Long biciId) {
+        biciclette.findByIdAndProprietarioIdAndArchiviataFalse(biciId, clienteId)
+                .orElseThrow(BiciclettaNonTrovataException::new);
+        return lavori.dellaBici(biciId);
+    }
+
+    private Lavoro delCliente(Long clienteId, Long lavoroId) {
+        Lavoro l = dettaglio(lavoroId);
+        if (!l.getBicicletta().getProprietario().getId().equals(clienteId)) {
+            throw new ErroreDominio("Lavoro non trovato");
+        }
+        return l;
+    }
+
+    // =====================================================================
+    // Staff
+    // =====================================================================
+
+    /** Bici portata in negozio senza annuncio: il lavoro nasce già "in negozio". */
+    public Lavoro creaAlBanco(Long biciId, Collection<Long> tipiIntervento, String note) {
+        Bicicletta bici = biciclette.findById(biciId)
+                .filter(b -> !b.isArchiviata())
+                .orElseThrow(BiciclettaNonTrovataException::new);
+        return crea(bici, StatoLavoro.IN_NEGOZIO, tipiIntervento, note);
+    }
+
+    public void checkIn(Long lavoroId) {
+        cambia(dettaglio(lavoroId), l -> l.checkIn(adesso()));
+    }
+
+    public void inizia(Long lavoroId) {
+        cambia(dettaglio(lavoroId), Lavoro::inizia);
+    }
+
+    public void segnaPronto(Long lavoroId) {
+        cambia(dettaglio(lavoroId), l -> l.segnaPronto(adesso()));
+    }
+
+    public void riapri(Long lavoroId) {
+        cambia(dettaglio(lavoroId), Lavoro::riapri);
+    }
+
+    public void ritira(Long lavoroId) {
+        cambia(dettaglio(lavoroId), l -> l.ritira(adesso()));
+    }
+
+    public void annulla(Long lavoroId) {
+        cambia(dettaglio(lavoroId), l -> l.annulla(adesso()));
+    }
+
+    public void impostaDettagli(Long lavoroId, boolean urgente, LocalDate dataPromessa, String noteInterne) {
+        Lavoro l = dettaglio(lavoroId);
+        if (!l.getStato().isAperto()) {
+            throw new ErroreDominio("Il lavoro è chiuso e non può essere modificato");
+        }
+        l.setUrgente(urgente);
+        l.setDataPromessa(dataPromessa);
+        l.setNoteInterne(pulisci(noteInterne, 2000));
+    }
+
+    public RigaLavoro aggiungiDaCatalogo(Long lavoroId, Long tipoId) {
+        Lavoro l = dettaglio(lavoroId);
+        TipoIntervento t = catalogo.findById(tipoId).orElseThrow(() -> new ErroreDominio("Intervento non trovato"));
+        return l.aggiungiRiga(t, t.getNome(), t.getDurataStandardMin());
+    }
+
+    public RigaLavoro aggiungiLibera(Long lavoroId, String descrizione, int durataMin) {
+        if (descrizione == null || descrizione.isBlank()) {
+            throw new ErroreDominio("Descrivi l'intervento");
+        }
+        return dettaglio(lavoroId).aggiungiRiga(null, pulisci(descrizione, 200), controllaDurata(durataMin));
+    }
+
+    public void modificaDurata(Long rigaId, int durataMin) {
+        RigaLavoro r = riga(rigaId);
+        if (!r.getLavoro().getStato().isAperto()) {
+            throw new ErroreDominio("Il lavoro è chiuso e non può essere modificato");
+        }
+        r.setDurataMin(controllaDurata(durataMin));
+    }
+
+    /** Segna una riga come fatta (o da rifare). Il primo intervento fatto mette il lavoro "in lavorazione". */
+    public void segnaRiga(Long rigaId, boolean completata) {
+        RigaLavoro r = riga(rigaId);
+        Lavoro l = r.getLavoro();
+        if (!StatoLavoro.IN_OFFICINA.contains(l.getStato())) {
+            throw new ErroreDominio("Gli interventi si segnano come fatti solo mentre la bici è in officina");
+        }
+        r.setCompletata(completata);
+        if (completata && l.getStato() != StatoLavoro.IN_LAVORAZIONE) {
+            cambia(l, Lavoro::inizia);
+        }
+    }
+
+    public void rimuoviRiga(Long rigaId) {
+        RigaLavoro r = riga(rigaId);
+        r.getLavoro().rimuoviRiga(r);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Lavoro> cerca(Collection<StatoLavoro> stati, String testo) {
+        List<Lavoro> trovati = lavori.cerca(stati, testo == null ? "" : testo.trim());
+        trovati.forEach(Lavoro::caricaRighe); // in blocchi da 50 (@BatchSize)
+        return trovati;
+    }
+
+    @Transactional(readOnly = true)
+    public Lavoro dettaglio(Long lavoroId) {
+        return lavori.dettaglio(lavoroId).orElseThrow(() -> new ErroreDominio("Lavoro non trovato"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Lavoro> storicoBici(Long biciId) {
+        return lavori.dellaBici(biciId);
+    }
+
+    @Transactional(readOnly = true)
+    public long conta(Collection<StatoLavoro> stati) {
+        return lavori.countByStatoIn(stati);
+    }
+
+    // =====================================================================
+
+    private Lavoro crea(Bicicletta bici, StatoLavoro stato, Collection<Long> tipiIntervento, String note) {
+        String noteOk = pulisci(note, MAX_NOTE);
+        if ((tipiIntervento == null || tipiIntervento.isEmpty()) && noteOk == null) {
+            throw new ErroreDominio("Indica almeno un intervento o descrivi cosa va fatto");
+        }
+        if (lavori.apertoDellaBici(bici.getId()).isPresent()) {
+            throw new ErroreDominio("Per questa bici c'è già un lavoro aperto");
+        }
+        Lavoro l = new Lavoro(bici, stato, noteOk, adesso());
+        if (tipiIntervento != null) {
+            catalogo.findAllById(tipiIntervento).forEach(t -> l.aggiungiRiga(t, t.getNome(), t.getDurataStandardMin()));
+        }
+        if (l.getRighe().isEmpty()) {
+            // Solo descrizione libera: il negozio stimerà il tempo dopo aver visto la bici
+            l.aggiungiRiga(null, "Da valutare in negozio", 30);
+        }
+        Lavoro salvato = lavori.save(l);
+        eventi.publishEvent(new LavoroCambiato(salvato.getId(), null, stato));
+        return salvato;
+    }
+
+    private void cambia(Lavoro l, Consumer<Lavoro> azione) {
+        StatoLavoro prima = l.getStato();
+        azione.accept(l);
+        if (prima != l.getStato()) {
+            eventi.publishEvent(new LavoroCambiato(l.getId(), prima, l.getStato()));
+        }
+    }
+
+    private RigaLavoro riga(Long rigaId) {
+        return righe.findById(rigaId).orElseThrow(() -> new ErroreDominio("Intervento non trovato"));
+    }
+
+    private static int controllaDurata(int minuti) {
+        if (minuti < 5 || minuti > 1440) {
+            throw new ErroreDominio("La durata deve essere tra 5 minuti e 24 ore");
+        }
+        return minuti;
+    }
+
+    private static String pulisci(String testo, int max) {
+        if (testo == null || testo.isBlank()) return null;
+        String t = testo.trim();
+        if (t.length() > max) {
+            throw new ErroreDominio("Testo troppo lungo (massimo " + max + " caratteri)");
+        }
+        return t;
+    }
+
+    private OffsetDateTime adesso() {
+        return OffsetDateTime.now(clock);
+    }
+}

@@ -16,6 +16,11 @@ import java.util.List;
 public class SchedaBici extends Div {
 
     public SchedaBici(Bicicletta b, Runnable alClic) {
+        this(b, null, alClic);
+    }
+
+    /** @param extra componente facoltativo mostrato sotto la descrizione (es. stato del lavoro) */
+    public SchedaBici(Bicicletta b, com.vaadin.flow.component.Component extra, Runnable alClic) {
         Image icona = new Image("icons/icon.png", "");
         icona.addClassName("boff-bici-icona");
 
@@ -25,6 +30,9 @@ public class SchedaBici extends Div {
         info.addClassName("boff-bici-info");
 
         Div testi = new Div(nome, info);
+        if (extra != null) {
+            testi.add(extra);
+        }
         testi.addClassName("boff-bici-testi");
 
         add(icona, testi, VaadinIcon.ANGLE_RIGHT.create());

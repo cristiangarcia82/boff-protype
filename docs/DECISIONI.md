@@ -46,3 +46,26 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 | Disattivare un cliente | ✅ | – | – |
 | Personale, catalogo, orari settimanali | ✅ | – | – |
 | Lavori, calendario, assenze, chiusure | ✅ | ✅ | annuncia e segue i propri lavori |
+
+## D11 – Un solo lavoro aperto per bici
+- **Decisione**: vincolo nel database (indice unico parziale). Se il cliente vuole aggiungere qualcosa, lo dice in negozio e lo staff aggiunge l'intervento al lavoro esistente.
+- **Perché**: evita doppioni e confusione nel calendario.
+
+## D12 – Annuncio con sola descrizione ⚠️
+- **Decisione**: se il cliente scrive solo una nota senza scegliere interventi, si crea una riga "Da valutare in negozio" da 30 minuti, che lo staff sostituisce dopo aver visto la bici.
+- **Perché**: la pianificazione ha bisogno di una stima; 30 minuti è prudente per una diagnosi. Cambiabile.
+
+## D13 – I tempi non sono mostrati al cliente
+- **Decisione**: il cliente vede interventi, stato e data prevista, non i minuti stimati.
+- **Perché**: i tempi sono uno strumento interno di pianificazione e potrebbero essere letti come impegni o prezzi.
+
+## D14 – "Bici pronta" chiude tutti gli interventi
+- **Decisione**: segnare la bici pronta segna come fatti anche gli interventi rimasti. Se un intervento non è stato fatto, va rimosso prima.
+- **Perché**: un clic in meno nel caso comune; "Riapri" rimedia agli errori.
+
+## D15 – Il cliente annulla solo prima del check-in
+- **Perché**: dopo l'arrivo in negozio la bici è fisicamente da voi e l'annullamento va gestito a voce.
+
+## D16 – Nomi degli stati
+`Annunciato → In negozio → Pianificato → In lavorazione → Pronta → Ritirata` (+ `Annullato`).
+"In lavorazione" scatta da sé quando si segna il primo intervento come fatto.

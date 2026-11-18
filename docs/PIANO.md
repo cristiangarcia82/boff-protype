@@ -36,7 +36,7 @@ Accorgimenti per il Mac:
 | CLIENTE | Clienti | Le proprie bici, annuncio lavori, stato dei lavori |
 
 ## Flusso di un lavoro
-`ANNUNCIATA → IN NEGOZIO (check-in) → PIANIFICATA → IN LAVORAZIONE → PRONTA → RITIRATA`
+`ANNUNCIATO → IN NEGOZIO (check-in) → PIANIFICATO → IN LAVORAZIONE → PRONTO → RITIRATO` (+ `ANNULLATO`)
 
 ## Modello dati
 ```
@@ -71,7 +71,7 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 |---|---|---|
 | 0. Setup | Progetto, DB, login, ruoli, PWA, CI | ✅ completata |
 | 1. Anagrafiche | Registrazione cliente, profilo, bici del cliente, clienti e bici per lo staff, catalogo interventi, personale | ✅ completata |
-| 2. Lavori | Annuncio del cliente, check-in, stati, storico bici | da fare |
+| 2. Lavori | Annuncio del cliente, check-in, stati, lavoro al banco, interventi e tempi, storico bici | ✅ completata |
 | 3. Calendario | Orari e slot vendita/officina, assenze, festività | da fare |
 | 4. Pianificazione | Scheduler, vista giorno/settimana, spostamento manuale, carico | da fare |
 | 5. Notifiche e deploy | Web Push + email, guida "Aggiungi a Home", HTTPS | da fare |

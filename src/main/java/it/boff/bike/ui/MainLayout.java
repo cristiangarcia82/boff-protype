@@ -25,6 +25,7 @@ import it.boff.bike.security.UtenteCorrente;
 import it.boff.bike.ui.views.BachecaView;
 import it.boff.bike.ui.views.CatalogoView;
 import it.boff.bike.ui.views.ClientiView;
+import it.boff.bike.ui.views.LavoriView;
 import it.boff.bike.ui.views.LeMieBiciView;
 import it.boff.bike.ui.views.ProfiloView;
 import it.boff.bike.ui.views.UtentiView;
@@ -145,6 +146,7 @@ public class MainLayout extends AppLayout {
         static java.util.List<VoceMenu> voci(boolean titolare) {
             return java.util.List.of(
                     new VoceMenu("Bacheca", BachecaView.class, VaadinIcon.DASHBOARD),
+                    new VoceMenu("Lavori", LavoriView.class, VaadinIcon.WRENCH),
                     new VoceMenu("Clienti", ClientiView.class, VaadinIcon.USER_CARD));
         }
 

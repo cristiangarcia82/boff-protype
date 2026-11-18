@@ -20,7 +20,12 @@ import com.vaadin.flow.router.Route;
 import it.boff.bike.bicicletta.Bicicletta;
 import it.boff.bike.bicicletta.BiciclettaService;
 import it.boff.bike.bicicletta.DatiBicicletta;
+import com.vaadin.flow.router.RouterLink;
+import it.boff.bike.lavoro.Lavoro;
+import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.security.Ruoli;
+import it.boff.bike.ui.componenti.BadgeStato;
+import it.boff.bike.ui.componenti.Formati;
 import it.boff.bike.security.UtenteCorrente;
 import it.boff.bike.ui.componenti.Avvisi;
 import it.boff.bike.ui.componenti.SchedaBici;
@@ -42,13 +47,16 @@ public class ClientiView extends Div {
 
     private final UtenteService utenti;
     private final BiciclettaService biciclette;
+    private final LavoroService lavori;
     private final boolean titolare;
     private final Grid<Utente> griglia = new Grid<>();
     private final TextField cerca = new TextField();
     private final Div dettaglio = new Div();
 
-    public ClientiView(UtenteService utenti, BiciclettaService biciclette, UtenteCorrente utenteCorrente) {
+    public ClientiView(UtenteService utenti, BiciclettaService biciclette, LavoroService lavori,
+                       UtenteCorrente utenteCorrente) {
         this.utenti = utenti;
+        this.lavori = lavori;
         this.biciclette = biciclette;
         this.titolare = utenteCorrente.isTitolare();
         addClassName("boff-pagina");
@@ -141,7 +149,21 @@ public class ClientiView extends Div {
         }
         bici.forEach(b -> elencoBici.add(new SchedaBici(b, () -> modificaBici(c, b))));
 
-        dettaglio.add(schedaCliente, titoloBici, elencoBici);
+        Div elencoLavori = new Div(new H3("Lavori"));
+        elencoLavori.addClassName("boff-card");
+        List<Lavoro> storico = lavori.lavoriDelCliente(c.getId());
+        if (storico.isEmpty()) {
+            elencoLavori.add(new Paragraph("Nessun lavoro."));
+        }
+        storico.stream().limit(15).forEach(l -> {
+            RouterLink link = new RouterLink(LavoriView.class, LavoriView.parametri(l.getId()));
+            link.add(new Span(l.getBicicletta().getNome() + " · " + Formati.data(l.getAnnunciatoIl()) + " "),
+                    new BadgeStato(l.getStato()));
+            link.addClassName("boff-voce-elenco");
+            elencoLavori.add(link);
+        });
+
+        dettaglio.add(schedaCliente, titoloBici, elencoBici, elencoLavori);
     }
 
     private static Div riga(VaadinIcon icona, String testo, com.vaadin.flow.component.Component contenuto) {
