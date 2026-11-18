@@ -45,6 +45,16 @@
             <artifactId>vaadin-dev</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Notifiche push nel browser / PWA installata (senza app store) -->
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>flow-webpush</artifactId>
+        </dependency>
+        <!-- Email (recupero password, notifiche di riserva) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
 
         <!-- Backend -->
         <dependency>
