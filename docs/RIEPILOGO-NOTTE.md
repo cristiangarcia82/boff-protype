@@ -10,8 +10,14 @@
 | Fase 4 | Pianificazione automatica, interventi trascinabili, fissa/sblocca, oggi in officina, carico | `Fase 4: …` |
 | Fase 5 | Notifiche push + email, password dimenticata, guida installazione, messa online con HTTPS e backup | `Fase 5: …` |
 
-Test automatici: **50** (15 unitari + 35 di integrazione su PostgreSQL reale), tutti verdi; ogni schermata è stata
-provata nel browser a misura di Mac e di iPhone.
+| Fase 6 | Test delle schermate in CI, un solo ricalcolo per azione, "scarica i miei dati" / "elimina account" | `Fase 6: …` |
+| Fase 7 | Assenze di mezza giornata, spostamento a un orario preciso, ricerca rapida (Alt+K) | `Fase 7: …` |
+| Fase 8 | Foto del problema (cliente e negozio), statistiche per il titolare | `Fase 8: …` |
+
+Dopo ogni fase: review (`docs/REVIEW.md`), decisioni (`docs/DECISIONI.md`), test e commit.
+
+Test automatici: **66** (15 unitari + 51 di integrazione su PostgreSQL reale, di cui 9 sulle schermate),
+tutti verdi; ogni schermata è stata provata anche nel browser a misura di Mac e di iPhone.
 
 ## Come provarla (5 minuti)
 ```bash
@@ -28,6 +34,13 @@ BOFF_DEMO=true mvn spring-boot:run      # poi http://localhost:8080
 3. **D12** – Annuncio con sola descrizione → riga "Da valutare in negozio" da 30 minuti.
 4. **D18** – Festività nazionali chiuse in automatico (si può disattivare).
 5. **D20** – Pianificazione semplice (primo spazio libero) invece di un ottimizzatore.
+6. **D30** – Eliminazione account = anonimizzazione (lo storico lavori resta al negozio).
+7. **D35** – Foto salvate nel database (comodo per i backup, il database cresce).
+
+## Possibili prossimi passi (da decidere insieme)
+- Ridimensionare le foto e convertire le HEIC (meno spazio, visibili in tutti i browser).
+- Registrare il **tempo effettivo** degli interventi, per confrontarlo con quello stimato.
+- Orari stagionali (estate/inverno).
 
 ## Cosa serve da te per andare online
 - Un server (VPS in Europa, ~5–10 €/mese) e un dominio/sottodominio.
