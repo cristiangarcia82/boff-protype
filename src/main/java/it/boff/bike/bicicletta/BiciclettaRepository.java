@@ -9,5 +9,7 @@ public interface BiciclettaRepository extends JpaRepository<Bicicletta, Long> {
 
     List<Bicicletta> findByProprietarioIdAndArchiviataFalseOrderByMarcaAscModelloAsc(Long proprietarioId);
 
+    List<Bicicletta> findByProprietarioIdOrderById(Long proprietarioId);
+
     Optional<Bicicletta> findByIdAndProprietarioIdAndArchiviataFalse(Long id, Long proprietarioId);
 }

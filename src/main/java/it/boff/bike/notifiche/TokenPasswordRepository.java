@@ -9,5 +9,7 @@ public interface TokenPasswordRepository extends JpaRepository<TokenPassword, Lo
 
     Optional<TokenPassword> findByTokenHash(String tokenHash);
 
+    void deleteByUtenteId(Long utenteId);
+
     long countByUtenteIdAndCreatoIlAfter(Long utenteId, OffsetDateTime dopo);
 }

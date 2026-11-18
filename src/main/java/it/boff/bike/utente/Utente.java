@@ -87,6 +87,20 @@ public class Utente {
     public String getTelefono() { return telefono; }
     public OffsetDateTime getPrivacyAccettataIl() { return privacyAccettataIl; }
 
+    /**
+     * Diritto all'oblio: sostituisce i dati personali con valori anonimi e disattiva l'account.
+     * Il record resta per non rompere lo storico dei lavori del negozio.
+     */
+    public void anonimizza(String passwordHashInutilizzabile) {
+        this.email = "eliminato-" + id + "@utente-eliminato.invalid";
+        this.nome = "Cliente";
+        this.cognome = "eliminato";
+        this.telefono = null;
+        this.privacyAccettataIl = null;
+        this.passwordHash = passwordHashInutilizzabile;
+        this.attivo = false;
+    }
+
     public void setAttivo(boolean attivo) { this.attivo = attivo; }
     public void setNome(String nome) { this.nome = nome; }
     public void setCognome(String cognome) { this.cognome = cognome; }

@@ -55,6 +55,7 @@ public class PianificazioneService {
     private final EntityManager em;
     private final BoffProperties properties;
     private final Clock clock;
+    private final java.util.concurrent.atomic.AtomicLong ricalcoli = new java.util.concurrent.atomic.AtomicLong();
     /** Un ricalcolo alla volta (l'app gira su una sola istanza). */
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -96,7 +97,13 @@ public class PianificazioneService {
         }
     }
 
+    /** Numero di ricalcoli eseguiti dall'avvio (diagnostica e test). */
+    public long ricalcoliEseguiti() {
+        return ricalcoli.get();
+    }
+
     private EsitoPianificazione calcola() {
+        ricalcoli.incrementAndGet();
         LocalDateTime adesso = LocalDateTime.now(clock);
         LocalDate oggi = adesso.toLocalDate();
         List<Lavoro> inOfficina = lavori.conRighe(StatoLavoro.IN_OFFICINA);

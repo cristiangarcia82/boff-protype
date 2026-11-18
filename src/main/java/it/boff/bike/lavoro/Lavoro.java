@@ -209,6 +209,7 @@ public class Lavoro {
     public List<RigaLavoro> getRighe() { return Collections.unmodifiableList(righe); }
 
     void setUrgente(boolean urgente) { this.urgente = urgente; }
+    void cancellaNoteCliente() { this.noteCliente = null; }
     void setNoteInterne(String noteInterne) { this.noteInterne = noteInterne; }
     void setDataPromessa(LocalDate dataPromessa) { this.dataPromessa = dataPromessa; }
     void setStato(StatoLavoro stato) { this.stato = stato; }

@@ -111,4 +111,14 @@ class PianificazioneServiceIT {
         assertThatThrownBy(() -> pianificazione.sposta(spostata.getId(), spostata.getUtente().getId(),
                 calendario.oggi().minusDays(1))).isInstanceOf(ErroreDominio.class);
     }
+
+    @Test
+    void unaSolaRipianificazionePerAzione() {
+        Long id = lavori.creaAlBanco(bici, List.of(catena.getId()), null).getId();
+        Long riga = lavori.dettaglio(id).getRighe().get(0).getId();
+        long prima = pianificazione.ricalcoliEseguiti();
+        // segnare un intervento fatto cambia anche lo stato (in lavorazione): un solo ricalcolo
+        lavori.segnaRiga(riga, true);
+        assertThat(pianificazione.ricalcoliEseguiti() - prima).isEqualTo(1);
+    }
 }

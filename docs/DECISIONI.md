@@ -126,3 +126,13 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 ## D28 – Messa online con Docker Compose + Caddy
 - Un solo server: app, PostgreSQL, Caddy (HTTPS automatico) e backup giornaliero. Semplice da gestire per un negozio; costi 5–10 €/mese. Vedi `docs/DEPLOY.md`.
 - **Alternativa scartata**: PaaS (Render, Railway…): più comodi ma più costosi con database gestito, e i dati restano meno sotto controllo.
+
+## D29 – Test dell'interfaccia "senza browser"
+- **Decisione**: Vaadin browserless-test (open source) invece di Playwright in CI: i test girano nella JVM in pochi secondi, senza installare un browser. Playwright resta per le verifiche visive durante lo sviluppo.
+
+## D30 – Cancellazione account = anonimizzazione ⚠️
+- **Decisione**: nome, email, telefono e note scritte dal cliente vengono cancellati; bici e lavori restano nello storico del negozio senza collegamento alla persona. Non si può eliminare l'account con un lavoro aperto.
+- **Perché**: rispetta il diritto all'oblio senza perdere i dati di lavoro del negozio (ore, interventi). Da confermare con il tuo consulente privacy.
+
+## D31 – Un ricalcolo per azione
+- Più modifiche nella stessa operazione (es. "intervento fatto" che fa partire il lavoro) producono un solo ricalcolo del calendario.

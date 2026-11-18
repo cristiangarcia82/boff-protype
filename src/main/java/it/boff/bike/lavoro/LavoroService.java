@@ -6,7 +6,7 @@ import it.boff.bike.bicicletta.BiciclettaRepository;
 import it.boff.bike.catalogo.TipoIntervento;
 import it.boff.bike.catalogo.TipoInterventoRepository;
 import it.boff.bike.common.ErroreDominio;
-import it.boff.bike.pianificazione.RichiestaRipianificazione;
+import it.boff.bike.pianificazione.Ripianificazione;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +35,12 @@ public class LavoroService {
     private final TipoInterventoRepository catalogo;
     private final ApplicationEventPublisher eventi;
     private final Clock clock;
+    private final Ripianificazione ripianificazione;
 
     public LavoroService(LavoroRepository lavori, RigaLavoroRepository righe, BiciclettaRepository biciclette,
-                         TipoInterventoRepository catalogo, ApplicationEventPublisher eventi, Clock clock) {
+                         TipoInterventoRepository catalogo, ApplicationEventPublisher eventi, Clock clock,
+                         Ripianificazione ripianificazione) {
+        this.ripianificazione = ripianificazione;
         this.lavori = lavori;
         this.righe = righe;
         this.biciclette = biciclette;
@@ -69,6 +72,11 @@ public class LavoroService {
     @Transactional(readOnly = true)
     public List<Lavoro> lavoriDelCliente(Long clienteId) {
         return lavori.delCliente(clienteId);
+    }
+
+    /** Privacy: le note scritte dal cliente possono contenere dati personali e vengono cancellate. */
+    public void cancellaNoteDelCliente(Long clienteId) {
+        lavori.delCliente(clienteId).forEach(Lavoro::cancellaNoteCliente);
     }
 
     @Transactional(readOnly = true)
@@ -258,7 +266,7 @@ public class LavoroService {
     }
 
     private void ripianifica(String motivo) {
-        eventi.publishEvent(new RichiestaRipianificazione(motivo));
+        ripianificazione.richiedi(motivo);
     }
 
     private RigaLavoro riga(Long rigaId) {

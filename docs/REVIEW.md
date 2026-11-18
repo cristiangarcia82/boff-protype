@@ -83,3 +83,15 @@ Rilettura del codice a fine sviluppo. I problemi trovati durante la notte e già
 - Foto della bici e del problema.
 - Ricerca globale (cliente/bici) dalla barra in alto.
 - Statistiche: tempi stimati vs reali, interventi più frequenti.
+
+---
+
+# Review fase 6 – Robustezza
+
+| Voce | Esito |
+|---|---|
+| R3 (ricalcoli ripetuti) | **Risolto**: le richieste nella stessa transazione producono un solo ricalcolo (`Ripianificazione`), con test che lo verifica. |
+| R5 (test interfaccia) | **Risolto**: 7 test delle schermate senza browser (Vaadin browserless, Apache 2.0) girano in CI: registrazione, annuncio dal telefono, check-in dal pannello, calendario, permessi. |
+| R6 (GDPR) | **Risolto in parte**: "Scarica i miei dati" (JSON) ed "Elimina il mio account" nel profilo cliente. L'informativa resta da completare. |
+| Trovato in review | La cancellazione lasciava le **note del cliente** nei lavori (possono contenere dati personali): ora vengono svuotate (con test). |
+| Da tenere d'occhio | I test d'interfaccia usano anche i dati demo; se cambiano i dati demo vanno aggiornati. |

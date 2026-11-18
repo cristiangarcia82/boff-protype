@@ -12,4 +12,6 @@ public interface IscrizionePushRepository extends JpaRepository<IscrizionePush, 
     Optional<IscrizionePush> findByEndpoint(String endpoint);
 
     void deleteByEndpoint(String endpoint);
+
+    void deleteByUtenteId(Long utenteId);
 }

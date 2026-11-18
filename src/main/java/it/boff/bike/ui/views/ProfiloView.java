@@ -12,7 +12,16 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.server.streams.DownloadHandler;
+import com.vaadin.flow.server.streams.DownloadResponse;
 import it.boff.bike.common.ErroreDominio;
+import it.boff.bike.privacy.PrivacyService;
+import it.boff.bike.utente.Ruolo;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import it.boff.bike.security.UtenteCorrente;
 import it.boff.bike.ui.componenti.Avvisi;
 import it.boff.bike.utente.DatiAnagrafica;
@@ -27,7 +36,7 @@ import jakarta.validation.ConstraintViolationException;
 @PermitAll
 public class ProfiloView extends Div {
 
-    public ProfiloView(UtenteService service, UtenteCorrente utenteCorrente) {
+    public ProfiloView(UtenteService service, UtenteCorrente utenteCorrente, PrivacyService privacy) {
         addClassNames("boff-pagina", "boff-pagina-cliente", "boff-colonna");
         Utente utente = utenteCorrente.get().orElseThrow();
         Long id = utente.getId();
@@ -89,5 +98,44 @@ public class ProfiloView extends Div {
         schedaPw.addClassName("boff-card");
 
         add(new H2("Il mio profilo"), schedaDati, schedaPw);
+        if (utente.getRuolo() == Ruolo.CLIENTE) {
+            add(schedaPrivacy(privacy, utenteCorrente, id));
+        }
+    }
+
+    private Div schedaPrivacy(PrivacyService privacy, UtenteCorrente utenteCorrente, Long id) {
+        Anchor scarica = new Anchor(DownloadHandler.fromInputStream(evento -> {
+            byte[] dati = privacy.esporta(id).getBytes(StandardCharsets.UTF_8);
+            return new DownloadResponse(new ByteArrayInputStream(dati), "i-miei-dati-boff-bike.json",
+                    "application/json", dati.length);
+        }), "Scarica i miei dati");
+        scarica.getElement().setAttribute("download", true);
+
+        Button elimina = new Button("Elimina il mio account", e -> {
+            ConfirmDialog c = new ConfirmDialog("Eliminare l'account?",
+                    "I tuoi dati personali verranno cancellati e non potrai più accedere. "
+                            + "Lo storico dei lavori resta al negozio in forma anonima. L'operazione non si può annullare.",
+                    "Elimina definitivamente", ev -> {
+                        try {
+                            privacy.eliminaAccount(id);
+                            utenteCorrente.logout();
+                        } catch (ErroreDominio ex) {
+                            Avvisi.errore(ex.getMessage());
+                        }
+                    });
+            c.setCancelable(true);
+            c.setCancelText("Annulla");
+            c.setConfirmButtonTheme("error primary");
+            c.open();
+        });
+        elimina.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+
+        Paragraph spiegazione = new Paragraph("Puoi scaricare una copia di tutti i dati che conserviamo su di te, "
+                + "o eliminare il tuo account.");
+        spiegazione.addClassName("boff-testo-secondario");
+        Div d = new Div(new H3("I tuoi dati"), spiegazione, new Div(scarica), elimina);
+        d.addClassNames("boff-card", "boff-colonna");
+        d.getStyle().set("gap", "var(--lumo-space-s)");
+        return d;
     }
 }
