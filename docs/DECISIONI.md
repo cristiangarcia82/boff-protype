@@ -69,3 +69,15 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 ## D16 – Nomi degli stati
 `Annunciato → In negozio → Pianificato → In lavorazione → Pronta → Ritirata` (+ `Annullato`).
 "In lavorazione" scatta da sé quando si segna il primo intervento come fatto.
+
+## D17 – Orario settimanale "tipo" + eccezioni
+- **Decisione**: ogni persona ha un orario settimanale fisso diviso in fasce **Vendita** (banco) e **Officina**. Le variazioni (giorno libero occasionale, ferie, malattia) si registrano come **assenze di giornata intera**; le chiusure del negozio come **chiusure**.
+- **Perché**: copre il 95% dei casi con pochissimo inserimento dati. Una persona che il martedì fa solo vendita ha semplicemente solo fasce Vendita quel giorno.
+- **Non gestito (backlog)**: assenze di mezza giornata e orari diversi per stagione (es. estate). Oggi si cambia l'orario tipo quando serve.
+
+## D18 – Festività nazionali chiuse in automatico ⚠️
+- **Decisione**: Capodanno, Epifania, Pasqua e Pasquetta, 25 aprile, 1° maggio, 2 giugno, Ferragosto, Ognissanti, Immacolata, Natale e Santo Stefano sono giorni di chiusura senza doverli inserire. Il patrono va aggiunto a mano.
+- **Se il negozio apre nei festivi**: impostare `BOFF_FESTIVI_CHIUSI=false` e inserire a mano solo le chiusure reali.
+
+## D19 – Assenze e chiusure gestibili anche dal collaboratore
+- **Perché**: hai chiesto che in tua assenza si occupi lui di tutto. L'orario tipo invece resta del titolare (è una decisione organizzativa).

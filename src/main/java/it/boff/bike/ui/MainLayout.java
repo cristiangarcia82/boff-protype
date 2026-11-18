@@ -22,7 +22,10 @@ import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import it.boff.bike.security.UtenteCorrente;
+import it.boff.bike.ui.views.AssenzeView;
 import it.boff.bike.ui.views.BachecaView;
+import it.boff.bike.ui.views.CalendarioView;
+import it.boff.bike.ui.views.OrariView;
 import it.boff.bike.ui.views.CatalogoView;
 import it.boff.bike.ui.views.ClientiView;
 import it.boff.bike.ui.views.LavoriView;
@@ -147,11 +150,13 @@ public class MainLayout extends AppLayout {
             return java.util.List.of(
                     new VoceMenu("Bacheca", BachecaView.class, VaadinIcon.DASHBOARD),
                     new VoceMenu("Lavori", LavoriView.class, VaadinIcon.WRENCH),
-                    new VoceMenu("Clienti", ClientiView.class, VaadinIcon.USER_CARD));
+                    new VoceMenu("Calendario", CalendarioView.class, VaadinIcon.CALENDAR),
+                    new VoceMenu("Clienti", ClientiView.class, VaadinIcon.USER_CARD),
+                    new VoceMenu("Assenze e chiusure", AssenzeView.class, VaadinIcon.CALENDAR_USER));
         }
 
         static java.util.List<VoceMenu> impostazioni() {
-            return java.util.List.of();
+            return java.util.List.of(new VoceMenu("Orari", OrariView.class, VaadinIcon.CLOCK));
         }
     }
 }
