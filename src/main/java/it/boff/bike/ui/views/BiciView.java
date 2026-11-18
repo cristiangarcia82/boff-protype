@@ -20,7 +20,10 @@ import it.boff.bike.bicicletta.Bicicletta;
 import it.boff.bike.bicicletta.BiciclettaService;
 import it.boff.bike.bicicletta.DatiBicicletta;
 import it.boff.bike.catalogo.CatalogoService;
+import it.boff.bike.common.ErroreDominio;
+import it.boff.bike.lavoro.FotoService;
 import it.boff.bike.lavoro.Lavoro;
+import it.boff.bike.ui.componenti.GalleriaFoto;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.lavoro.RigaLavoro;
 import it.boff.bike.lavoro.StatoLavoro;
@@ -44,11 +47,13 @@ public class BiciView extends Div implements BeforeEnterObserver {
     private final BiciclettaService biciclette;
     private final LavoroService lavori;
     private final CatalogoService catalogo;
+    private final FotoService foto;
     private final Long clienteId;
     private Long biciId;
 
     public BiciView(BiciclettaService biciclette, LavoroService lavori, CatalogoService catalogo,
-                    UtenteCorrente utenteCorrente) {
+                    UtenteCorrente utenteCorrente, FotoService foto) {
+        this.foto = foto;
         this.biciclette = biciclette;
         this.lavori = lavori;
         this.catalogo = catalogo;
@@ -125,6 +130,8 @@ public class BiciView extends Div implements BeforeEnterObserver {
             note.addClassName("boff-testo-secondario");
             card.add(note);
         }
+        card.add(new GalleriaFoto(foto, l.getId(), false,
+                (nome, dati) -> foto.aggiungiDelCliente(clienteId, l.getId(), nome, dati)));
         if (l.getStato() == StatoLavoro.ANNUNCIATO) {
             Button annulla = new Button("Annulla la richiesta", e -> {
                 ConfirmDialog c = new ConfirmDialog("Annullare la richiesta?",
@@ -175,9 +182,17 @@ public class BiciView extends Div implements BeforeEnterObserver {
         new AnnuncioDialog("Annuncia un lavoro – " + b.getNome(),
                 "Seleziona gli interventi e/o descrivi il problema. Non serve prendere appuntamento: "
                         + "porta la bici quando vuoi, organizziamo noi i lavori.",
-                catalogo.attivi(), (tipi, note) -> {
-                    lavori.annuncia(clienteId, b.getId(), tipi, note);
-                    Avvisi.ok("Richiesta inviata al negozio");
+                catalogo.attivi(), true, (tipi, note, scelte) -> {
+                    Long id = lavori.annuncia(clienteId, b.getId(), tipi, note).getId();
+                    int scartate = 0;
+                    for (AnnuncioDialog.FotoScelta f : scelte) {
+                        try {
+                            foto.aggiungiDelCliente(clienteId, id, f.nome(), f.dati());
+                        } catch (ErroreDominio ex) {
+                            scartate++;
+                        }
+                    }
+                    Avvisi.ok("Richiesta inviata al negozio" + (scartate > 0 ? " (" + scartate + " foto non accettate)" : ""));
                     mostra();
                 }).open();
     }

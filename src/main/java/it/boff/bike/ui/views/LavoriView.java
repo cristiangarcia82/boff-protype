@@ -21,6 +21,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import it.boff.bike.bicicletta.BiciclettaService;
 import it.boff.bike.catalogo.CatalogoService;
+import it.boff.bike.lavoro.FotoService;
 import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.lavoro.StatoLavoro;
@@ -65,9 +66,9 @@ public class LavoriView extends Div implements BeforeEnterObserver {
     private Long selezionato;
 
     public LavoriView(LavoroService service, CatalogoService catalogo, UtenteService utenti,
-                      BiciclettaService biciclette, PianificazioneService pianificazione) {
+                      BiciclettaService biciclette, PianificazioneService pianificazione, FotoService foto) {
         this.service = service;
-        this.pannello = new LavoroPannello(service, catalogo, pianificazione, this::aggiornaElenco);
+        this.pannello = new LavoroPannello(service, catalogo, pianificazione, foto, this::aggiornaElenco);
         addClassName("boff-pagina");
 
         Button nuovo = new Button("Nuovo lavoro", VaadinIcon.PLUS.create(), e ->

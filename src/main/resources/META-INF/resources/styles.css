@@ -282,3 +282,33 @@ html { --boff-colore-lavoro: #b7791f; }
 .boff-attiva-notifiche { border-left: 4px solid var(--lumo-primary-color); margin-bottom: var(--lumo-space-m); }
 .boff-attiva-notifiche p { margin-top: 0; }
 .boff-cerca-globale { margin-left: auto; margin-right: var(--lumo-space-m); width: min(360px, 45vw); }
+
+/* ---- Foto ---- */
+.boff-galleria { display: flex; flex-direction: column; gap: var(--lumo-space-s); }
+.boff-miniature { display: flex; flex-wrap: wrap; gap: var(--lumo-space-s); }
+.boff-miniatura {
+    width: 88px; height: 88px; object-fit: cover; cursor: zoom-in;
+    border-radius: var(--lumo-border-radius-m); background: var(--lumo-contrast-10pct);
+}
+.boff-foto-grande { max-width: min(90vw, 900px); max-height: 75vh; display: block; }
+.boff-foto-in-attesa { font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color); }
+
+/* ---- Statistiche: barre orizzontali (una serie, colore del marchio, valori in testo) ---- */
+.boff-barre { display: flex; flex-direction: column; gap: var(--lumo-space-s); }
+.boff-barre .riga {
+    display: grid;
+    grid-template-columns: minmax(140px, 2fr) 3fr minmax(110px, auto);
+    align-items: center;
+    gap: var(--lumo-space-m);
+    font-size: var(--lumo-font-size-s);
+}
+.boff-barre .traccia { height: 10px; }
+.boff-barre .barra {
+    display: block; height: 10px; background: var(--boff-verde);
+    border-radius: 0 4px 4px 0;
+}
+.boff-barre .valore { color: var(--lumo-secondary-text-color); text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) {
+    .boff-barre .riga { grid-template-columns: 1fr auto; }
+    .boff-barre .traccia { grid-column: 1 / -1; order: 3; }
+}

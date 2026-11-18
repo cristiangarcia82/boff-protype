@@ -145,3 +145,15 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 
 ## D34 – Ricerca rapida per lo staff
 - Cerca per nome/cognome (in qualsiasi ordine), email, telefono, marca e modello della bici. Non cerca nel numero di telaio (backlog, se utile).
+
+## D35 – Foto nel database ⚠️
+- **Decisione**: le foto sono salvate nel database PostgreSQL, non su disco.
+- **Perché**: un solo posto da salvare (il backup giornaliero le include già), nessun permesso di cartelle da gestire sul server.
+- **Costo**: il database cresce (ordine di qualche GB l'anno). Se diventasse un problema: ridimensionamento automatico delle foto o archiviazione su disco/S3.
+
+## D36 – Limiti foto
+- Cliente: 3 foto per lavoro (bastano per mostrare il problema). Negozio: fino a 10 in totale (es. prima/dopo). Massimo 8 MB ciascuna.
+
+## D37 – Statistiche essenziali, senza grafici complessi
+- Indicatori numerici e un elenco a barre degli interventi più richiesti. Niente librerie di grafici: sono domande semplici ("quanto lavoro, quanto ci mettiamo, rispettiamo le promesse?").
+- **Non misurato**: il tempo reale di lavoro (l'app conosce solo i tempi stimati). Se interessasse, si può aggiungere un "tempo effettivo" quando si segna un intervento come fatto.

@@ -41,10 +41,12 @@ public class PrivacyService {
     private final TokenPasswordRepository tokens;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper json;
+    private final it.boff.bike.lavoro.FotoService foto;
 
     public PrivacyService(UtenteRepository utenti, BiciclettaRepository biciclette, BiciclettaService biciclettaService,
                           LavoroService lavori, IscrizionePushRepository iscrizioni, TokenPasswordRepository tokens,
-                          PasswordEncoder passwordEncoder, ObjectMapper json) {
+                          PasswordEncoder passwordEncoder, ObjectMapper json, it.boff.bike.lavoro.FotoService foto) {
+        this.foto = foto;
         this.utenti = utenti;
         this.biciclette = biciclette;
         this.biciclettaService = biciclettaService;
@@ -95,6 +97,7 @@ public class PrivacyService {
             m.put("chiusoIl", testo(l.getChiusoIl()));
             m.put("noteCliente", l.getNoteCliente());
             m.put("interventi", l.getRighe().stream().map(RigaLavoro::getDescrizione).toList());
+            m.put("foto", foto.elenco(l.getId()).stream().map(f -> f.nomeFile()).toList());
             elenco.add(m);
         }
         dati.put("lavori", elenco);
@@ -112,6 +115,7 @@ public class PrivacyService {
         biciclette.findByProprietarioIdOrderById(clienteId).stream().filter(b -> !b.isArchiviata())
                 .forEach(b -> biciclettaService.rimuovi(clienteId, b.getId()));
         lavori.cancellaNoteDelCliente(clienteId);
+        foto.eliminaDelCliente(clienteId);
         iscrizioni.deleteByUtenteId(clienteId);
         tokens.deleteByUtenteId(clienteId);
         byte[] casuale = new byte[32];

@@ -20,7 +20,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import it.boff.bike.catalogo.CatalogoService;
 import it.boff.bike.catalogo.TipoIntervento;
 import it.boff.bike.common.ErroreDominio;
+import it.boff.bike.lavoro.FotoService;
 import it.boff.bike.lavoro.Lavoro;
+import it.boff.bike.ui.componenti.GalleriaFoto;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.lavoro.RigaLavoro;
 import it.boff.bike.lavoro.StatoLavoro;
@@ -40,11 +42,13 @@ class LavoroPannello extends Div {
     private final LavoroService service;
     private final CatalogoService catalogo;
     private final PianificazioneService pianificazione;
+    private final FotoService foto;
     private final Runnable dopoModifica;
     private Long lavoroId;
 
     LavoroPannello(LavoroService service, CatalogoService catalogo, PianificazioneService pianificazione,
-                   Runnable dopoModifica) {
+                   FotoService foto, Runnable dopoModifica) {
+        this.foto = foto;
         this.pianificazione = pianificazione;
         this.service = service;
         this.catalogo = catalogo;
@@ -124,6 +128,10 @@ class LavoroPannello extends Div {
             nc.addClassName("boff-card");
             add(nc);
         }
+        Div schedaFoto = new Div(new H4("Foto"), new GalleriaFoto(foto, id, true,
+                (nome, dati) -> foto.aggiungiDelNegozio(id, nome, dati)));
+        schedaFoto.addClassName("boff-card");
+        add(schedaFoto);
         add(dettagli(l, aperto));
     }
 

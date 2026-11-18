@@ -107,3 +107,16 @@ Rilettura del codice a fine sviluppo. I problemi trovati durante la notte e già
 | Ricerca rapida | Fatto: campo nella barra in alto (Alt+K), risultati su clienti e lavori, link diretti alla scheda (con test). |
 | Trovato in review | Dopo una build di produzione (`-Pproduction`) l'avvio in sviluppo usava un CSS vecchio rimasto in `target/`: non è un difetto dell'app, ma è documentato nel README (`mvn clean`). |
 | Limite accettato | In un giorno non si possono registrare due assenze parziali per la stessa persona (caso raro; basta un'unica fascia più ampia). |
+
+---
+
+# Review fase 8 – Foto e statistiche
+
+| Voce | Esito |
+|---|---|
+| Foto del problema | Il cliente allega fino a 3 foto nell'annuncio (o dopo, finché il lavoro è aperto); il negozio ne aggiunge fino a 10 per lavoro e le può eliminare. Formato verificato leggendo l'intestazione del file (JPEG, PNG, WebP, HEIC), massimo 8 MB. Con test, provato nel browser. |
+| Sicurezza foto | Le immagini sono servite solo a chi vede la schermata (legate alla sessione); un cliente non può allegare foto a lavori altrui; le foto vengono cancellate con l'account. |
+| Statistiche | Lavori ricevuti, consegnati, annullati, tempo medio in negozio, puntualità sulla data promessa, nuovi clienti, interventi più richiesti (30 giorni / 3 mesi / anno). Con test. |
+| Trovato in review | Testi del caricamento in inglese → tradotti; etichette delle barre ambigue ("2 · 40 min") → "2 volte · 40 min". |
+| Rischio | **Foto HEIC** (formato iPhone): Safari le mostra, Chrome no. Di solito l'iPhone le converte in JPEG durante il caricamento; se così non fosse, sul Mac usare Safari. In backlog: conversione lato server. |
+| Rischio | Le foto stanno nel database (incluse nei backup). Con molte foto il database cresce (stima: 3 foto × 2 MB × 20 lavori/settimana ≈ 6 GB/anno). In backlog: ridimensionamento automatico. |
