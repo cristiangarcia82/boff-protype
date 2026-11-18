@@ -2,28 +2,23 @@ package it.boff.bike.ui.views;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
-import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import it.boff.bike.bicicletta.Bicicletta;
 import it.boff.bike.bicicletta.BiciclettaService;
 import it.boff.bike.bicicletta.DatiBicicletta;
-import it.boff.bike.bicicletta.Tipologia;
 import it.boff.bike.security.Ruoli;
 import it.boff.bike.security.UtenteCorrente;
+import it.boff.bike.ui.componenti.Avvisi;
+import it.boff.bike.ui.componenti.SchedaBici;
 import jakarta.annotation.security.RolesAllowed;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /** Area del cliente: le sue biciclette. Pensata per il telefono. */
@@ -63,46 +58,14 @@ public class LeMieBiciView extends Div {
             vuoto.addClassNames("boff-card", "boff-vuoto");
             elenco.add(vuoto);
         } else {
-            bici.forEach(b -> elenco.add(scheda(b)));
+            bici.forEach(b -> elenco.add(new SchedaBici(b, () -> apriModifica(b))));
         }
-    }
-
-    private Div scheda(Bicicletta b) {
-        Image icona = new Image("icons/icon.png", "");
-        icona.addClassName("boff-bici-icona");
-
-        Span nome = new Span(b.getNome());
-        nome.addClassName("boff-bici-nome");
-
-        List<String> dettagli = new ArrayList<>();
-        dettagli.add(b.getTipologia().getEtichetta());
-        if (b.isElettrica() && b.getTipologia() != Tipologia.EBIKE) {
-            dettagli.add("elettrica");
-        }
-        if (b.getTaglia() != null) dettagli.add("taglia " + b.getTaglia());
-        if (b.getColore() != null) dettagli.add(b.getColore());
-        if (b.getAnno() != null) dettagli.add(String.valueOf(b.getAnno()));
-        Span info = new Span(String.join(" · ", dettagli));
-        info.addClassName("boff-bici-info");
-
-        Div testi = new Div(nome, info);
-        testi.addClassName("boff-bici-testi");
-
-        Div scheda = new Div(icona, testi, VaadinIcon.ANGLE_RIGHT.create());
-        scheda.addClassNames("boff-card", "boff-bici");
-        scheda.getElement().setAttribute("role", "button");
-        scheda.getElement().setAttribute("tabindex", "0");
-        scheda.getElement().setAttribute("aria-label", "Modifica " + b.getNome());
-        scheda.addClickListener(e -> apriModifica(b));
-        // accessibile anche da tastiera (Invio sulla scheda selezionata)
-        Shortcuts.addShortcutListener(scheda, () -> apriModifica(b), Key.ENTER).listenOn(scheda);
-        return scheda;
     }
 
     private void apriNuova() {
         new BiciclettaDialog(new DatiBicicletta(), true, dati -> {
             service.aggiungi(utenteId, dati);
-            avvisa("Bici aggiunta");
+            Avvisi.ok("Bici aggiunta");
             aggiorna();
         }, null).open();
     }
@@ -110,17 +73,13 @@ public class LeMieBiciView extends Div {
     private void apriModifica(Bicicletta b) {
         new BiciclettaDialog(DatiBicicletta.da(b), false, dati -> {
             service.modifica(utenteId, b.getId(), dati);
-            avvisa("Modifiche salvate");
+            Avvisi.ok("Modifiche salvate");
             aggiorna();
         }, () -> {
             service.rimuovi(utenteId, b.getId());
-            avvisa("Bici rimossa");
+            Avvisi.ok("Bici rimossa");
             aggiorna();
         }).open();
     }
 
-    private static void avvisa(String testo) {
-        Notification n = Notification.show(testo, 2500, Notification.Position.BOTTOM_CENTER);
-        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-    }
 }

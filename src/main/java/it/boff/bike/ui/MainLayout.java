@@ -6,19 +6,28 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.Layout;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import it.boff.bike.security.UtenteCorrente;
 import it.boff.bike.ui.views.BachecaView;
-import it.boff.bike.ui.views.ImpostazioniView;
+import it.boff.bike.ui.views.CatalogoView;
+import it.boff.bike.ui.views.ClientiView;
+import it.boff.bike.ui.views.LeMieBiciView;
+import it.boff.bike.ui.views.ProfiloView;
+import it.boff.bike.ui.views.UtentiView;
 import it.boff.bike.utente.Utente;
 import jakarta.annotation.security.PermitAll;
 
@@ -26,7 +35,7 @@ import jakarta.annotation.security.PermitAll;
  * Layout principale.
  * <ul>
  *   <li>Staff: menu laterale sempre visibile sul monitor del Mac, a scomparsa sul telefono.</li>
- *   <li>Cliente: solo barra in alto, pensata per il telefono.</li>
+ *   <li>Cliente: solo barra in alto, pensata per il telefono; il menu si apre dall'avatar.</li>
  * </ul>
  */
 @Layout
@@ -49,16 +58,30 @@ public class MainLayout extends AppLayout {
         addToNavbar(new DrawerToggle(), titolo());
 
         SideNav nav = new SideNav();
-        nav.addItem(new SideNavItem("Bacheca", BachecaView.class, VaadinIcon.DASHBOARD.create()));
+        for (VoceMenu voce : MenuStaff.voci(utenteCorrente.isTitolare())) {
+            SideNavItem item = new SideNavItem(voce.etichetta(), voce.vista(), voce.icona().create());
+            nav.addItem(item);
+        }
         if (utenteCorrente.isTitolare()) {
-            nav.addItem(new SideNavItem("Impostazioni", ImpostazioniView.class, VaadinIcon.COG.create()));
+            SideNavItem impostazioni = new SideNavItem("Impostazioni");
+            impostazioni.setPrefixComponent(VaadinIcon.COG.create());
+            impostazioni.addItem(new SideNavItem("Personale", UtentiView.class, VaadinIcon.USERS.create()));
+            impostazioni.addItem(new SideNavItem("Catalogo interventi", CatalogoView.class, VaadinIcon.LIST.create()));
+            for (VoceMenu voce : MenuStaff.impostazioni()) {
+                impostazioni.addItem(new SideNavItem(voce.etichetta(), voce.vista(), voce.icona().create()));
+            }
+            impostazioni.setExpanded(true);
+            nav.addItem(impostazioni);
         }
 
         VerticalLayout drawer = new VerticalLayout(nav);
         drawer.setPadding(true);
         drawer.setHeightFull();
         utenteCorrente.get().ifPresent(utente -> {
-            VerticalLayout footer = new VerticalLayout(profilo(utente, true), pulsanteEsci());
+            RouterLink profilo = new RouterLink(ProfiloView.class);
+            profilo.add(profilo(utente));
+            profilo.addClassName("boff-link-profilo");
+            VerticalLayout footer = new VerticalLayout(profilo, pulsanteEsci());
             footer.setPadding(false);
             footer.addClassNames(LumoUtility.Margin.Top.AUTO);
             drawer.add(footer);
@@ -67,16 +90,32 @@ public class MainLayout extends AppLayout {
     }
 
     private void layoutCliente() {
-        HorizontalLayout barra = new HorizontalLayout(titolo());
+        RouterLink home = new RouterLink(LeMieBiciView.class);
+        home.add(titolo());
+        home.addClassName("boff-link-titolo");
+        HorizontalLayout barra = new HorizontalLayout(home);
         barra.setWidthFull();
         barra.setAlignItems(FlexComponent.Alignment.CENTER);
         barra.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM);
+        barra.setFlexGrow(1, home);
         utenteCorrente.get().ifPresent(utente -> {
-            Component profilo = profilo(utente, false);
-            barra.add(profilo, pulsanteEsci());
-            barra.setFlexGrow(1, barra.getComponentAt(0));
+            MenuBar menu = new MenuBar();
+            menu.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
+            Avatar avatar = new Avatar(utente.getNomeCompleto());
+            MenuItem radice = menu.addItem(avatar);
+            radice.getElement().setAttribute("aria-label", "Menu utente");
+            SubMenu sotto = radice.getSubMenu();
+            sotto.addItem("Le mie bici", e -> naviga(LeMieBiciView.class));
+            sotto.addItem("Il mio profilo", e -> naviga(ProfiloView.class));
+            sotto.addItem("Installa l'app", e -> getUI().ifPresent(ui -> ui.navigate("installa")));
+            sotto.addItem("Esci", e -> utenteCorrente.logout());
+            barra.add(menu);
         });
         addToNavbar(barra);
+    }
+
+    private void naviga(Class<? extends Component> vista) {
+        getUI().ifPresent(ui -> ui.navigate(vista));
     }
 
     private static H1 titolo() {
@@ -85,12 +124,8 @@ public class MainLayout extends AppLayout {
         return titolo;
     }
 
-    private static Component profilo(Utente utente, boolean conNome) {
+    private static Component profilo(Utente utente) {
         Avatar avatar = new Avatar(utente.getNomeCompleto());
-        avatar.setTooltipEnabled(true);
-        if (!conNome) {
-            return avatar;
-        }
         HorizontalLayout profilo = new HorizontalLayout(avatar, new Span(utente.getNomeCompleto()));
         profilo.setAlignItems(FlexComponent.Alignment.CENTER);
         return profilo;
@@ -100,5 +135,21 @@ public class MainLayout extends AppLayout {
         Button esci = new Button("Esci", VaadinIcon.SIGN_OUT.create(), e -> utenteCorrente.logout());
         esci.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         return esci;
+    }
+
+    record VoceMenu(String etichetta, Class<? extends Component> vista, VaadinIcon icona) {
+    }
+
+    /** Voci del menu dello staff: aggiornate man mano che le fasi aggiungono schermate. */
+    static final class MenuStaff {
+        static java.util.List<VoceMenu> voci(boolean titolare) {
+            return java.util.List.of(
+                    new VoceMenu("Bacheca", BachecaView.class, VaadinIcon.DASHBOARD),
+                    new VoceMenu("Clienti", ClientiView.class, VaadinIcon.USER_CARD));
+        }
+
+        static java.util.List<VoceMenu> impostazioni() {
+            return java.util.List.of();
+        }
     }
 }

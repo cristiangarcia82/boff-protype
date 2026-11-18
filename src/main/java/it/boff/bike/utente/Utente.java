@@ -43,6 +43,11 @@ public class Utente {
     @Column(nullable = false)
     private boolean attivo = true;
 
+    private String telefono;
+
+    @Column(name = "privacy_accettata_il")
+    private OffsetDateTime privacyAccettataIl;
+
     @Column(name = "creato_il", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime creatoIl;
 
@@ -79,6 +84,13 @@ public class Utente {
         return nome + " " + cognome;
     }
 
+    public String getTelefono() { return telefono; }
+    public OffsetDateTime getPrivacyAccettataIl() { return privacyAccettataIl; }
+
     public void setAttivo(boolean attivo) { this.attivo = attivo; }
+    public void setNome(String nome) { this.nome = nome; }
+    public void setCognome(String cognome) { this.cognome = cognome; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+    public void setPrivacyAccettataIl(OffsetDateTime quando) { this.privacyAccettataIl = quando; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 }

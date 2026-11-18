@@ -60,12 +60,16 @@ public class DatiIniziali implements ApplicationRunner {
         creaSeAssente("titolare@demo.it", "Mario", "Rossi", Ruolo.STAFF, true);
         creaSeAssente("collaboratore@demo.it", "Luca", "Bianchi", Ruolo.STAFF, false);
         creaSeAssente("cliente@demo.it", "Giulia", "Verdi", Ruolo.CLIENTE, false);
+        creaSeAssente("paolo.ferri@demo.it", "Paolo", "Ferri", Ruolo.CLIENTE, false);
+        creaSeAssente("sara.conti@demo.it", "Sara", "Conti", Ruolo.CLIENTE, false);
         log.warn("Utenti demo attivi (password '{}'). Non usare boff.demo=true in produzione!", PASSWORD_DEMO);
     }
 
-    private void creaSeAssente(String email, String nome, String cognome, Ruolo ruolo, boolean titolare) {
-        if (!utenti.existsByEmail(email)) {
-            utenti.save(new Utente(email, passwordEncoder.encode(PASSWORD_DEMO), nome, cognome, ruolo, titolare));
-        }
+    private Utente creaSeAssente(String email, String nome, String cognome, Ruolo ruolo, boolean titolare) {
+        return utenti.findByEmail(email).orElseGet(() -> {
+            Utente u = new Utente(email, passwordEncoder.encode(PASSWORD_DEMO), nome, cognome, ruolo, titolare);
+            u.setTelefono("+39 333 000 00" + (utenti.count() % 100));
+            return utenti.save(u);
+        });
     }
 }

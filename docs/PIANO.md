@@ -70,7 +70,7 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 | Fase | Contenuto | Stato |
 |---|---|---|
 | 0. Setup | Progetto, DB, login, ruoli, PWA, CI | ✅ completata |
-| 1. Anagrafiche | ✅ il cliente gestisce in autonomia le proprie bici · da fare: registrazione cliente, vista staff di clienti e bici, catalogo interventi, gestione utenti | in corso |
+| 1. Anagrafiche | Registrazione cliente, profilo, bici del cliente, clienti e bici per lo staff, catalogo interventi, personale | ✅ completata |
 | 2. Lavori | Annuncio del cliente, check-in, stati, storico bici | da fare |
 | 3. Calendario | Orari e slot vendita/officina, assenze, festività | da fare |
 | 4. Pianificazione | Scheduler, vista giorno/settimana, spostamento manuale, carico | da fare |

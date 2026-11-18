@@ -18,7 +18,7 @@ import it.boff.bike.bicicletta.Tipologia;
 import java.util.function.Consumer;
 
 /** Modulo per aggiungere o modificare una bicicletta. */
-class BiciclettaDialog extends Dialog {
+public class BiciclettaDialog extends Dialog {
 
     private final BeanValidationBinder<DatiBicicletta> binder = new BeanValidationBinder<>(DatiBicicletta.class);
 
@@ -28,7 +28,7 @@ class BiciclettaDialog extends Dialog {
      * @param salva     chiamato con i dati validati
      * @param rimuovi   chiamato dopo la conferma di rimozione (solo in modifica)
      */
-    BiciclettaDialog(DatiBicicletta dati, boolean nuova, Consumer<DatiBicicletta> salva, Runnable rimuovi) {
+    public BiciclettaDialog(DatiBicicletta dati, boolean nuova, Consumer<DatiBicicletta> salva, Runnable rimuovi) {
         setHeaderTitle(nuova ? "Nuova bici" : "Modifica bici");
         setWidth("min(560px, 100vw)");
 
