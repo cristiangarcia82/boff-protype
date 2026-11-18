@@ -42,7 +42,8 @@ Accorgimenti per il Mac:
 ```
 Utente(id, email, password_hash, nome, cognome, ruolo[STAFF|CLIENTE], titolare, attivo)
 Cliente(id, utente_id, telefono, consenso_privacy, note)
-Bicicletta(id, cliente_id, marca, modello, tipo, taglia, n_telaio, foto)
+Bicicletta(id, proprietario_id, marca*, modello*, tipologia*, elettrica, taglia, colore, anno, numero_telaio, note, archiviata)
+  tipologia: CITTA | STRADA | GRAVEL | MTB | TREKKING | EBIKE | BAMBINO | ALTRO   (* obbligatori)
 TipoIntervento(id, nome, durata_standard_min, attivo)
 Lavoro(id, bicicletta_id, stato, data_checkin, data_pronta_prevista, priorita, note_cliente, note_interne)
 RigaLavoro(id, lavoro_id, tipo_intervento_id, descrizione_libera, durata_min, completata)
@@ -69,7 +70,7 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 | Fase | Contenuto | Stato |
 |---|---|---|
 | 0. Setup | Progetto, DB, login, ruoli, PWA, CI | ✅ completata |
-| 1. Anagrafiche | Clienti, bici, catalogo interventi, registrazione cliente, gestione utenti | da fare |
+| 1. Anagrafiche | ✅ il cliente gestisce in autonomia le proprie bici · da fare: registrazione cliente, vista staff di clienti e bici, catalogo interventi, gestione utenti | in corso |
 | 2. Lavori | Annuncio del cliente, check-in, stati, storico bici | da fare |
 | 3. Calendario | Orari e slot vendita/officina, assenze, festività | da fare |
 | 4. Pianificazione | Scheduler, vista giorno/settimana, spostamento manuale, carico | da fare |

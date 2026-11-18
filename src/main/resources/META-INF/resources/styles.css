@@ -77,3 +77,36 @@ html {
     flex-direction: column;
     gap: var(--lumo-space-m);
 }
+
+/* ---- Area cliente: biciclette ---- */
+.boff-intestazione {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lumo-space-m);
+    flex-wrap: wrap;
+}
+.boff-intestazione h2 { margin: 0; }
+
+.boff-bici {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-m);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.boff-bici:hover, .boff-bici:focus-visible { background: var(--lumo-contrast-10pct); outline: none; }
+.boff-bici > vaadin-icon { color: var(--lumo-tertiary-text-color); flex-shrink: 0; }
+
+.boff-bici-icona {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--lumo-border-radius-m);
+    flex-shrink: 0;
+}
+.boff-bici-testi { display: flex; flex-direction: column; flex-grow: 1; min-width: 0; }
+.boff-bici-nome { font-weight: 600; font-size: var(--lumo-font-size-l); }
+.boff-bici-info { color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
+
+.boff-vuoto p { margin: 0 0 var(--lumo-space-xs); }
+.boff-vuoto p + p { color: var(--lumo-secondary-text-color); }
