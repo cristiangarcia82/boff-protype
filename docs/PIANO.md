@@ -1,0 +1,61 @@
+# Piano di progetto – Boff Bike
+
+## Obiettivo
+Web app mobile (PWA, senza store) per gestire clienti, biciclette, lavori di officina e la
+pianificazione della manutenzione su 2 unità lavorative, separando le ore di vendita da quelle di officina.
+
+## Decisioni prese
+1. Il cliente **annuncia solo i lavori**; la data di lavorazione la decide il negozio.
+2. **Niente preventivi** né prezzi: per ogni intervento contano solo tipo e durata.
+3. Il collaboratore ha **gli stessi poteri operativi** del titolare e vede tutto il calendario.
+   Solo il titolare gestisce la configurazione (utenti, orari, catalogo).
+4. **Magazzino** escluso per ora.
+5. Notifiche **Web Push** (PWA) con email come riserva. Su iPhone richiedono iOS ≥ 16.4
+   e l'app aggiunta alla schermata Home.
+
+## Ruoli
+| Ruolo | Chi | Permessi |
+|---|---|---|
+| STAFF (+ TITOLARE) | Titolare | Tutto, inclusa la configurazione |
+| STAFF | Collaboratore | Clienti, bici, lavori, calendario, assenze |
+| CLIENTE | Clienti | Le proprie bici, annuncio lavori, stato dei lavori |
+
+## Flusso di un lavoro
+`ANNUNCIATA → IN NEGOZIO (check-in) → PIANIFICATA → IN LAVORAZIONE → PRONTA → RITIRATA`
+
+## Modello dati
+```
+Utente(id, email, password_hash, nome, cognome, ruolo[STAFF|CLIENTE], titolare, attivo)
+Cliente(id, utente_id, telefono, consenso_privacy, note)
+Bicicletta(id, cliente_id, marca, modello, tipo, taglia, n_telaio, foto)
+TipoIntervento(id, nome, durata_standard_min, attivo)
+Lavoro(id, bicicletta_id, stato, data_checkin, data_pronta_prevista, priorita, note_cliente, note_interne)
+RigaLavoro(id, lavoro_id, tipo_intervento_id, descrizione_libera, durata_min, completata)
+Operatore(id, utente_id, nome)
+OrarioSettimanale(id, operatore_id, giorno_sett, ora_inizio, ora_fine, tipo_slot[VENDITA|MANUTENZIONE])
+Assenza(id, operatore_id, data_inizio, data_fine, motivo)
+EccezioneCalendario(id, data, chiuso, note)
+Assegnazione(id, riga_lavoro_id, operatore_id, data, ora_inizio, ora_fine, bloccata)
+PushSubscription(id, utente_id, endpoint, chiavi, creata_il)
+```
+
+## Pianificazione
+1. Capacità di officina per persona e giorno = slot MANUTENZIONE − assenze − chiusure − assegnazioni bloccate.
+2. Lavori ordinati per data promessa, poi priorità, poi data di check-in.
+3. MVP: assegnazione greedy al primo slot libero (i lavori lunghi si possono spezzare).
+4. Evoluzione: Timefold Solver con vincoli (niente sovrapposizioni, date promesse, carico bilanciato).
+5. Le assegnazioni spostate a mano possono essere **bloccate**: lo scheduler non le tocca.
+
+## Stack
+Java 21 · Spring Boot 4.1 · Vaadin 25 (PWA) · Spring Security · PostgreSQL · Flyway ·
+Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
+
+## Roadmap
+| Fase | Contenuto | Stato |
+|---|---|---|
+| 0. Setup | Progetto, DB, login, ruoli, PWA, CI | ✅ completata |
+| 1. Anagrafiche | Clienti, bici, catalogo interventi, registrazione cliente, gestione utenti | da fare |
+| 2. Lavori | Annuncio del cliente, check-in, stati, storico bici | da fare |
+| 3. Calendario | Orari e slot vendita/officina, assenze, festività | da fare |
+| 4. Pianificazione | Scheduler, vista giorno/settimana, spostamento manuale, carico | da fare |
+| 5. Notifiche e deploy | Web Push + email, guida "Aggiungi a Home", HTTPS | da fare |

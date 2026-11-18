@@ -1,0 +1,16 @@
+html {
+    --boff-verde: #1f6f43;
+    --lumo-primary-color: var(--boff-verde);
+    --lumo-primary-text-color: var(--boff-verde);
+}
+
+.boff-card {
+    background: var(--lumo-contrast-5pct);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-m);
+}
+
+.boff-login {
+    min-height: 100vh;
+    background: linear-gradient(160deg, var(--lumo-contrast-5pct), var(--lumo-base-color));
+}

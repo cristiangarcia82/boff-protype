@@ -1,0 +1,14 @@
+# Database per lo sviluppo locale (avviato in automatico da Spring Boot)
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: boffbike
+      POSTGRES_USER: boffbike
+      POSTGRES_PASSWORD: boffbike
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
