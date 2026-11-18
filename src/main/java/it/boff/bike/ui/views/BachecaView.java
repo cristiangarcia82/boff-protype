@@ -18,6 +18,9 @@ import it.boff.bike.common.ErroreDominio;
 import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.pianificazione.Assegnazione;
 import it.boff.bike.pianificazione.PianificazioneService;
+import it.boff.bike.notifiche.NotificheService;
+import it.boff.bike.security.UtenteCorrente;
+import it.boff.bike.ui.componenti.AttivaNotifiche;
 import it.boff.bike.ui.componenti.Avvisi;
 import it.boff.bike.ui.componenti.Durate;
 import it.boff.bike.utente.Utente;
@@ -45,7 +48,8 @@ import java.util.List;
 @RolesAllowed(Ruoli.STAFF)
 public class BachecaView extends Div {
 
-    public BachecaView(LavoroService lavori, PianificazioneService pianificazione, CalendarioService calendario) {
+    public BachecaView(LavoroService lavori, PianificazioneService pianificazione, CalendarioService calendario,
+                       NotificheService notifiche, UtenteCorrente utenteCorrente) {
         addClassName("boff-pagina");
         LocalDate oggi = calendario.oggi();
         LocalDate lunedi = oggi.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -84,7 +88,8 @@ public class BachecaView extends Div {
         Div corpo = new Div(principale, laterale);
         corpo.addClassName("boff-bacheca-corpo");
 
-        add(new H2("Bacheca"), kpi, corpo);
+        add(new H2("Bacheca"), new AttivaNotifiche(notifiche, utenteCorrente.get().orElseThrow().getId(),
+                "Ricevi un avviso quando un cliente annuncia un nuovo lavoro."), kpi, corpo);
     }
 
     /** Interventi di oggi per persona, con la casella per segnarli come fatti. */

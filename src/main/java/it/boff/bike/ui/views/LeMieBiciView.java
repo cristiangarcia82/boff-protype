@@ -18,6 +18,8 @@ import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.security.Ruoli;
 import it.boff.bike.security.UtenteCorrente;
+import it.boff.bike.notifiche.NotificheService;
+import it.boff.bike.ui.componenti.AttivaNotifiche;
 import it.boff.bike.ui.componenti.Avvisi;
 import it.boff.bike.ui.componenti.BadgeStato;
 import it.boff.bike.ui.componenti.SchedaBici;
@@ -39,7 +41,8 @@ public class LeMieBiciView extends Div {
     private final Long utenteId;
     private final Div elenco = new Div();
 
-    public LeMieBiciView(BiciclettaService service, LavoroService lavori, UtenteCorrente utenteCorrente) {
+    public LeMieBiciView(BiciclettaService service, LavoroService lavori, UtenteCorrente utenteCorrente,
+                         NotificheService notifiche) {
         this.service = service;
         this.lavori = lavori;
         this.utenteId = utenteCorrente.get().orElseThrow().getId();
@@ -53,7 +56,8 @@ public class LeMieBiciView extends Div {
         intestazione.addClassName("boff-intestazione");
 
         elenco.addClassName("boff-colonna");
-        add(intestazione, elenco);
+        add(intestazione, new AttivaNotifiche(notifiche, utenteId,
+                "Ti avvisiamo quando la bici è arrivata, quando prevediamo di finirla e quando è pronta."), elenco);
         aggiorna();
     }
 

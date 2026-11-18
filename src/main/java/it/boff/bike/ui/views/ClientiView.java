@@ -23,6 +23,7 @@ import it.boff.bike.bicicletta.DatiBicicletta;
 import com.vaadin.flow.router.RouterLink;
 import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.lavoro.LavoroService;
+import it.boff.bike.notifiche.RecuperoPasswordService;
 import it.boff.bike.security.Ruoli;
 import it.boff.bike.ui.componenti.BadgeStato;
 import it.boff.bike.ui.componenti.Formati;
@@ -48,13 +49,15 @@ public class ClientiView extends Div {
     private final UtenteService utenti;
     private final BiciclettaService biciclette;
     private final LavoroService lavori;
+    private final RecuperoPasswordService recupero;
     private final boolean titolare;
     private final Grid<Utente> griglia = new Grid<>();
     private final TextField cerca = new TextField();
     private final Div dettaglio = new Div();
 
     public ClientiView(UtenteService utenti, BiciclettaService biciclette, LavoroService lavori,
-                       UtenteCorrente utenteCorrente) {
+                       UtenteCorrente utenteCorrente, RecuperoPasswordService recupero) {
+        this.recupero = recupero;
         this.utenti = utenti;
         this.lavori = lavori;
         this.biciclette = biciclette;
@@ -125,6 +128,13 @@ public class ClientiView extends Div {
         Div schedaCliente = new Div(titolo, contatti);
         schedaCliente.addClassName("boff-card");
 
+        Button invito = new Button("Invia link per la password", VaadinIcon.ENVELOPE_O.create(), e -> {
+            recupero.invitaCliente(c.getId());
+            Avvisi.ok("Email inviata a " + c.getEmail());
+        });
+        invito.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        invito.setTooltipText("Per i clienti registrati al banco: ricevono un link per scegliere la password");
+        schedaCliente.add(invito);
         if (titolare) {
             Button attiva = new Button(c.isAttivo() ? "Disattiva account" : "Riattiva account", e -> {
                 utenti.impostaAttivo(c.getId(), !c.isAttivo());

@@ -101,3 +101,28 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 
 ## D23 – Spostamento manuale: primo spazio libero del giorno scelto
 - Trascinando su una persona/giorno, l'intervento va nel **primo spazio libero di officina abbastanza lungo** di quella giornata. Se non c'è spazio l'app lo dice. Non si sceglie l'orario esatto (scelta per semplicità: in backlog).
+
+## D24 – Notifiche: cosa, a chi, come
+| Evento | Destinatario | Canale |
+|---|---|---|
+| Nuovo lavoro annunciato da un cliente | personale | push |
+| Bici arrivata in negozio (check-in di un lavoro annunciato) | cliente | push |
+| Prima pianificazione: "pronta indicativamente il …" | cliente | push |
+| Bici pronta | cliente | push, **email se il cliente non ha notifiche attive** |
+- **Non** si notificano i semplici spostamenti di data dovuti ai ricalcoli: sarebbero troppi. Il cliente vede sempre la data aggiornata nell'app.
+- Invio **asincrono dopo il salvataggio**: un servizio push lento non blocca mai l'interfaccia.
+
+## D25 – Web Push con il modulo ufficiale di Vaadin
+- **Decisione**: `flow-webpush` (Vaadin) invece di librerie di terzi: il service worker generato da Vaadin gestisce già la ricezione. Le chiavi VAPID sono generate al primo avvio e salvate nel database (devono restare stabili).
+- **Limite noto**: su iPhone le push funzionano solo con l'app aggiunta alla schermata Home (iOS ≥ 16.4). Il riquadro "Attiva le notifiche" rimanda alla guida `/installa`.
+
+## D26 – Email facoltative
+- Senza SMTP l'app funziona; le email (recupero password, "bici pronta" di riserva, invito ai clienti creati al banco) vengono solo scritte nel log. **In produzione è fortemente consigliato configurarle.**
+
+## D27 – Recupero password
+- Link monouso valido 2 ore; nel database solo l'hash SHA-256; massimo 3 richieste l'ora per account; risposta identica che l'email esista o meno (non si rivela chi è cliente).
+- Lo stesso meccanismo serve per i **clienti creati al banco** (pulsante "Invia link per la password" nella scheda cliente).
+
+## D28 – Messa online con Docker Compose + Caddy
+- Un solo server: app, PostgreSQL, Caddy (HTTPS automatico) e backup giornaliero. Semplice da gestire per un negozio; costi 5–10 €/mese. Vedi `docs/DEPLOY.md`.
+- **Alternativa scartata**: PaaS (Render, Railway…): più comodi ma più costosi con database gestito, e i dati restano meno sotto controllo.

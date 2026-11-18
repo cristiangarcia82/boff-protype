@@ -44,6 +44,12 @@ public class UiConfig implements VaadinServiceInitListener {
 
     /** Messaggio per l'utente: per gli errori "di dominio" (IllegalArgument/State) usa il testo dell'eccezione. */
     static String messaggioPer(Throwable t) {
+        for (Throwable x = t; x != null; x = x.getCause()) {
+            if (x.getMessage() != null && x.getMessage().contains("web push")) {
+                return "Non è stato possibile attivare le notifiche su questo dispositivo. Controlla che il "
+                        + "browser le consenta; su iPhone installa prima l'app (menu → Installa l'app).";
+            }
+        }
         Throwable c = t;
         while (c != null) {
             if ((c instanceof IllegalArgumentException || c instanceof IllegalStateException

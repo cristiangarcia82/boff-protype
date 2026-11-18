@@ -1,0 +1,79 @@
+# Produzione: app + PostgreSQL + Caddy (HTTPS automatico con Let's Encrypt) + backup giornaliero.
+# Uso (dalla cartella deploy/):
+#   cp .env.example .env      # e compilarlo
+#   docker compose -f compose.prod.yaml up -d --build
+services:
+  app:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/boffbike
+      DATABASE_USER: boffbike
+      DATABASE_PASSWORD: ${DB_PASSWORD}
+      BOFF_URL_PUBBLICO: https://${DOMINIO}
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: boffbike
+      POSTGRES_USER: boffbike
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dati-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U boffbike -d boffbike"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Copia del database una volta al giorno in ./backup; si conservano gli ultimi 30 giorni.
+  # Copiare periodicamente la cartella backup/ anche fuori dal server (vedi docs/DEPLOY.md).
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./backup:/backup
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          pg_dump -h db -U boffbike -Fc boffbike > /backup/boffbike-$$(date +%Y%m%d).dump \
+            && find /backup -name 'boffbike-*.dump' -mtime +30 -delete
+          sleep 86400
+        done
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - dati-caddy:/data
+    depends_on:
+      - app
+
+volumes:
+  dati-db:
+  dati-caddy:

@@ -74,4 +74,4 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 | 2. Lavori | Annuncio del cliente, check-in, stati, lavoro al banco, interventi e tempi, storico bici | ✅ completata |
 | 3. Calendario | Orari settimanali vendita/officina, assenze, chiusure, festività automatiche, vista settimanale | ✅ completata |
 | 4. Pianificazione | Pianificazione automatica, calendario con interventi trascinabili, blocco manuale, oggi in officina, carico settimanale | ✅ completata |
-| 5. Notifiche e deploy | Web Push + email, guida "Aggiungi a Home", HTTPS | da fare |
+| 5. Notifiche e deploy | Web Push + email, recupero password, guida "Installa l'app", Docker Compose + Caddy HTTPS + backup | ✅ completata |
