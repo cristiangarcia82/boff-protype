@@ -49,3 +49,37 @@ Legenda gravità: 🔴 da correggere subito · 🟠 importante · 🟡 miglioria
 | # | Gravità | Problema | Esito |
 |---|---|---|---|
 | A1 | 🟡 | Le schede delle bici erano selezionabili da tastiera ma non attivabili con Invio. | **Corretto**. |
+
+---
+
+# Review finale (dopo le fasi 1–5)
+
+Rilettura del codice a fine sviluppo. I problemi trovati durante la notte e già corretti (con test):
+
+| Problema trovato | Correzione |
+|---|---|
+| Elenco lavori: righe non caricate fuori transazione (`LazyInitializationException`) perché `getRighe()` restituisce una vista non modificabile | caricamento esplicito `caricaRighe()` + test che usa i dati fuori transazione |
+| Pianificazione: piccoli "buchi" tra interventi della stessa bici (arrotondamento al quarto d'ora applicato anche tra un intervento e l'altro) | arrotondamento solo su "adesso" + test |
+| Pianificazione: dopo uno spostamento manuale, il resto del lavoro poteva finire **prima** della parte fissata | il resto va dopo l'ultima parte fissata + test |
+| Editor orari: campi che uscivano dalla scheda | CSS a griglia con colonne comprimibili |
+| Notifiche: su iPhone senza app installata il riquadro spariva e il cliente non scopriva come attivarle | invito a installare l'app |
+| Rifiuto del permesso notifiche mostrato come "errore imprevisto" | messaggio specifico |
+
+## Limiti noti e rischi residui
+
+| # | Tema | Dettaglio | Proposta |
+|---|---|---|---|
+| R1 | **Notifiche push non provate fino al telefono** | In questo ambiente il browser automatico non raggiunge i servizi push di Google/Apple. Verificati: generazione chiavi, cifratura e firma verso un finto servizio push (test), registrazione del service worker e richiesta di iscrizione nel browser. | Prima prova reale appena l'app è online in HTTPS (10 minuti: iscriversi da telefono e segnare una bici "pronta"). |
+| R2 | Immagine Docker non costruita qui | La build Docker non ha accesso alla rete in questo ambiente. Verificati: build di produzione del jar (avviata e provata), validità del `compose.prod.yaml`. | La prima `docker compose up --build` sul server è il vero collaudo. |
+| R3 | Ricalcoli ripetuti | Un'azione può generare 2–3 ricalcoli del calendario. Con qualche decina di lavori sono millisecondi. | Ottimizzare solo se i lavori aperti diventano centinaia. |
+| R4 | Un'istanza sola | Blocco dei tentativi di login e serializzazione dei ricalcoli sono in memoria. Corretto per un server singolo. | Da rivedere solo se si scalasse su più server. |
+| R5 | Test dell'interfaccia | Le schermate sono state provate con script automatici durante lo sviluppo, ma non sono nei test di CI. | Aggiungere test end-to-end (Playwright) in CI. |
+| R6 | GDPR | Informativa in bozza; nessuna funzione di esportazione/cancellazione dati self-service (si fa a mano, su richiesta). | Completare l'informativa; aggiungere "Elimina il mio account". |
+| R7 | Backup fuori dal server | Il backup giornaliero resta sul server. | Copia periodica altrove (vedi DEPLOY.md). |
+
+## Backlog funzionale (non richiesto, emerso durante lo sviluppo)
+- Assenze di mezza giornata; orari stagionali (estate/inverno).
+- Scelta dell'orario esatto quando si sposta un intervento.
+- Foto della bici e del problema.
+- Ricerca globale (cliente/bici) dalla barra in alto.
+- Statistiche: tempi stimati vs reali, interventi più frequenti.
