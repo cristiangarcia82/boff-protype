@@ -81,3 +81,23 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 
 ## D19 – Assenze e chiusure gestibili anche dal collaboratore
 - **Perché**: hai chiesto che in tua assenza si occupi lui di tutto. L'orario tipo invece resta del titolare (è una decisione organizzativa).
+
+## D20 – Pianificazione automatica "greedy" invece di un ottimizzatore ⚠️
+- **Decisione**: algoritmo semplice e prevedibile, scritto da zero e coperto da test: ogni intervento va nel **primo spazio libero di officina** di chiunque, in quest'ordine di priorità:
+  1. lavori già **in lavorazione** (si finisce ciò che è iniziato);
+  2. lavori **urgenti**;
+  3. **data promessa** al cliente più vicina;
+  4. **ordine di arrivo** della bici.
+- **Perché**: con 2 persone e qualche decina di bici a settimana un ottimizzatore (es. Timefold) non dà benefici visibili ma rende i risultati meno prevedibili. Resta un'evoluzione possibile.
+- **Regole di dettaglio**: gli interventi della stessa bici sono in sequenza (mai due persone in parallelo sulla stessa bici); un intervento lungo si spezza su più fasce/giorni (pezzi non inferiori a 15 minuti); si pianifica dal quarto d'ora successivo ad "adesso" e mai prima dell'arrivo della bici; orizzonte di 90 giorni.
+
+## D21 – Il calendario si ricalcola da solo
+- **Quando**: dopo ogni modifica che lo influenza (check-in, interventi aggiunti/rimossi/fatti, durate, urgenza, data promessa, orari, assenze, chiusure), ogni ora (il tempo passa e ciò che non è stato fatto slitta in avanti) e con il pulsante **Ripianifica**.
+- **Gli spostamenti manuali vincono**: un intervento trascinato (o spostato con un tocco su telefono) viene **fissato** (lucchetto) e il ricalcolo non lo tocca; il resto dello stesso lavoro viene messo **dopo** la parte fissata. "Sblocca" lo restituisce al calcolo automatico.
+- **Effetto collaterale accettato**: gli interventi non fissati possono cambiare orario quando arriva un lavoro più urgente. È il comportamento voluto (il piano è sempre aggiornato); per "congelare" qualcosa basta fissarlo.
+
+## D22 – Cosa vede il cliente
+- La **data prevista** di consegna, aggiornata dalla pianificazione. Non vede orari né chi lavora sulla bici.
+
+## D23 – Spostamento manuale: primo spazio libero del giorno scelto
+- Trascinando su una persona/giorno, l'intervento va nel **primo spazio libero di officina abbastanza lungo** di quella giornata. Se non c'è spazio l'app lo dice. Non si sceglie l'orario esatto (scelta per semplicità: in backlog).

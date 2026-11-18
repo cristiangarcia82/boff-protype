@@ -21,6 +21,7 @@ import java.util.Optional;
  *   <li>Gli interventi dello stesso lavoro sono in sequenza (una bici, un banco da lavoro):
  *       il successivo inizia dopo la fine del precedente; a parità di orario si preferisce
  *       la persona che sta già lavorando su quella bici.</li>
+ *   <li>Se una parte del lavoro è stata fissata a mano, il resto viene pianificato dopo di essa.</li>
  *   <li>Un intervento lungo può essere spezzato su più fasce o giorni; non si creano
  *       pezzi più corti di {@value #PEZZO_MINIMO} minuti (salvo la parte finale).</li>
  * </ol>
@@ -73,8 +74,13 @@ public class Pianificatore {
         Map<Long, LocalDate> fine = new HashMap<>();
         List<Long> nonPianificabili = new ArrayList<>();
 
+        // si parte dal quarto d'ora successivo ad adesso; tra un intervento e l'altro nessun arrotondamento
+        LocalTime adessoArrotondato = arrotonda(adesso.toLocalTime());
+        LocalDateTime partenza = adessoArrotondato == null ? adesso.toLocalDate().plusDays(1).atStartOfDay()
+                : LocalDateTime.of(adesso.toLocalDate(), adessoArrotondato);
         for (LavoroDaPianificare l : lavori.stream().sorted(LavoroDaPianificare.ORDINE).toList()) {
-            LocalDateTime cursore = max(adesso, l.arrivo());
+            // ciò che resta del lavoro viene dopo l'ultimo pezzo fissato a mano (una bici, un intervento alla volta)
+            LocalDateTime cursore = max(max(partenza, l.arrivo()), fineBloccatePerLavoro.get(l.lavoroId()));
             Long personaPreferita = null;
             boolean ok = true;
             for (RigaDaPianificare r : l.righe()) {
@@ -111,8 +117,7 @@ public class Pianificatore {
     private Optional<Pezzo> primoSpazio(Long lavoroId, Long rigaId, LocalDateTime da, int minuti, Long preferita) {
         for (int i = 0; i < GIORNI_ORIZZONTE; i++) {
             LocalDate giorno = da.toLocalDate().plusDays(i);
-            LocalTime minimo = i == 0 ? arrotonda(da.toLocalTime()) : LocalTime.MIN;
-            if (i == 0 && minimo == null) continue; // oltre la mezzanotte
+            LocalTime minimo = i == 0 ? da.toLocalTime() : LocalTime.MIN;
             Candidato migliore = null;
             for (Long persona : ore.persone()) {
                 for (Intervallo fascia : ore.officina(persona, giorno)) {

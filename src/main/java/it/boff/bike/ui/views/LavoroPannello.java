@@ -24,6 +24,7 @@ import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.lavoro.RigaLavoro;
 import it.boff.bike.lavoro.StatoLavoro;
+import it.boff.bike.pianificazione.PianificazioneService;
 import it.boff.bike.ui.componenti.Avvisi;
 import it.boff.bike.ui.componenti.BadgeStato;
 import it.boff.bike.ui.componenti.CampoData;
@@ -38,10 +39,13 @@ class LavoroPannello extends Div {
 
     private final LavoroService service;
     private final CatalogoService catalogo;
+    private final PianificazioneService pianificazione;
     private final Runnable dopoModifica;
     private Long lavoroId;
 
-    LavoroPannello(LavoroService service, CatalogoService catalogo, Runnable dopoModifica) {
+    LavoroPannello(LavoroService service, CatalogoService catalogo, PianificazioneService pianificazione,
+                   Runnable dopoModifica) {
+        this.pianificazione = pianificazione;
         this.service = service;
         this.catalogo = catalogo;
         this.dopoModifica = dopoModifica;
@@ -93,6 +97,26 @@ class LavoroPannello extends Div {
             interventi.add(aggiungiRiga());
         }
         add(interventi);
+
+        // --- calendario ---
+        if (StatoLavoro.IN_OFFICINA.contains(l.getStato())) {
+            Div cal = new Div(new H4("In calendario"));
+            cal.addClassName("boff-card");
+            var pezzi = pianificazione.diLavoro(id);
+            if (pezzi.isEmpty()) {
+                Paragraph p = new Paragraph("Non ancora in calendario (nessuna ora di officina disponibile?).");
+                p.addClassName("boff-testo-secondario");
+                cal.add(p);
+            }
+            pezzi.forEach(a -> {
+                Div v = new Div(new Span(Formati.giorno(a.getData()) + " " + a.getOraInizio() + "–" + a.getOraFine()
+                        + " · " + a.getUtente().getNome() + " · " + a.getRiga().getDescrizione()));
+                if (a.isBloccata()) v.add(VaadinIcon.LOCK.create());
+                v.addClassName("boff-riga-icona");
+                cal.add(v);
+            });
+            add(cal);
+        }
 
         // --- dettagli ---
         if (l.getNoteCliente() != null) {

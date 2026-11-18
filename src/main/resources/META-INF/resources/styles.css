@@ -259,3 +259,23 @@ html {
 .boff-capacita { font-size: var(--lumo-font-size-xs); color: var(--lumo-secondary-text-color); margin-top: auto; }
 
 .boff-fascia > vaadin-time-picker, .boff-fascia > vaadin-select { width: 100%; min-width: 0; }
+.boff-quadrato.lavoro { background: var(--boff-colore-lavoro); }
+html { --boff-colore-lavoro: #b7791f; }
+.boff-blocco.lavoro {
+    background: var(--boff-colore-lavoro);
+    cursor: grab;
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.boff-blocco.lavoro.urgente { background: var(--lumo-error-color); }
+.boff-blocco.lavoro .orario { font-weight: 600; }
+.boff-blocco.lavoro .lucchetto { width: 11px; height: 11px; flex-shrink: 0; }
+.boff-blocco.lavoro:focus-visible { outline: 2px solid var(--lumo-primary-color); }
+.boff-cella.v-drag-over-target, .boff-cella[drag-over] { outline: 2px dashed var(--lumo-primary-color); outline-offset: -2px; }
+.boff-capacita.pieno { color: var(--lumo-error-text-color); font-weight: 600; }
+.boff-voce-oggi { display: flex; gap: var(--lumo-space-s); align-items: flex-start; padding: var(--lumo-space-xs) 0; border-bottom: 1px solid var(--lumo-contrast-10pct); }
+.boff-card h4 { margin: var(--lumo-space-s) 0 var(--lumo-space-xs); }

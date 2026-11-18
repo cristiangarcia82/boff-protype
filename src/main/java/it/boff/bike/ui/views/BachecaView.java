@@ -9,7 +9,23 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.html.H4;
+import it.boff.bike.calendario.CalendarioService;
+import it.boff.bike.calendario.Disponibilita;
+import it.boff.bike.calendario.TipoFascia;
+import it.boff.bike.common.ErroreDominio;
 import it.boff.bike.lavoro.Lavoro;
+import it.boff.bike.pianificazione.Assegnazione;
+import it.boff.bike.pianificazione.PianificazioneService;
+import it.boff.bike.ui.componenti.Avvisi;
+import it.boff.bike.ui.componenti.Durate;
+import it.boff.bike.utente.Utente;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.lavoro.StatoLavoro;
 import it.boff.bike.security.Ruoli;
@@ -29,22 +45,33 @@ import java.util.List;
 @RolesAllowed(Ruoli.STAFF)
 public class BachecaView extends Div {
 
-    public BachecaView(LavoroService lavori) {
+    public BachecaView(LavoroService lavori, PianificazioneService pianificazione, CalendarioService calendario) {
         addClassName("boff-pagina");
+        LocalDate oggi = calendario.oggi();
+        LocalDate lunedi = oggi.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate sabatoDomenica = lunedi.plusDays(6);
+        Disponibilita disp = calendario.disponibilita(lunedi, sabatoDomenica);
+        long capacita = 0;
+        for (Long p : disp.persone()) {
+            for (LocalDate g = oggi; !g.isAfter(sabatoDomenica); g = g.plusDays(1)) {
+                capacita += disp.minuti(p, g, TipoFascia.MANUTENZIONE);
+            }
+        }
+        long assegnati = pianificazione.tra(oggi, sabatoDomenica).stream().mapToLong(a -> a.intervallo().minuti()).sum();
+        String carico = capacita == 0 ? "–" : Math.round(100.0 * assegnati / capacita) + "%";
 
         Div kpi = new Div(
                 indicatore(String.valueOf(lavori.conta(StatoLavoro.IN_OFFICINA)), "Bici in officina"),
                 indicatore(String.valueOf(lavori.conta(EnumSet.of(StatoLavoro.PRONTO))), "Pronte da ritirare"),
                 indicatore(String.valueOf(lavori.conta(EnumSet.of(StatoLavoro.ANNUNCIATO))), "Annunci in attesa della bici"),
-                indicatore("–", "Carico officina settimana"));
+                indicatore(carico, "Officina occupata da oggi a fine settimana ("
+                        + Durate.formatta(assegnati) + " su " + Durate.formatta(capacita) + ")"));
         kpi.addClassName("boff-kpi");
 
         Div principale = new Div(
+                oggiInOfficina(pianificazione.tra(oggi, oggi), lavori, disp, oggi),
                 elencoLavori("In officina", lavori.cerca(StatoLavoro.IN_OFFICINA, ""),
-                        "Nessuna bici in officina."),
-                new Segnaposto("Calendario della settimana",
-                        "Vista a colonne per te e per il collaboratore: turni, ore di vendita e di officina, "
-                                + "lavori trascinabili da un giorno all'altro.", "fasi 3–4"));
+                        "Nessuna bici in officina."));
         principale.addClassName("boff-colonna");
 
         Div laterale = new Div(
@@ -58,6 +85,52 @@ public class BachecaView extends Div {
         corpo.addClassName("boff-bacheca-corpo");
 
         add(new H2("Bacheca"), kpi, corpo);
+    }
+
+    /** Interventi di oggi per persona, con la casella per segnarli come fatti. */
+    private Component oggiInOfficina(List<Assegnazione> oggi, LavoroService lavori, Disponibilita disp, LocalDate giorno) {
+        Div card = new Div(new H3("Oggi in officina"));
+        card.addClassName("boff-card");
+        if (oggi.isEmpty()) {
+            Paragraph p = new Paragraph("Nessun intervento pianificato per oggi.");
+            p.addClassName("boff-testo-secondario");
+            card.add(p);
+        }
+        Map<Utente, List<Assegnazione>> perPersona = new LinkedHashMap<>();
+        for (Utente u : disp.personale()) {
+            List<Assegnazione> sue = oggi.stream().filter(a -> a.getUtente().getId().equals(u.getId())).toList();
+            if (!sue.isEmpty()) perPersona.put(u, sue);
+        }
+        perPersona.forEach((persona, elenco) -> {
+            H4 nome = new H4(persona.getNomeCompleto());
+            card.add(nome);
+            for (Assegnazione a : elenco) {
+                var riga = a.getRiga();
+                Checkbox fatto = new Checkbox(riga.isCompletata());
+                fatto.setAriaLabel("Fatto");
+                fatto.addValueChangeListener(e -> {
+                    if (!e.isFromClient()) return;
+                    try {
+                        lavori.segnaRiga(riga.getId(), e.getValue());
+                        Avvisi.ok(e.getValue() ? "Intervento fatto" : "Intervento da rifare");
+                    } catch (ErroreDominio ex) {
+                        Avvisi.errore(ex.getMessage());
+                        fatto.setValue(!e.getValue());
+                    }
+                });
+                RouterLink bici = new RouterLink(riga.getLavoro().getBicicletta().getNome(), LavoriView.class,
+                        LavoriView.parametri(riga.getLavoro().getId()));
+                Span orario = new Span(a.getOraInizio() + "–" + a.getOraFine());
+                orario.addClassName("boff-bici-nome-piccolo");
+                Span descr = new Span(riga.getDescrizione());
+                descr.addClassName("boff-testo-secondario");
+                Div testi = new Div(new Div(orario, new Span(" "), bici), descr);
+                Div voce = new Div(fatto, testi);
+                voce.addClassName("boff-voce-oggi");
+                card.add(voce);
+            }
+        });
+        return card;
     }
 
     private static Component elencoLavori(String titolo, List<Lavoro> elenco, String vuoto) {

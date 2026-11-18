@@ -114,6 +114,25 @@ class PianificatoreTest {
     }
 
     @Test
+    void gliInterventiDelloStessoLavoroSonoContigui() {
+        var r = pianifica(LUNEDI.atTime(8, 0), List.of(), lavoro(1, false, null, "2031-03-10T08:00", 20, 45));
+        assertThat(r.pezzi()).extracting(Pezzo::intervallo).containsExactly(i("09:00", "09:20"), i("09:20", "10:05"));
+    }
+
+    @Test
+    void ilRestoDelLavoroVaDopoLaParteFissataAMano() {
+        // un pezzo del lavoro 1 è fissato mercoledì 15:00–16:00 (Luca)
+        var fissato = List.of(new Occupato(LUCA, LUNEDI.plusDays(2), i("15:00", "16:00"), 1L));
+        var r = new Pianificatore(ORE, LUNEDI.atTime(8, 0), fissato).pianifica(
+                List.of(lavoro(1, false, null, "2031-03-10T08:00", 30)),
+                Map.of(1L, LUNEDI.plusDays(2).atTime(16, 0)));
+        assertThat(r.pezzi()).singleElement().satisfies(p -> {
+            assertThat(p.data()).isEqualTo(LUNEDI.plusDays(2));
+            assertThat(p.intervallo()).isEqualTo(i("16:00", "16:30"));
+        });
+    }
+
+    @Test
     void arrotondamento() {
         assertThat(Pianificatore.arrotonda(LocalTime.of(9, 0))).isEqualTo(LocalTime.of(9, 0));
         assertThat(Pianificatore.arrotonda(LocalTime.of(9, 0, 1))).isEqualTo(LocalTime.of(9, 15));

@@ -1,6 +1,14 @@
 package it.boff.bike.config;
 
+import it.boff.bike.bicicletta.Bicicletta;
+import it.boff.bike.bicicletta.BiciclettaService;
+import it.boff.bike.bicicletta.DatiBicicletta;
+import it.boff.bike.bicicletta.Tipologia;
 import it.boff.bike.calendario.CalendarioService;
+import it.boff.bike.catalogo.CatalogoService;
+import it.boff.bike.lavoro.Lavoro;
+import it.boff.bike.lavoro.LavoroService;
+import it.boff.bike.lavoro.StatoLavoro;
 import it.boff.bike.calendario.NuovaFascia;
 import it.boff.bike.calendario.TipoFascia;
 import it.boff.bike.utente.Ruolo;
@@ -42,10 +50,17 @@ public class DatiIniziali implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final BoffProperties properties;
     private final CalendarioService calendario;
+    private final BiciclettaService biciclette;
+    private final LavoroService lavori;
+    private final CatalogoService catalogo;
 
     public DatiIniziali(UtenteRepository utenti, PasswordEncoder passwordEncoder, BoffProperties properties,
-                        CalendarioService calendario) {
+                        CalendarioService calendario, BiciclettaService biciclette, LavoroService lavori,
+                        CatalogoService catalogo) {
         this.calendario = calendario;
+        this.biciclette = biciclette;
+        this.lavori = lavori;
+        this.catalogo = catalogo;
         this.utenti = utenti;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
@@ -78,9 +93,10 @@ public class DatiIniziali implements ApplicationRunner {
         Utente mario = creaSeAssente("titolare@demo.it", "Mario", "Rossi", Ruolo.STAFF, true);
         Utente luca = creaSeAssente("collaboratore@demo.it", "Luca", "Bianchi", Ruolo.STAFF, false);
         orariDemo(mario, luca);
-        creaSeAssente("cliente@demo.it", "Giulia", "Verdi", Ruolo.CLIENTE, false);
-        creaSeAssente("paolo.ferri@demo.it", "Paolo", "Ferri", Ruolo.CLIENTE, false);
-        creaSeAssente("sara.conti@demo.it", "Sara", "Conti", Ruolo.CLIENTE, false);
+        Utente giulia = creaSeAssente("cliente@demo.it", "Giulia", "Verdi", Ruolo.CLIENTE, false);
+        Utente paolo = creaSeAssente("paolo.ferri@demo.it", "Paolo", "Ferri", Ruolo.CLIENTE, false);
+        Utente sara = creaSeAssente("sara.conti@demo.it", "Sara", "Conti", Ruolo.CLIENTE, false);
+        lavoriDemo(giulia, paolo, sara);
         log.warn("Utenti demo attivi (password '{}'). Non usare boff.demo=true in produzione!", PASSWORD_DEMO);
     }
 
@@ -110,6 +126,32 @@ public class DatiIniziali implements ApplicationRunner {
             f.add(fascia(SATURDAY, "09:00", "12:30", TipoFascia.MANUTENZIONE));
             calendario.salvaOrario(luca.getId(), f);
         }
+    }
+
+    /** Qualche bici e lavoro di esempio, solo se il database non ha ancora lavori. */
+    private void lavoriDemo(Utente giulia, Utente paolo, Utente sara) {
+        if (lavori.conta(java.util.EnumSet.allOf(StatoLavoro.class)) > 0
+                || !biciclette.elencoDi(giulia.getId()).isEmpty()) {
+            return;
+        }
+        Bicicletta impulso = biciclette.aggiungi(giulia.getId(), DatiBicicletta.di("Bianchi", "Impulso", Tipologia.STRADA));
+        Bicicletta trail = biciclette.aggiungi(paolo.getId(), DatiBicicletta.di("Cannondale", "Trail 5", Tipologia.MTB));
+        Bicicletta haibike = biciclette.aggiungi(sara.getId(), DatiBicicletta.di("Haibike", "Trekking 6", Tipologia.EBIKE));
+        Bicicletta graziella = biciclette.aggiungi(sara.getId(), DatiBicicletta.di("Atala", "Graziella", Tipologia.CITTA));
+
+        lavori.annuncia(giulia.getId(), impulso.getId(), tipi("Regolazione cambio", "Sostituzione catena"),
+                "Il cambio salta sul pignone più grande");
+        Lavoro mtb = lavori.creaAlBanco(trail.getId(), tipi("Tagliando completo (smontaggio, pulizia, regolazioni)",
+                "Spurgo freni idraulici"), "Gara domenica prossima");
+        lavori.impostaDettagli(mtb.getId(), true, null, null);
+        Lavoro ebike = lavori.creaAlBanco(haibike.getId(), tipi("Diagnosi e aggiornamento e-bike", "Regolazione freni"), null);
+        lavori.impostaDettagli(ebike.getId(), false, calendario.oggi().plusDays(4), null);
+        lavori.creaAlBanco(graziella.getId(), tipi("Riparazione foratura", "Lavaggio"), null);
+    }
+
+    private List<Long> tipi(String... nomi) {
+        List<String> elenco = List.of(nomi);
+        return catalogo.attivi().stream().filter(t -> elenco.contains(t.getNome())).map(t -> t.getId()).toList();
     }
 
     private static NuovaFascia fascia(DayOfWeek g, String da, String a, TipoFascia tipo) {

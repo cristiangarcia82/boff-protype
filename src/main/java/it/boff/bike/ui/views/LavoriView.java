@@ -24,6 +24,7 @@ import it.boff.bike.catalogo.CatalogoService;
 import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.lavoro.StatoLavoro;
+import it.boff.bike.pianificazione.PianificazioneService;
 import it.boff.bike.security.Ruoli;
 import it.boff.bike.ui.componenti.BadgeStato;
 import it.boff.bike.ui.componenti.Durate;
@@ -64,9 +65,9 @@ public class LavoriView extends Div implements BeforeEnterObserver {
     private Long selezionato;
 
     public LavoriView(LavoroService service, CatalogoService catalogo, UtenteService utenti,
-                      BiciclettaService biciclette) {
+                      BiciclettaService biciclette, PianificazioneService pianificazione) {
         this.service = service;
-        this.pannello = new LavoroPannello(service, catalogo, this::aggiornaElenco);
+        this.pannello = new LavoroPannello(service, catalogo, pianificazione, this::aggiornaElenco);
         addClassName("boff-pagina");
 
         Button nuovo = new Button("Nuovo lavoro", VaadinIcon.PLUS.create(), e ->

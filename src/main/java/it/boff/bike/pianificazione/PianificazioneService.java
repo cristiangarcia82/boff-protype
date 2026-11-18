@@ -17,6 +17,7 @@ import it.boff.bike.utente.UtenteRepository;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +74,15 @@ public class PianificazioneService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void suRichiesta(RichiestaRipianificazione richiesta) {
         log.debug("Ripianificazione: {}", richiesta.motivo());
+        ripianifica();
+    }
+
+    /**
+     * Ogni ora: il tempo passa, e ciò che non è stato fatto va spostato in avanti.
+     * (Il primo minuto dell'ora è arbitrario: serve solo che non sia troppo frequente.)
+     */
+    @Scheduled(cron = "0 5 * * * *")
+    public void ricalcoloPeriodico() {
         ripianifica();
     }
 
