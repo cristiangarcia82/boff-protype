@@ -1,5 +1,6 @@
 package it.boff.bike.calendario;
 
+import it.boff.bike.pianificazione.OreOfficina;
 import it.boff.bike.utente.Utente;
 
 import java.time.LocalDate;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
  * del personale attivo, assenze e chiusure. Usata dal calendario e dalla pianificazione
  * (si carica una volta sola invece di interrogare il database giorno per giorno).
  */
-public class Disponibilita {
+public class Disponibilita implements OreOfficina {
 
     private final List<Utente> persone;
     private final Map<Long, List<FasciaOraria>> fascePerPersona;
@@ -36,7 +37,7 @@ public class Disponibilita {
     }
 
     /** Personale attivo che ha un orario settimanale (le "unità lavorative"). */
-    public List<Utente> persone() {
+    public List<Utente> personale() {
         return persone;
     }
 
@@ -64,6 +65,16 @@ public class Disponibilita {
 
     public List<Intervallo> intervalli(Long utenteId, LocalDate giorno, TipoFascia tipo) {
         return fasce(utenteId, giorno).stream().filter(f -> f.getTipo() == tipo).map(FasciaOraria::intervallo).toList();
+    }
+
+    @Override
+    public List<Long> persone() {
+        return persone.stream().map(Utente::getId).toList();
+    }
+
+    @Override
+    public List<Intervallo> officina(Long utenteId, LocalDate giorno) {
+        return intervalli(utenteId, giorno, TipoFascia.MANUTENZIONE);
     }
 
     public long minuti(Long utenteId, LocalDate giorno, TipoFascia tipo) {

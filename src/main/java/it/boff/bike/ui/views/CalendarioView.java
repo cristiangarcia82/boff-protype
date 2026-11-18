@@ -85,7 +85,7 @@ public class CalendarioView extends Div {
         List<LocalDate> giorni = Stream.iterate(lunedi, g -> g.plusDays(1)).limit(7)
                 // la domenica si mostra solo se qualcuno lavora
                 .filter(g -> g.getDayOfWeek() != DayOfWeek.SUNDAY
-                        || d.persone().stream().anyMatch(p -> !d.fasce(p.getId(), g).isEmpty()))
+                        || d.personale().stream().anyMatch(p -> !d.fasce(p.getId(), g).isEmpty()))
                 .toList();
 
         griglia.removeAll();
@@ -106,13 +106,13 @@ public class CalendarioView extends Div {
             });
             griglia.add(testa);
         }
-        if (d.persone().isEmpty()) {
+        if (d.personale().isEmpty()) {
             Div vuoto = new Div(new Span("Nessun orario impostato: il titolare può farlo da Impostazioni → Orari."));
             vuoto.getStyle().set("grid-column", "1 / -1");
             vuoto.addClassName("boff-testo-secondario");
             griglia.add(vuoto);
         }
-        for (Utente p : d.persone()) {
+        for (Utente p : d.personale()) {
             Div nome = new Div(new Span(p.getNomeCompleto()));
             nome.addClassName("boff-nome-persona");
             griglia.add(nome);

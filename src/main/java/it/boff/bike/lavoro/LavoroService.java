@@ -6,6 +6,7 @@ import it.boff.bike.bicicletta.BiciclettaRepository;
 import it.boff.bike.catalogo.TipoIntervento;
 import it.boff.bike.catalogo.TipoInterventoRepository;
 import it.boff.bike.common.ErroreDominio;
+import it.boff.bike.pianificazione.RichiestaRipianificazione;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -128,11 +130,13 @@ public class LavoroService {
         l.setUrgente(urgente);
         l.setDataPromessa(dataPromessa);
         l.setNoteInterne(pulisci(noteInterne, 2000));
+        ripianifica("dettagli del lavoro " + lavoroId);
     }
 
     public RigaLavoro aggiungiDaCatalogo(Long lavoroId, Long tipoId) {
         Lavoro l = dettaglio(lavoroId);
         TipoIntervento t = catalogo.findById(tipoId).orElseThrow(() -> new ErroreDominio("Intervento non trovato"));
+        ripianifica("nuovo intervento");
         return l.aggiungiRiga(t, t.getNome(), t.getDurataStandardMin());
     }
 
@@ -140,6 +144,7 @@ public class LavoroService {
         if (descrizione == null || descrizione.isBlank()) {
             throw new ErroreDominio("Descrivi l'intervento");
         }
+        ripianifica("nuovo intervento");
         return dettaglio(lavoroId).aggiungiRiga(null, pulisci(descrizione, 200), controllaDurata(durataMin));
     }
 
@@ -149,6 +154,7 @@ public class LavoroService {
             throw new ErroreDominio("Il lavoro è chiuso e non può essere modificato");
         }
         r.setDurataMin(controllaDurata(durataMin));
+        ripianifica("durata modificata");
     }
 
     /** Segna una riga come fatta (o da rifare). Il primo intervento fatto mette il lavoro "in lavorazione". */
@@ -162,11 +168,13 @@ public class LavoroService {
         if (completata && l.getStato() != StatoLavoro.IN_LAVORAZIONE) {
             cambia(l, Lavoro::inizia);
         }
+        ripianifica("intervento segnato");
     }
 
     public void rimuoviRiga(Long rigaId) {
         RigaLavoro r = riga(rigaId);
         r.getLavoro().rimuoviRiga(r);
+        ripianifica("intervento rimosso");
     }
 
     @Transactional(readOnly = true)
@@ -184,6 +192,31 @@ public class LavoroService {
     @Transactional(readOnly = true)
     public List<Lavoro> storicoBici(Long biciId) {
         return lavori.dellaBici(biciId);
+    }
+
+    /** Lavori (con righe) negli stati indicati: usato dalla pianificazione. */
+    @Transactional(readOnly = true)
+    public List<Lavoro> conRighe(Collection<StatoLavoro> stati) {
+        List<Lavoro> elenco = lavori.conRighe(stati);
+        elenco.forEach(Lavoro::caricaRighe);
+        return elenco;
+    }
+
+    /**
+     * Registra l'esito della pianificazione: fine prevista e stato PIANIFICATO
+     * (o ritorno a IN_NEGOZIO se il lavoro non è più in calendario).
+     */
+    public void applicaPianificazione(Collection<Long> lavoriInOfficina, Map<Long, LocalDate> finePerLavoro) {
+        for (Long id : lavoriInOfficina) {
+            Lavoro l = dettaglio(id);
+            LocalDate fine = finePerLavoro.get(id);
+            StatoLavoro prima = l.getStato();
+            LocalDate finePrima = l.getFinePrevista();
+            if (fine != null) l.segnaPianificato(fine); else l.togliPianificazione();
+            if (prima != l.getStato() || !java.util.Objects.equals(finePrima, l.getFinePrevista())) {
+                eventi.publishEvent(new LavoroCambiato(l.getId(), prima, l.getStato()));
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -211,6 +244,7 @@ public class LavoroService {
         }
         Lavoro salvato = lavori.save(l);
         eventi.publishEvent(new LavoroCambiato(salvato.getId(), null, stato));
+        ripianifica("nuovo lavoro");
         return salvato;
     }
 
@@ -219,7 +253,12 @@ public class LavoroService {
         azione.accept(l);
         if (prima != l.getStato()) {
             eventi.publishEvent(new LavoroCambiato(l.getId(), prima, l.getStato()));
+            ripianifica("stato del lavoro " + l.getId());
         }
+    }
+
+    private void ripianifica(String motivo) {
+        eventi.publishEvent(new RichiestaRipianificazione(motivo));
     }
 
     private RigaLavoro riga(Long rigaId) {

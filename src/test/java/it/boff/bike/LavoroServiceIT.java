@@ -61,7 +61,8 @@ class LavoroServiceIT {
         assertThat(d.getNoteCliente()).isEqualTo("Cigola il movimento centrale");
 
         service.checkIn(id);
-        assertThat(service.dettaglio(id).getStato()).isEqualTo(StatoLavoro.IN_NEGOZIO);
+        // dopo il check-in la pianificazione automatica lo mette subito in calendario
+        assertThat(service.dettaglio(id).getStato()).isEqualTo(StatoLavoro.PIANIFICATO);
         assertThat(service.dettaglio(id).getCheckinIl()).isNotNull();
 
         RigaLavoro prima = service.dettaglio(id).getRighe().get(0);
@@ -78,9 +79,10 @@ class LavoroServiceIT {
         assertThat(service.dettaglio(id).getStato()).isEqualTo(StatoLavoro.RITIRATO);
         assertThat(service.storicoBiciDelCliente(cliente, bici)).extracting(Lavoro::getId).containsExactly(id);
 
-        assertThat(eventi.stream(LavoroCambiato.class).filter(e -> e.lavoroId().equals(id)).map(LavoroCambiato::dopo))
-                .containsExactly(StatoLavoro.ANNUNCIATO, StatoLavoro.IN_NEGOZIO, StatoLavoro.IN_LAVORAZIONE,
-                        StatoLavoro.PRONTO, StatoLavoro.RITIRATO);
+        assertThat(eventi.stream(LavoroCambiato.class).filter(e -> e.lavoroId().equals(id))
+                .map(LavoroCambiato::dopo).distinct())
+                .containsExactly(StatoLavoro.ANNUNCIATO, StatoLavoro.IN_NEGOZIO, StatoLavoro.PIANIFICATO,
+                        StatoLavoro.IN_LAVORAZIONE, StatoLavoro.PRONTO, StatoLavoro.RITIRATO);
     }
 
     @Test

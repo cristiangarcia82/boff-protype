@@ -50,7 +50,7 @@ class CalendarioServiceIT {
         assertThat(d.minuti(persona, MARTEDI, TipoFascia.MANUTENZIONE)).isEqualTo(210);
         assertThat(d.minuti(persona, MARTEDI, TipoFascia.VENDITA)).isEqualTo(270);
         assertThat(d.fasce(persona, MARTEDI.plusDays(1))).isEmpty();
-        assertThat(d.persone()).extracting(u -> u.getId()).contains(persona);
+        assertThat(d.personale()).extracting(u -> u.getId()).contains(persona);
     }
 
     @Test

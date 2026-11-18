@@ -2,6 +2,8 @@ package it.boff.bike.calendario;
 
 import it.boff.bike.common.ErroreDominio;
 import it.boff.bike.config.BoffProperties;
+import it.boff.bike.pianificazione.RichiestaRipianificazione;
+import org.springframework.context.ApplicationEventPublisher;
 import it.boff.bike.utente.Ruolo;
 import it.boff.bike.utente.Utente;
 import it.boff.bike.utente.UtenteRepository;
@@ -30,9 +32,12 @@ public class CalendarioService {
     private final UtenteRepository utenti;
     private final BoffProperties properties;
     private final Clock clock;
+    private final ApplicationEventPublisher eventi;
 
     public CalendarioService(FasciaOrariaRepository fasce, AssenzaRepository assenze, ChiusuraRepository chiusure,
-                             UtenteRepository utenti, BoffProperties properties, Clock clock) {
+                             UtenteRepository utenti, BoffProperties properties, Clock clock,
+                             ApplicationEventPublisher eventi) {
+        this.eventi = eventi;
         this.fasce = fasce;
         this.assenze = assenze;
         this.chiusure = chiusure;
@@ -76,6 +81,7 @@ public class CalendarioService {
         fasce.eliminaDiUtente(utenteId);
         fasce.flush();
         nuove.forEach(f -> fasce.save(new FasciaOraria(persona, f.giorno(), f.inizio(), f.fine(), f.tipo())));
+        eventi.publishEvent(new RichiestaRipianificazione("orario modificato"));
     }
 
     // ---------------------------------------------------------------- assenze
@@ -93,12 +99,14 @@ public class CalendarioService {
         if (assenze.siSovrappone(utenteId, dal, al)) {
             throw new ErroreDominio("C'è già un'assenza registrata in quei giorni");
         }
+        eventi.publishEvent(new RichiestaRipianificazione("nuova assenza"));
         return assenze.save(new Assenza(persona, dal, al, motivo,
                 note == null || note.isBlank() ? null : note.trim()));
     }
 
     public void rimuoviAssenza(Long assenzaId) {
         assenze.deleteById(assenzaId);
+        eventi.publishEvent(new RichiestaRipianificazione("assenza eliminata"));
     }
 
     @Transactional(readOnly = true)
@@ -115,11 +123,13 @@ public class CalendarioService {
         if (chiusure.existsByData(data)) {
             throw new ErroreDominio("Quel giorno è già segnato come chiusura");
         }
+        eventi.publishEvent(new RichiestaRipianificazione("nuova chiusura"));
         return chiusure.save(new Chiusura(data, descrizione.trim()));
     }
 
     public void rimuoviChiusura(Long chiusuraId) {
         chiusure.deleteById(chiusuraId);
+        eventi.publishEvent(new RichiestaRipianificazione("chiusura eliminata"));
     }
 
     /** Chiusure inserite a mano e festività nazionali tra due date, in ordine. */
