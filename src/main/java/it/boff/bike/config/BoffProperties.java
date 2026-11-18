@@ -15,6 +15,7 @@ import java.time.ZoneId;
  * @param rememberMeKey segreto per firmare il cookie "resta collegato"; se vuoto ne viene
  *                      generato uno casuale a ogni avvio (gli utenti dovranno rifare il login)
  * @param urlPubblico   indirizzo pubblico dell'app, usato nei link delle email
+ * @param festiviChiusi se true il negozio è chiuso nelle festività nazionali (calcolate in automatico)
  */
 @ConfigurationProperties(prefix = "boff")
 public record BoffProperties(
@@ -22,7 +23,8 @@ public record BoffProperties(
         boolean demo,
         @DefaultValue("Europe/Rome") ZoneId fusoOrario,
         String rememberMeKey,
-        @DefaultValue("http://localhost:8080") String urlPubblico) {
+        @DefaultValue("http://localhost:8080") String urlPubblico,
+        @DefaultValue("true") boolean festiviChiusi) {
 
     public BoffProperties {
         if (titolare == null) {
