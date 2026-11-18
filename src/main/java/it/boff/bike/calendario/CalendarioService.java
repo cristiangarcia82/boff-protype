@@ -86,6 +86,24 @@ public class CalendarioService {
     // ---------------------------------------------------------------- assenze
 
     public Assenza aggiungiAssenza(Long utenteId, LocalDate dal, LocalDate al, MotivoAssenza motivo, String note) {
+        return aggiungiAssenza(utenteId, dal, al, null, null, motivo, note);
+    }
+
+    /**
+     * Assenza di una o più giornate; con {@code dalle}/{@code alle} solo per parte di un giorno
+     * (in quel caso {@code dal} e {@code al} devono coincidere).
+     */
+    public Assenza aggiungiAssenza(Long utenteId, LocalDate dal, LocalDate al, java.time.LocalTime dalle,
+                                   java.time.LocalTime alle, MotivoAssenza motivo, String note) {
+        boolean parziale = dalle != null || alle != null;
+        if (parziale) {
+            if (dalle == null || alle == null || !alle.isAfter(dalle)) {
+                throw new ErroreDominio("Indica un orario di assenza valido (dalle… alle…)");
+            }
+            if (dal == null || !dal.equals(al)) {
+                throw new ErroreDominio("L'assenza di parte della giornata riguarda un solo giorno");
+            }
+        }
         if (dal == null || al == null || motivo == null) {
             throw new ErroreDominio("Indica persona, date e motivo");
         }
@@ -99,8 +117,9 @@ public class CalendarioService {
             throw new ErroreDominio("C'è già un'assenza registrata in quei giorni");
         }
         ripianificazione.richiedi("nuova assenza");
-        return assenze.save(new Assenza(persona, dal, al, motivo,
-                note == null || note.isBlank() ? null : note.trim()));
+        String n = note == null || note.isBlank() ? null : note.trim();
+        return assenze.save(parziale ? new Assenza(persona, dal, new Intervallo(dalle, alle), motivo, n)
+                : new Assenza(persona, dal, al, motivo, n));
     }
 
     public void rimuoviAssenza(Long assenzaId) {

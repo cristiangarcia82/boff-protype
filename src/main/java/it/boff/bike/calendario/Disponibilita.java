@@ -48,11 +48,22 @@ public class Disponibilita implements OreOfficina {
         return festiviChiusi ? Festivita.nome(giorno) : Optional.empty();
     }
 
+    /** Assenza per l'intera giornata, se c'è. */
     public Optional<Assenza> assenza(Long utenteId, LocalDate giorno) {
-        return assenze.stream().filter(a -> a.getUtente().getId().equals(utenteId) && a.comprende(giorno)).findFirst();
+        return assenze.stream().filter(a -> a.getUtente().getId().equals(utenteId) && a.comprende(giorno)
+                && a.isGiornataIntera()).findFirst();
     }
 
-    /** Fasce effettive di una persona in un giorno: vuote se il negozio è chiuso o la persona è assente. */
+    /** Assenze di parte della giornata (es. pomeriggio libero). */
+    public List<Assenza> assenzeParziali(Long utenteId, LocalDate giorno) {
+        return assenze.stream().filter(a -> a.getUtente().getId().equals(utenteId) && a.comprende(giorno)
+                && !a.isGiornataIntera()).toList();
+    }
+
+    /**
+     * Fasce dell'orario tipo valide in un giorno: vuote se il negozio è chiuso o la persona è
+     * assente tutto il giorno. Le assenze parziali sono tolte in {@link #intervalli}.
+     */
     public List<FasciaOraria> fasce(Long utenteId, LocalDate giorno) {
         if (chiusura(giorno).isPresent() || assenza(utenteId, giorno).isPresent()) {
             return List.of();
@@ -63,8 +74,12 @@ public class Disponibilita implements OreOfficina {
                 .toList();
     }
 
+    /** Intervalli effettivi di un tipo, al netto delle assenze parziali. */
     public List<Intervallo> intervalli(Long utenteId, LocalDate giorno, TipoFascia tipo) {
-        return fasce(utenteId, giorno).stream().filter(f -> f.getTipo() == tipo).map(FasciaOraria::intervallo).toList();
+        List<Intervallo> assente = assenzeParziali(utenteId, giorno).stream()
+                .map(a -> a.orario().orElseThrow()).toList();
+        return fasce(utenteId, giorno).stream().filter(f -> f.getTipo() == tipo)
+                .flatMap(f -> f.intervallo().meno(assente).stream()).toList();
     }
 
     @Override

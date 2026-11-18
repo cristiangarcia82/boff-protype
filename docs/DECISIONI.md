@@ -136,3 +136,12 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 
 ## D31 – Un ricalcolo per azione
 - Più modifiche nella stessa operazione (es. "intervento fatto" che fa partire il lavoro) producono un solo ricalcolo del calendario.
+
+## D32 – Assenze di parte della giornata
+- Un'assenza di **un solo giorno** può avere un orario (es. 15:00–17:00); per più giorni resta a giornata intera. Massimo un'assenza per persona al giorno.
+
+## D33 – Spostamento a orario preciso solo dal dialog
+- Il trascinamento resta "primo spazio libero" (gesto veloce); per un orario preciso si tocca l'intervento e si compila "Alle".
+
+## D34 – Ricerca rapida per lo staff
+- Cerca per nome/cognome (in qualsiasi ordine), email, telefono, marca e modello della bici. Non cerca nel numero di telaio (backlog, se utile).

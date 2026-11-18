@@ -95,3 +95,15 @@ Rilettura del codice a fine sviluppo. I problemi trovati durante la notte e già
 | R6 (GDPR) | **Risolto in parte**: "Scarica i miei dati" (JSON) ed "Elimina il mio account" nel profilo cliente. L'informativa resta da completare. |
 | Trovato in review | La cancellazione lasciava le **note del cliente** nei lavori (possono contenere dati personali): ora vengono svuotate (con test). |
 | Da tenere d'occhio | I test d'interfaccia usano anche i dati demo; se cambiano i dati demo vanno aggiornati. |
+
+---
+
+# Review fase 7 – Funzioni dal backlog
+
+| Voce | Esito |
+|---|---|
+| Assenze di mezza giornata | Fatto: le ore di assenza sono tolte dall'officina (e la pianificazione si adegua), visibili nel calendario. Con test. |
+| Orario esatto negli spostamenti | Fatto: campo "Alle" nel dialog "Sposta"; se a quell'ora non c'è spazio sufficiente l'app lo dice (con test). Il trascinamento continua a usare il primo spazio libero. |
+| Ricerca rapida | Fatto: campo nella barra in alto (Alt+K), risultati su clienti e lavori, link diretti alla scheda (con test). |
+| Trovato in review | Dopo una build di produzione (`-Pproduction`) l'avvio in sviluppo usava un CSS vecchio rimasto in `target/`: non è un difetto dell'app, ma è documentato nel README (`mvn clean`). |
+| Limite accettato | In un giorno non si possono registrare due assenze parziali per la stessa persona (caso raro; basta un'unica fascia più ampia). |

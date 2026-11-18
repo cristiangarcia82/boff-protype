@@ -15,6 +15,7 @@ import com.vaadin.flow.component.dnd.DragSource;
 import com.vaadin.flow.component.dnd.DropTarget;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.timepicker.TimePicker;
 import com.vaadin.flow.router.RouterLink;
 import it.boff.bike.calendario.CalendarioService;
 import it.boff.bike.common.ErroreDominio;
@@ -187,6 +188,12 @@ public class CalendarioView extends Div {
             b.addClassNames("boff-blocco", f.getTipo() == TipoFascia.VENDITA ? "vendita" : "officina");
             cella.add(b);
         }
+        d.assenzeParziali(p.getId(), g).forEach(a -> {
+            var o = a.orario().orElseThrow();
+            Span b = new Span(o.inizio() + "–" + o.fine() + " " + a.getMotivo().getEtichetta());
+            b.addClassNames("boff-blocco", "assenza");
+            cella.add(b);
+        });
         List<Assegnazione> elenco = assegnazioniPerCella.getOrDefault(p.getId() + "|" + g, List.of());
         elenco.forEach(a -> cella.add(chip(a)));
         long officina = d.minuti(p.getId(), g, TipoFascia.MANUTENZIONE);
@@ -243,14 +250,18 @@ public class CalendarioView extends Div {
         DatePicker giorno = CampoData.crea("Giorno");
         giorno.setValue(a.getData());
         giorno.setMin(calendario.oggi());
+        TimePicker ora = new TimePicker("Alle (facoltativo)");
+        ora.setStep(java.time.Duration.ofMinutes(15));
+        ora.setLocale(Locale.ITALY);
+        ora.setHelperText("Vuoto = primo spazio libero");
         Button sposta = new Button("Sposta", e -> {
             if (persona.getValue() != null && giorno.getValue() != null) {
-                sposta(a.getId(), persona.getValue().getId(), giorno.getValue());
+                sposta(a.getId(), persona.getValue().getId(), giorno.getValue(), ora.getValue());
                 dialog.close();
             }
         });
         sposta.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        Div spostamento = new Div(persona, giorno, sposta);
+        Div spostamento = new Div(persona, giorno, ora, sposta);
         spostamento.addClassName("boff-modulo-riga");
 
         dialog.add(cosa, cliente, spostamento);
@@ -280,8 +291,12 @@ public class CalendarioView extends Div {
     }
 
     private void sposta(Long assegnazioneId, Long utenteId, LocalDate giorno) {
+        sposta(assegnazioneId, utenteId, giorno, null);
+    }
+
+    private void sposta(Long assegnazioneId, Long utenteId, LocalDate giorno, java.time.LocalTime ora) {
         try {
-            pianificazione.sposta(assegnazioneId, utenteId, giorno);
+            pianificazione.sposta(assegnazioneId, utenteId, giorno, ora);
             Avvisi.ok("Intervento spostato e fissato");
         } catch (ErroreDominio ex) {
             Avvisi.errore(ex.getMessage());

@@ -281,3 +281,4 @@ html { --boff-colore-lavoro: #b7791f; }
 .boff-card h4 { margin: var(--lumo-space-s) 0 var(--lumo-space-xs); }
 .boff-attiva-notifiche { border-left: 4px solid var(--lumo-primary-color); margin-bottom: var(--lumo-space-m); }
 .boff-attiva-notifiche p { margin-top: 0; }
+.boff-cerca-globale { margin-left: auto; margin-right: var(--lumo-space-m); width: min(360px, 45vw); }

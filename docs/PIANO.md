@@ -76,4 +76,4 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 | 4. Pianificazione | Pianificazione automatica, calendario con interventi trascinabili, blocco manuale, oggi in officina, carico settimanale | ✅ completata |
 | 5. Notifiche e deploy | Web Push + email, recupero password, guida "Installa l'app", Docker Compose + Caddy HTTPS + backup | ✅ completata |
 | 6. Robustezza | Test interfaccia in CI, un ricalcolo per azione, scarica dati / elimina account | ✅ completata |
-| 7. Backlog | Assenze di mezza giornata, orario esatto negli spostamenti, ricerca rapida | in corso |
+| 7. Backlog | Assenze di mezza giornata, orario esatto negli spostamenti, ricerca rapida | ✅ completata |

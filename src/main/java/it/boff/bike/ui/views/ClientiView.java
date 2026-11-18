@@ -41,10 +41,10 @@ import java.util.List;
  * Clienti e loro bici, per il negozio. Sul Mac: elenco a sinistra, dettaglio a destra.
  * Scorciatoie: Alt+N nuovo cliente, Alt+F cerca.
  */
-@Route("clienti")
+@Route("clienti/:id?")
 @PageTitle("Clienti | Boff Bike")
 @RolesAllowed(Ruoli.STAFF)
-public class ClientiView extends Div {
+public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnterObserver {
 
     private final UtenteService utenti;
     private final BiciclettaService biciclette;
@@ -95,6 +95,19 @@ public class ClientiView extends Div {
         add(intestazione, corpo);
         aggiornaElenco();
         mostra(null);
+    }
+
+    @Override
+    public void beforeEnter(com.vaadin.flow.router.BeforeEnterEvent event) {
+        event.getRouteParameters().getLong("id").ifPresent(id -> {
+            Utente c = utenti.trova(id);
+            cerca.setValue(c.getNomeCompleto());
+            aggiornaElenco();
+            // le entità non ridefiniscono equals: si seleziona l'elemento della griglia con lo stesso id
+            griglia.getListDataView().getItems().filter(u -> u.getId().equals(id)).findFirst()
+                    .ifPresent(griglia::select);
+            mostra(c);
+        });
     }
 
     private void aggiornaElenco() {

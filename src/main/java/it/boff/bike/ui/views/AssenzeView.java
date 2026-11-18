@@ -2,7 +2,9 @@ package it.boff.bike.ui.views;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.timepicker.TimePicker;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -55,6 +57,18 @@ public class AssenzeView extends Div {
         motivo.setItemLabelGenerator(MotivoAssenza::getEtichetta);
         motivo.setValue(MotivoAssenza.RIPOSO);
         TextField note = new TextField("Note");
+        Checkbox parziale = new Checkbox("Solo una parte della giornata");
+        TimePicker dalle = orario("Dalle");
+        TimePicker alle = orario("Alle");
+        dalle.setVisible(false);
+        alle.setVisible(false);
+        parziale.addValueChangeListener(e -> {
+            dalle.setVisible(e.getValue());
+            alle.setVisible(e.getValue());
+            al.setEnabled(!e.getValue());
+            if (e.getValue()) al.setValue(dal.getValue());
+        });
+        dal.addValueChangeListener(e -> { if (parziale.getValue()) al.setValue(e.getValue()); });
         Button aggiungiAssenza = new Button("Aggiungi assenza", VaadinIcon.PLUS.create(), e -> {
             if (persona.getValue() == null) {
                 Avvisi.errore("Scegli la persona");
@@ -62,6 +76,7 @@ public class AssenzeView extends Div {
             }
             try {
                 calendario.aggiungiAssenza(persona.getValue().getId(), dal.getValue(), al.getValue(),
+                        parziale.getValue() ? dalle.getValue() : null, parziale.getValue() ? alle.getValue() : null,
                         motivo.getValue(), note.getValue());
                 Avvisi.ok("Assenza registrata");
                 note.clear();
@@ -71,7 +86,7 @@ public class AssenzeView extends Div {
             }
         });
         aggiungiAssenza.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        Div moduloAssenza = new Div(persona, dal, al, motivo, note, aggiungiAssenza);
+        Div moduloAssenza = new Div(persona, dal, al, motivo, parziale, dalle, alle, note, aggiungiAssenza);
         moduloAssenza.addClassName("boff-modulo-riga");
         elencoAssenze.addClassName("boff-colonna");
         Div schedaAssenze = new Div(new H3("Assenze del personale"),
@@ -116,6 +131,7 @@ public class AssenzeView extends Div {
         for (Assenza a : assenze) {
             String periodo = a.getDal().equals(a.getAl()) ? Formati.giorno(a.getDal())
                     : Formati.giorno(a.getDal()) + " → " + Formati.giorno(a.getAl());
+            periodo += a.orario().map(o -> ", " + o.inizio() + "–" + o.fine()).orElse("");
             Button elimina = new Button(VaadinIcon.TRASH.create(), e -> {
                 calendario.rimuoviAssenza(a.getId());
                 Avvisi.ok("Assenza eliminata");
@@ -153,6 +169,13 @@ public class AssenzeView extends Div {
         Div v = new Div(testi, azione);
         v.addClassName("boff-voce-azione");
         return v;
+    }
+
+    private static TimePicker orario(String etichetta) {
+        TimePicker t = new TimePicker(etichetta);
+        t.setStep(java.time.Duration.ofMinutes(15));
+        t.setLocale(java.util.Locale.ITALY);
+        return t;
     }
 
     private static Paragraph testo(String t) {

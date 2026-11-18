@@ -137,4 +137,12 @@ class InterfacciaIT extends SpringBrowserlessTest {
                 .extracting(d -> d.getElement().getTextRecursively())
                 .contains("Mario Rossi", "Luca Bianchi");
     }
+
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void ricercaRapida() {
+        navigate("cerca?q=Ferri", it.boff.bike.ui.views.CercaView.class);
+        String testo = getCurrentView().getElement().getTextRecursively();
+        assertThat(testo).contains("Paolo Ferri", "Cannondale Trail 5");
+    }
 }

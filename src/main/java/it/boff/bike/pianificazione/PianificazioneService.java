@@ -168,6 +168,14 @@ public class PianificazioneService {
      * va nel primo spazio libero di officina abbastanza lungo e diventa "bloccata".
      */
     public void sposta(Long assegnazioneId, Long utenteId, LocalDate giorno) {
+        sposta(assegnazioneId, utenteId, giorno, null);
+    }
+
+    /**
+     * Come {@link #sposta(Long, Long, LocalDate)}, ma a un orario preciso: l'intervento deve
+     * stare tutto in uno spazio libero di officina che inizia a quell'ora.
+     */
+    public void sposta(Long assegnazioneId, Long utenteId, LocalDate giorno, LocalTime ora) {
         lock.lock();
         try {
             Assegnazione a = assegnazioni.findById(assegnazioneId)
@@ -187,15 +195,20 @@ public class PianificazioneService {
                 if (minimo == null || !fascia.fine().isAfter(minimo)) continue;
                 Intervallo utile = fascia.inizio().isBefore(minimo) ? new Intervallo(minimo, fascia.fine()) : fascia;
                 for (Intervallo libero : utile.meno(occupati)) {
-                    if (libero.minuti() >= durata) {
+                    if (ora == null && libero.minuti() >= durata) {
                         destinazione = new Intervallo(libero.inizio(), libero.inizio().plusMinutes(durata));
-                        break;
+                    } else if (ora != null && !ora.isBefore(libero.inizio())
+                            && !ora.plusMinutes(durata).isAfter(libero.fine()) && ora.plusMinutes(durata).isAfter(ora)) {
+                        destinazione = new Intervallo(ora, ora.plusMinutes(durata));
                     }
+                    if (destinazione != null) break;
                 }
                 if (destinazione != null) break;
             }
             if (destinazione == null) {
-                throw new ErroreDominio("Non c'è uno spazio libero di officina abbastanza lungo quel giorno");
+                throw new ErroreDominio(ora == null
+                        ? "Non c'è uno spazio libero di officina abbastanza lungo quel giorno"
+                        : "Alle " + ora + " non ci sono " + durata + " minuti liberi di officina per quella persona");
             }
             Utente persona = utenti.findById(utenteId).orElseThrow();
             a.sposta(persona, giorno, destinazione);

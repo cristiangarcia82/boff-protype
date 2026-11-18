@@ -28,6 +28,9 @@ Con `BOFF_DEMO=true` vengono creati utenti, orari, bici e lavori di prova (passw
 | `collaboratore@demo.it` | Collaboratore |
 | `cliente@demo.it`, `paolo.ferri@demo.it`, `sara.conti@demo.it` | Clienti |
 
+Dopo una build di produzione (`mvn -Pproduction package`) esegui `mvn clean` prima di tornare
+in sviluppo, altrimenti restano in `target/` file del frontend non aggiornati.
+
 Senza SMTP le email (es. recupero password) sono scritte nel log, link compreso.
 Le notifiche push funzionano solo con la build di produzione (service worker attivo) su HTTPS o `localhost`.
 

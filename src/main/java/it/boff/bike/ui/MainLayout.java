@@ -17,6 +17,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.RouterLink;
@@ -27,6 +28,7 @@ import it.boff.bike.ui.views.BachecaView;
 import it.boff.bike.ui.views.CalendarioView;
 import it.boff.bike.ui.views.OrariView;
 import it.boff.bike.ui.views.CatalogoView;
+import it.boff.bike.ui.views.CercaView;
 import it.boff.bike.ui.views.ClientiView;
 import it.boff.bike.ui.views.LavoriView;
 import it.boff.bike.ui.views.LeMieBiciView;
@@ -59,7 +61,16 @@ public class MainLayout extends AppLayout {
 
     private void layoutStaff() {
         setPrimarySection(Section.DRAWER);
-        addToNavbar(new DrawerToggle(), titolo());
+        TextField cerca = new TextField();
+        cerca.setPlaceholder("Cerca cliente, bici… (Alt+K)");
+        cerca.setPrefixComponent(VaadinIcon.SEARCH.create());
+        cerca.setClearButtonVisible(true);
+        cerca.addClassName("boff-cerca-globale");
+        cerca.setAriaLabel("Cerca");
+        cerca.addFocusShortcut(com.vaadin.flow.component.Key.KEY_K, com.vaadin.flow.component.KeyModifier.ALT);
+        cerca.addKeyPressListener(com.vaadin.flow.component.Key.ENTER, e -> getUI().ifPresent(ui ->
+                ui.navigate(CercaView.class, com.vaadin.flow.router.QueryParameters.of("q", cerca.getValue()))));
+        addToNavbar(new DrawerToggle(), titolo(), cerca);
 
         SideNav nav = new SideNav();
         for (VoceMenu voce : MenuStaff.voci(utenteCorrente.isTitolare())) {

@@ -40,7 +40,30 @@ public class Assenza {
 
     private String note;
 
+    /** Solo per le assenze di parte della giornata (stesso giorno di inizio e fine). */
+    @Column(name = "ora_inizio")
+    private java.time.LocalTime oraInizio;
+
+    @Column(name = "ora_fine")
+    private java.time.LocalTime oraFine;
+
     protected Assenza() {
+    }
+
+    Assenza(Utente utente, LocalDate giorno, Intervallo orario, MotivoAssenza motivo, String note) {
+        this(utente, giorno, giorno, motivo, note);
+        this.oraInizio = orario.inizio();
+        this.oraFine = orario.fine();
+    }
+
+    /** true se riguarda tutta la giornata (o più giornate). */
+    public boolean isGiornataIntera() {
+        return oraInizio == null;
+    }
+
+    /** Orario dell'assenza parziale, vuoto per le giornate intere. */
+    public java.util.Optional<Intervallo> orario() {
+        return isGiornataIntera() ? java.util.Optional.empty() : java.util.Optional.of(new Intervallo(oraInizio, oraFine));
     }
 
     Assenza(Utente utente, LocalDate dal, LocalDate al, MotivoAssenza motivo, String note) {
