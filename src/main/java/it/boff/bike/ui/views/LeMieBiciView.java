@@ -2,6 +2,7 @@ package it.boff.bike.ui.views;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
+import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -93,6 +94,8 @@ public class LeMieBiciView extends Div {
         scheda.getElement().setAttribute("tabindex", "0");
         scheda.getElement().setAttribute("aria-label", "Modifica " + b.getNome());
         scheda.addClickListener(e -> apriModifica(b));
+        // accessibile anche da tastiera (Invio sulla scheda selezionata)
+        Shortcuts.addShortcutListener(scheda, () -> apriModifica(b), Key.ENTER).listenOn(scheda);
         return scheda;
     }
 

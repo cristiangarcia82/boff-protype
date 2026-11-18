@@ -13,4 +13,4 @@ RUN useradd --system --uid 1001 boff
 COPY --from=build /app/target/boff-bike-*.jar app.jar
 USER boff
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-Duser.timezone=UTC", "-jar", "/app/app.jar"]

@@ -5,11 +5,10 @@ import it.boff.bike.utente.Utente;
 import it.boff.bike.utente.UtenteRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.core.Authentication;
@@ -19,13 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(properties = {
-        "boff.titolare.email=Titolare@Negozio.IT",
-        "boff.titolare.password=segreta123",
-        "boff.demo=true",
-        "spring.docker.compose.enabled=false"
-})
-@Import(TestcontainersConfiguration.class)
+@IntegrationTest
 class AutenticazioneIT {
 
     @Autowired
@@ -79,5 +72,17 @@ class AutenticazioneIT {
 
         assertThatThrownBy(() -> login("ex@cliente.it", "pwd12345"))
                 .isInstanceOf(DisabledException.class);
+    }
+
+    @Test
+    void dopoCinqueTentativiErratiLAccountEBloccato() {
+        utenti.save(new Utente("bersaglio@cliente.it", passwordEncoder.encode("giusta123"),
+                "B", "C", Ruolo.CLIENTE, false));
+        for (int i = 0; i < 5; i++) {
+            assertThatThrownBy(() -> login("bersaglio@cliente.it", "sbagliata"))
+                    .isInstanceOf(BadCredentialsException.class);
+        }
+        assertThatThrownBy(() -> login("bersaglio@cliente.it", "giusta123"))
+                .isInstanceOf(LockedException.class);
     }
 }

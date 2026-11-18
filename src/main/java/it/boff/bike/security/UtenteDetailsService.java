@@ -19,9 +19,11 @@ import java.util.List;
 public class UtenteDetailsService implements UserDetailsService {
 
     private final UtenteRepository utenti;
+    private final TentativiLogin tentativi;
 
-    public UtenteDetailsService(UtenteRepository utenti) {
+    public UtenteDetailsService(UtenteRepository utenti, TentativiLogin tentativi) {
         this.utenti = utenti;
+        this.tentativi = tentativi;
     }
 
     @Override
@@ -33,6 +35,7 @@ public class UtenteDetailsService implements UserDetailsService {
                 .password(utente.getPasswordHash())
                 .authorities(autorizzazioni(utente))
                 .disabled(!utente.isAttivo())
+                .accountLocked(tentativi.isBloccato(email))
                 .build();
     }
 
