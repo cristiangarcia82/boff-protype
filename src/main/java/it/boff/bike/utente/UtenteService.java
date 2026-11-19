@@ -42,9 +42,15 @@ public class UtenteService {
     /**
      * Il negozio registra un cliente al banco. L'account nasce con una password casuale
      * che nessuno conosce: il cliente la imposta con "Password dimenticata?".
+     * Il personale deve confermare di avergli mostrato o consegnato l'informativa privacy.
      */
-    public Utente creaCliente(@Valid DatiAnagrafica dati) {
-        return utenti.save(nuovo(dati, passwordEncoder.encode(passwordCasuale()), Ruolo.CLIENTE));
+    public Utente creaCliente(@Valid DatiAnagrafica dati, boolean informativaConsegnata) {
+        if (!informativaConsegnata) {
+            throw new ErroreDominio("Prima mostra o consegna al cliente l'informativa privacy");
+        }
+        Utente u = nuovo(dati, passwordEncoder.encode(passwordCasuale()), Ruolo.CLIENTE);
+        u.setPrivacyAccettataIl(OffsetDateTime.now(clock));
+        return utenti.save(u);
     }
 
     /** Il titolare crea l'account del collaboratore. */

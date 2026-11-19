@@ -11,6 +11,7 @@ import it.boff.bike.lavoro.Approvazione;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.lavoro.StatoLavoro;
 import it.boff.bike.notifiche.RecuperoPasswordService;
+import it.boff.bike.privacy.PrivacyService;
 import it.boff.bike.utente.DatiAnagrafica;
 import it.boff.bike.utente.DatiRegistrazione;
 import it.boff.bike.utente.Utente;
@@ -36,6 +37,7 @@ class Fase10IT {
     @Autowired CatalogoService catalogo;
     @Autowired RecuperoPasswordService recupero;
     @Autowired FunzionalitaService funzionalita;
+    @Autowired PrivacyService privacy;
 
     @AfterEach
     void ripristina() {
@@ -58,11 +60,11 @@ class Fase10IT {
     @Test
     void clienteSenzaEmailDalBancoAlRitiro() {
         String tel = telefono();
-        Utente c = utenti.creaCliente(senzaEmail(tel));
+        Utente c = utenti.creaCliente(senzaEmail(tel), true);
         assertThat(c.getEmail()).isNull();
         assertThat(c.usaApp()).isFalse();
         // due clienti senza email non vanno in conflitto
-        utenti.creaCliente(senzaEmail(telefono()));
+        utenti.creaCliente(senzaEmail(telefono()), true);
 
         assertThat(utenti.cercaClienti(tel.substring(4))).extracting(Utente::getId).contains(c.getId());
 
@@ -77,7 +79,7 @@ class Fase10IT {
 
     @Test
     void invitoSoloDopoAverAggiuntoLEmail() {
-        Utente c = utenti.creaCliente(senzaEmail(telefono()));
+        Utente c = utenti.creaCliente(senzaEmail(telefono()), true);
         assertThatThrownBy(() -> recupero.invitaCliente(c.getId()))
                 .isInstanceOf(ErroreDominio.class).hasMessageContaining("non ha un'email");
 
@@ -112,7 +114,7 @@ class Fase10IT {
     @Test
     void ilNegozioRegistraLaRispostaDataAlTelefono() {
         funzionalita.imposta(Funzionalita.APPROVAZIONE_EXTRA, true);
-        Utente c = utenti.creaCliente(senzaEmail(telefono()));
+        Utente c = utenti.creaCliente(senzaEmail(telefono()), true);
         Long bici = biciclette.aggiungi(c.getId(), DatiBicicletta.di("Trek", "FX", Tipologia.CITTA)).getId();
         Long lavoro = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
         Long extra = lavori.proponiExtra(lavoro, null, "Copertone posteriore", 15, "Tagliato").getId();
@@ -122,5 +124,36 @@ class Fase10IT {
                 .satisfies(r -> assertThat(r.getApprovazione()).isEqualTo(Approvazione.APPROVATA));
         assertThatThrownBy(() -> lavori.registraRispostaExtra(extra, false))
                 .isInstanceOf(ErroreDominio.class).hasMessageContaining("non è in attesa");
+    }
+
+    @Test
+    void informativaConfermataAlBanco() {
+        assertThatThrownBy(() -> utenti.creaCliente(senzaEmail(telefono()), false))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("informativa");
+        assertThat(utenti.creaCliente(senzaEmail(telefono()), true).getPrivacyAccettataIl()).isNotNull();
+    }
+
+    @Test
+    void ilNegozioCancellaIDatiSuRichiesta() {
+        String tel = telefono();
+        Utente c = utenti.creaCliente(senzaEmail(tel), true);
+        Long bici = biciclette.aggiungi(c.getId(), DatiBicicletta.di("Olmo", "Gran Turismo", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), "Note personali").getId();
+
+        assertThat(privacy.esporta(c.getId())).contains("Olmo", "Note personali", tel);
+        assertThatThrownBy(() -> privacy.eliminaSuRichiesta(c.getId()))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("lavoro ancora aperto");
+
+        lavori.annulla(lavoro);
+        privacy.eliminaSuRichiesta(c.getId());
+        Utente anonimo = utenti.trova(c.getId());
+        assertThat(anonimo.isEliminato()).isTrue();
+        assertThat(anonimo.getTelefono()).isNull();
+        assertThat(anonimo.getEmail()).isNull();
+        assertThat(utenti.cercaClienti(tel.substring(4))).as("non compare più nelle ricerche").isEmpty();
+        assertThat(lavori.lavoriDelCliente(c.getId())).singleElement()
+                .satisfies(l -> assertThat(l.getNoteCliente()).isNull());
+        assertThatThrownBy(() -> privacy.eliminaSuRichiesta(c.getId()))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("già");
     }
 }

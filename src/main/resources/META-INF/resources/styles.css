@@ -337,3 +337,5 @@ html { --boff-colore-lavoro: #b7791f; }
 .boff-righe-cliente li.rifiutata { color: var(--lumo-secondary-text-color); text-decoration: line-through; }
 .boff-riga-campo { display: flex; align-items: flex-end; gap: var(--lumo-space-s); }
 .boff-riga-campo > :first-child { flex-grow: 1; }
+.boff-privacy-cliente { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lumo-space-s) var(--lumo-space-m);
+  margin-top: var(--lumo-space-m); padding-top: var(--lumo-space-s); border-top: 1px solid var(--lumo-contrast-10pct); }

@@ -22,7 +22,7 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
     /** Ricerca per nome, cognome, "nome cognome", email o telefono (max 200 risultati). */
     @Query("""
             select u from Utente u
-            where u.ruolo = :ruolo and (:testo = ''
+            where u.ruolo = :ruolo and u.eliminatoIl is null and (:testo = ''
                or lower(concat(u.nome, ' ', u.cognome)) like lower(concat('%', :testo, '%'))
                or lower(concat(u.cognome, ' ', u.nome)) like lower(concat('%', :testo, '%'))
                or u.email like lower(concat('%', :testo, '%'))

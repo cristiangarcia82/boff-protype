@@ -33,6 +33,9 @@ import java.util.Map;
 @Transactional
 public class PrivacyService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PrivacyService.class);
+    private final java.time.Clock clock;
+
     private final UtenteRepository utenti;
     private final BiciclettaRepository biciclette;
     private final BiciclettaService biciclettaService;
@@ -45,7 +48,9 @@ public class PrivacyService {
 
     public PrivacyService(UtenteRepository utenti, BiciclettaRepository biciclette, BiciclettaService biciclettaService,
                           LavoroService lavori, IscrizionePushRepository iscrizioni, TokenPasswordRepository tokens,
-                          PasswordEncoder passwordEncoder, ObjectMapper json, it.boff.bike.lavoro.FotoService foto) {
+                          PasswordEncoder passwordEncoder, ObjectMapper json, it.boff.bike.lavoro.FotoService foto,
+                          java.time.Clock clock) {
+        this.clock = clock;
         this.foto = foto;
         this.utenti = utenti;
         this.biciclette = biciclette;
@@ -104,13 +109,31 @@ public class PrivacyService {
         return json.writerWithDefaultPrettyPrinter().writeValueAsString(dati);
     }
 
-    /** Cancella (anonimizza) l'account. Non possibile con un lavoro ancora aperto. */
+    /** Il cliente cancella (anonimizza) il proprio account. Non possibile con un lavoro ancora aperto. */
     public void eliminaAccount(Long clienteId) {
+        elimina(clienteId, "Hai un lavoro ancora aperto: annullalo o attendi il ritiro della bici, "
+                + "poi potrai eliminare l'account.");
+        log.info("Cliente {}: dati personali cancellati su sua richiesta dall'app", clienteId);
+    }
+
+    /**
+     * Il negozio cancella i dati di un cliente che lo ha chiesto di persona, per telefono o per iscritto
+     * (indispensabile per chi non usa l'app). Stesso effetto della cancellazione dall'app.
+     */
+    public void eliminaSuRichiesta(Long clienteId) {
+        elimina(clienteId, "Il cliente ha un lavoro ancora aperto: chiudilo (ritiro o annullamento) "
+                + "e poi elimina i dati.");
+        log.info("Cliente {}: dati personali cancellati dal negozio su richiesta del cliente", clienteId);
+    }
+
+    private void elimina(Long clienteId, String seLavoroAperto) {
         Utente u = cliente(clienteId);
+        if (u.isEliminato()) {
+            throw new ErroreDominio("I dati di questo cliente sono già stati cancellati");
+        }
         boolean apertoInCorso = lavori.lavoriDelCliente(clienteId).stream().anyMatch(l -> l.getStato().isAperto());
         if (apertoInCorso) {
-            throw new ErroreDominio("Hai un lavoro ancora aperto: annullalo o attendi il ritiro della bici, "
-                    + "poi potrai eliminare l'account.");
+            throw new ErroreDominio(seLavoroAperto);
         }
         biciclette.findByProprietarioIdOrderById(clienteId).stream().filter(b -> !b.isArchiviata())
                 .forEach(b -> biciclettaService.rimuovi(clienteId, b.getId()));
@@ -120,7 +143,7 @@ public class PrivacyService {
         tokens.deleteByUtenteId(clienteId);
         byte[] casuale = new byte[32];
         new SecureRandom().nextBytes(casuale);
-        u.anonimizza(passwordEncoder.encode(HexFormat.of().formatHex(casuale)));
+        u.anonimizza(passwordEncoder.encode(HexFormat.of().formatHex(casuale)), java.time.OffsetDateTime.now(clock));
     }
 
     private Utente cliente(Long id) {

@@ -319,6 +319,10 @@ class InterfacciaIT extends SpringBrowserlessTest {
         test($(TextField.class).withLabel("Cognome").single()).setValue(cognome);
         test($(TextField.class).withLabel("Telefono").single()).setValue("0461 123456");
         test($(Button.class).withText("Salva").single()).click();
+        assertThat($(Button.class).withText("Nuovo cliente").all()).as("senza conferma dell'informativa non salva")
+                .hasSize(1);
+        test($(Checkbox.class).withCaption("Ho mostrato o consegnato al cliente l'informativa privacy").single()).click();
+        test($(Button.class).withText("Salva").single()).click();
 
         // nuova bici, sempre dalla stessa finestra
         test($(Button.class).withText("Nuova bici").single()).click();
@@ -338,5 +342,24 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat(lavori.storicoBici(biciCliente.get(0).getId())).singleElement()
                 .satisfies(l -> assertThat(l.getStato()).isIn(StatoLavoro.IN_OFFICINA.toArray()));
         assertThat($(com.vaadin.flow.component.html.Span.class).withText("Senza app").exists()).isTrue();
+    }
+
+    @Test
+    @WithMockUser(username = "collaboratore@demo.it", roles = "STAFF")
+    void ilNegozioEliminaIDatiDiUnClienteSuRichiesta() {
+        String cognome = "Privacy" + UUID.randomUUID().toString().substring(0, 8);
+        navigate(it.boff.bike.ui.views.ClientiView.class);
+        test($(Button.class).withText("Nuovo cliente").single()).click();
+        test($(TextField.class).withLabel("Nome").single()).setValue("Rita");
+        test($(TextField.class).withLabel("Cognome").single()).setValue(cognome);
+        test($(TextField.class).withLabel("Telefono").single()).setValue("0461 654321");
+        test($(Checkbox.class).withCaption("Ho mostrato o consegnato al cliente l'informativa privacy").single()).click();
+        test($(Button.class).withText("Salva").single()).click();
+
+        assertThat($(com.vaadin.flow.component.html.Anchor.class).withText("Scarica i dati del cliente").exists()).isTrue();
+        test($(Button.class).withText("Elimina i dati del cliente").single()).click();
+        test($(com.vaadin.flow.component.confirmdialog.ConfirmDialog.class).single()).confirm();
+
+        assertThat(utenti.findAll()).noneMatch(u -> cognome.equals(u.getCognome()));
     }
 }

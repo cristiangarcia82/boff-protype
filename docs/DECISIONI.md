@@ -26,7 +26,7 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 ## D5 – Fuso orario e "oggi"
 - **Decisione**: tutto il calcolo di date e orari usa `Europe/Rome` tramite un `Clock` configurabile.
 
-## D6 – Informativa privacy in bozza ⚠️
+## D6 – Informativa privacy in bozza ⚠️ (aggiornata in fase 10, vedi D44)
 - **Decisione**: pagina `/privacy` con un testo generico e la casella obbligatoria in registrazione (si salva data e ora del consenso).
 - **Da fare a cura tua**: completare titolare del trattamento, indirizzo e contatti, possibilmente con il tuo consulente.
 
@@ -187,3 +187,10 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - Approvazione extra (se attiva): per loro la casella "Chiedi l'approvazione" parte spenta; se la si usa, il negozio registra la risposta data a voce con **"Ha detto sì / Ha detto no"**.
 - Se in seguito il cliente vuole l'app: *Modifica* → si aggiunge l'email (una sola volta; poi non si cambia dal negozio) → *Invia link* per scegliere la password. Storico e bici restano.
 - **Alternativa scartata**: tabella `cliente` separata dall'account (D1): duplicava ricerca, bici e storico e complicava il passaggio da "senza app" a "con app".
+
+## D44 – Privacy per chi non usa l'app
+- **Informativa al banco**: creando un cliente dal negozio (da *Clienti* o da *Nuovo lavoro*) il personale deve spuntare "Ho mostrato o consegnato al cliente l'informativa privacy" (con link per aprirla). Il servizio rifiuta la creazione senza conferma e registra la data.
+- **Diritti esercitati in negozio**: nella scheda cliente, per tutto il personale, *Scarica i dati del cliente* (stesso file JSON del profilo) ed *Elimina i dati del cliente* (con conferma). Si usa solo su richiesta del cliente; non possibile con un lavoro aperto. L'operazione è registrata nel log.
+- **Cancellazione**: stessa anonimizzazione di D30. Ora si registra la data (`eliminato_il`) e l'email viene tolta del tutto invece di essere sostituita da un indirizzo fittizio. I clienti eliminati spariscono da elenco e ricerche; aprendo il loro indirizzo si vede solo "Cliente eliminato".
+- **Informativa (versione 2)**: aggiunti clienti senza app, foto, notifiche (fornitori push), promemoria (legittimo interesse, disattivabili), fornitori di hosting ed email, conservazione con storico anonimo, come esercitare i diritti senza app (in negozio, telefono, email; entro 30 giorni), reclamo al Garante.
+- ⚠️ **Da completare prima della messa online**: ragione sociale, indirizzo, P. IVA e contatti del negozio; nomi dei fornitori di hosting ed email. Il testo resta una bozza da far verificare da un consulente.

@@ -32,7 +32,8 @@ Caddy (incluso) ottiene e rinnova da solo il certificato gratuito Let's Encrypt.
    - **Orari** → imposta le fasce di vendita e officina di entrambi;
    - **Catalogo interventi** → adatta i tempi standard ai vostri.
 5. Da *Assenze e chiusure* aggiungi il patrono e le ferie del negozio.
-6. Installa l'app su Mac e telefono (pagina `/installa`) e attiva le notifiche dalla bacheca.
+6. **Completa l'informativa privacy** (`src/main/java/it/boff/bike/ui/views/PrivacyView.java`): ragione sociale, indirizzo, P. IVA, contatti, fornitori di hosting ed email. Meglio farla rileggere a un consulente.
+7. Installa l'app su Mac e telefono (pagina `/installa`) e attiva le notifiche dalla bacheca.
 
 ## Aggiornare a una nuova versione
 

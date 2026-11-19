@@ -193,4 +193,5 @@ recupero password, cookie, log, configurazione di produzione.
 | Notifiche | "Bici pronta", promemoria e approvazioni per un cliente senza app non generano errori né tentativi di invio (test del percorso completo dal banco al ritiro). |
 | Interfaccia | Test senza browser della creazione di cliente e bici dentro *Nuovo lavoro*; verificato anche nel browser. |
 | Trovato in review | Un'email fatta di soli spazi veniva rifiutata come "non valida" invece di essere considerata assente: ora vuota = nessuna email. |
-| Rischio residuo | Un cliente senza app non può scaricare o cancellare i propri dati da solo: se lo chiede, deve farlo il negozio. La funzione di cancellazione esiste nel servizio ma non c'è ancora un pulsante per il personale: da aggiungere se capita. Ricordarlo nell'informativa privacy. |
+| Privacy (aggiunta) | Pulsanti per il personale *Scarica / Elimina i dati del cliente*, conferma obbligatoria dell'informativa al banco, informativa aggiornata (D44). Test: cancellazione rifiutata con lavoro aperto, dati anonimi, cliente non più ricercabile, seconda cancellazione rifiutata; creazione senza informativa rifiutata; percorso completo nell'interfaccia. |
+| Rischio residuo | L'informativa contiene ancora segnaposto (dati del negozio e fornitori) da compilare prima della messa online. |

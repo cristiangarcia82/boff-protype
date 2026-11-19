@@ -24,6 +24,7 @@ import com.vaadin.flow.router.RouterLink;
 import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.notifiche.RecuperoPasswordService;
+import it.boff.bike.privacy.PrivacyService;
 import it.boff.bike.security.Ruoli;
 import it.boff.bike.ui.componenti.BadgeStato;
 import it.boff.bike.ui.componenti.Formati;
@@ -50,14 +51,16 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
     private final BiciclettaService biciclette;
     private final LavoroService lavori;
     private final RecuperoPasswordService recupero;
+    private final PrivacyService privacy;
     private final boolean titolare;
     private final Grid<Utente> griglia = new Grid<>();
     private final TextField cerca = new TextField();
     private final Div dettaglio = new Div();
 
     public ClientiView(UtenteService utenti, BiciclettaService biciclette, LavoroService lavori,
-                       UtenteCorrente utenteCorrente, RecuperoPasswordService recupero) {
+                       UtenteCorrente utenteCorrente, RecuperoPasswordService recupero, PrivacyService privacy) {
         this.recupero = recupero;
+        this.privacy = privacy;
         this.utenti = utenti;
         this.lavori = lavori;
         this.biciclette = biciclette;
@@ -131,6 +134,15 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
             return;
         }
         Utente c = utenti.trova(cliente.getId());
+        if (c.isEliminato()) {
+            Div eliminato = new Div(new H3("Cliente eliminato"),
+                    new Paragraph("I dati personali sono stati cancellati il "
+                            + Formati.data(c.getEliminatoIl())
+                            + ". Lo storico dei lavori resta in forma anonima."));
+            eliminato.addClassNames("boff-card", "boff-vuoto");
+            dettaglio.add(eliminato);
+            return;
+        }
 
         Button modifica = new Button("Modifica", VaadinIcon.EDIT.create(), e -> modificaCliente(c));
         modifica.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -174,6 +186,7 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
             if (c.isAttivo()) attiva.addThemeVariants(ButtonVariant.LUMO_ERROR);
             schedaCliente.add(attiva);
         }
+        schedaCliente.add(schedaPrivacy(c));
 
         Button aggiungiBici = new Button("Aggiungi bici", VaadinIcon.PLUS.create(), e -> nuovaBici(c));
         aggiungiBici.addThemeVariants(ButtonVariant.LUMO_SMALL);
@@ -212,9 +225,54 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
         return d;
     }
 
+    /**
+     * Diritti privacy esercitati in negozio: copia dei dati e cancellazione, su richiesta del cliente.
+     * Indispensabile per chi non usa l'app (gli altri possono farlo anche dal proprio profilo).
+     */
+    private Div schedaPrivacy(Utente c) {
+        Anchor scarica = new Anchor(com.vaadin.flow.server.streams.DownloadHandler.fromInputStream(evento -> {
+            byte[] dati = privacy.esporta(c.getId()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            return new com.vaadin.flow.server.streams.DownloadResponse(new java.io.ByteArrayInputStream(dati),
+                    "dati-cliente-" + c.getId() + ".json", "application/json", dati.length);
+        }), "Scarica i dati del cliente");
+        scarica.getElement().setAttribute("download", true);
+        scarica.addClassName("boff-testo-secondario");
+
+        Button elimina = new Button("Elimina i dati del cliente", VaadinIcon.TRASH.create(), e -> {
+            com.vaadin.flow.component.confirmdialog.ConfirmDialog conferma =
+                    new com.vaadin.flow.component.confirmdialog.ConfirmDialog(
+                            "Eliminare i dati di " + c.getNomeCompleto() + "?",
+                            "Da fare solo se il cliente lo ha chiesto. Nome, contatti, bici, note e foto vengono "
+                                    + "cancellati e l'account non potrà più essere usato. I lavori passati restano "
+                                    + "nello storico in forma anonima. L'operazione non si può annullare.",
+                            "Elimina definitivamente", ev -> {
+                                try {
+                                    privacy.eliminaSuRichiesta(c.getId());
+                                    Avvisi.ok("Dati del cliente eliminati");
+                                    aggiornaElenco();
+                                    mostra(null);
+                                } catch (it.boff.bike.common.ErroreDominio ex) {
+                                    Avvisi.errore(ex.getMessage());
+                                }
+                            });
+            conferma.setCancelable(true);
+            conferma.setCancelText("Annulla");
+            conferma.setConfirmButtonTheme("error primary");
+            conferma.open();
+        });
+        elimina.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
+        elimina.setTooltipText("Su richiesta del cliente (diritto alla cancellazione)");
+
+        Span titolo = new Span("Privacy");
+        titolo.addClassName("boff-testo-secondario");
+        Div d = new Div(titolo, scarica, elimina);
+        d.addClassName("boff-privacy-cliente");
+        return d;
+    }
+
     private void nuovoCliente() {
         new ClienteDialog(new DatiAnagrafica(), true, dati -> {
-            Utente nuovo = utenti.creaCliente(dati);
+            Utente nuovo = utenti.creaCliente(dati, true);
             Avvisi.ok("Cliente creato");
             cerca.clear();
             aggiornaElenco();

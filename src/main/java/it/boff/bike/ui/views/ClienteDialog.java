@@ -42,9 +42,25 @@ class ClienteDialog extends Dialog {
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("440px", 2));
         add(form);
 
+        // al banco il cliente non accetta l'informativa dall'app: la conferma il personale
+        com.vaadin.flow.component.checkbox.Checkbox informativa =
+                new com.vaadin.flow.component.checkbox.Checkbox("Ho mostrato o consegnato al cliente l'informativa privacy");
+        com.vaadin.flow.component.html.Anchor testo = new com.vaadin.flow.component.html.Anchor("privacy", "Apri l'informativa");
+        testo.setTarget("_blank");
+        com.vaadin.flow.component.html.Paragraph errore =
+                new com.vaadin.flow.component.html.Paragraph("Conferma di aver informato il cliente sul trattamento dei dati");
+        errore.addClassName("boff-errore");
+        errore.setVisible(false);
+        if (nuovo) {
+            informativa.addValueChangeListener(e -> errore.setVisible(false));
+            add(new com.vaadin.flow.component.html.Div(informativa, testo), errore);
+        }
+
         Button ok = new Button("Salva", e -> {
             DatiAnagrafica risultato = new DatiAnagrafica();
-            if (binder.writeBeanIfValid(risultato)) {
+            boolean informato = !nuovo || informativa.getValue();
+            errore.setVisible(!informato);
+            if (binder.writeBeanIfValid(risultato) && informato) {
                 try {
                     salva.accept(risultato);
                     close();

@@ -52,7 +52,8 @@ class PrivacyIT {
 
         Utente anonimo = repo.findById(u.getId()).orElseThrow();
         assertThat(anonimo.isAttivo()).isFalse();
-        assertThat(anonimo.getEmail()).doesNotContain(email.toLowerCase().split("@")[0]);
+        assertThat(anonimo.getEmail()).isNull();
+        assertThat(anonimo.isEliminato()).isTrue();
         assertThat(anonimo.getNomeCompleto()).isEqualTo("Cliente eliminato");
         assertThat(anonimo.getTelefono()).isNull();
         assertThat(biciclette.elencoDi(u.getId())).isEmpty();

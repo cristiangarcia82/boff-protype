@@ -76,7 +76,7 @@ class UtenteServiceIT {
         d.setCognome("Gialli");
         d.setEmail(email());
         d.setTelefono("0471 123456");
-        Utente u = service.creaCliente(d);
+        Utente u = service.creaCliente(d, true);
         assertThat(u.getRuolo()).isEqualTo(Ruolo.CLIENTE);
         assertThat(service.cercaClienti("pino gia")).extracting(Utente::getId).contains(u.getId());
         assertThat(service.cercaClienti("0471 12")).extracting(Utente::getId).contains(u.getId());

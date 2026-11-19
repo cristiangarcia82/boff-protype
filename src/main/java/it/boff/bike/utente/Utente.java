@@ -49,6 +49,10 @@ public class Utente {
     @Column(name = "privacy_accettata_il")
     private OffsetDateTime privacyAccettataIl;
 
+    /** Quando i dati personali sono stati cancellati (anonimizzati); null = cliente attivo o disattivato. */
+    @Column(name = "eliminato_il")
+    private OffsetDateTime eliminatoIl;
+
     @Column(name = "promemoria_attivi", nullable = false)
     private boolean promemoriaAttivi = true;
 
@@ -102,8 +106,12 @@ public class Utente {
      * Diritto all'oblio: sostituisce i dati personali con valori anonimi e disattiva l'account.
      * Il record resta per non rompere lo storico dei lavori del negozio.
      */
-    public void anonimizza(String passwordHashInutilizzabile) {
-        this.email = "eliminato-" + id + "@utente-eliminato.invalid";
+    public boolean isEliminato() { return eliminatoIl != null; }
+    public OffsetDateTime getEliminatoIl() { return eliminatoIl; }
+
+    public void anonimizza(String passwordHashInutilizzabile, OffsetDateTime adesso) {
+        this.eliminatoIl = adesso;
+        this.email = null;
         this.nome = "Cliente";
         this.cognome = "eliminato";
         this.telefono = null;

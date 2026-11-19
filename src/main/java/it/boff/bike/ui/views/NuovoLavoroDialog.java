@@ -53,7 +53,7 @@ class NuovoLavoroDialog extends Dialog {
         // creazione rapida, senza lasciare la finestra: utile per chi arriva in negozio e non usa l'app
         Button nuovoCliente = new Button("Nuovo cliente", VaadinIcon.PLUS.create(), e ->
                 new ClienteDialog(new DatiAnagrafica(), true, dati -> {
-                    Utente u = utenti.creaCliente(dati);
+                    Utente u = utenti.creaCliente(dati, true);
                     cliente.setValue(u);
                     Avvisi.ok("Cliente creato");
                 }).open());
