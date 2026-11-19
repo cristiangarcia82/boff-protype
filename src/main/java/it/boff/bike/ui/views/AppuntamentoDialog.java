@@ -92,8 +92,14 @@ public class AppuntamentoDialog extends Dialog {
             persona.addValueChangeListener(e -> aggiornaOre.run());
             giorno.addValueChangeListener(e -> aggiornaOre.run());
             aggiornaOre.run();
-            Button sposta = new Button("Sposta", e -> esegui(() -> service.sposta(a.getId(), persona.getValue().getId(),
-                    giorno.getValue(), ora.getValue()), "Appuntamento spostato: il cliente riceve un avviso", cambiato));
+            Button sposta = new Button("Sposta", e -> {
+                if (persona.getValue() == null || giorno.getValue() == null || ora.getValue() == null) {
+                    Avvisi.errore("Scegli persona, giorno e ora");
+                    return;
+                }
+                esegui(() -> service.sposta(a.getId(), persona.getValue().getId(), giorno.getValue(), ora.getValue()),
+                        "Appuntamento spostato: il cliente riceve un avviso", cambiato);
+            });
             sposta.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             Div riga = new Div(persona, giorno, ora, sposta);
             riga.addClassName("boff-modulo-riga");
@@ -135,8 +141,8 @@ public class AppuntamentoDialog extends Dialog {
             Avvisi.ok(ok);
             close();
             cambiato.run();
-        } catch (ErroreDominio | NullPointerException ex) {
-            Avvisi.errore(ex instanceof ErroreDominio ? ex.getMessage() : "Scegli persona, giorno e ora");
+        } catch (ErroreDominio ex) {
+            Avvisi.errore(ex.getMessage());
         }
     }
 }

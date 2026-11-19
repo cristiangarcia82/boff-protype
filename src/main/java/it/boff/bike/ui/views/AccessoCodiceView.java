@@ -27,6 +27,7 @@ public class AccessoCodiceView extends VerticalLayout {
 
     private final CodiceAccessoService codici;
     private final Div contenuto = new Div();
+    private java.time.Instant ultimoInvio = java.time.Instant.EPOCH;
 
     public AccessoCodiceView(CodiceAccessoService codici) {
         this.codici = codici;
@@ -56,6 +57,7 @@ public class AccessoCodiceView extends VerticalLayout {
                 return;
             }
             codici.richiedi(indirizzo);
+            ultimoInvio = java.time.Instant.now();
             chiediCodice(indirizzo);
         });
         invia.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -103,7 +105,14 @@ public class AccessoCodiceView extends VerticalLayout {
         modulo.appendChild(etichetta, campo, entra);
 
         Button rinvia = new Button("Non è arrivato? Invialo di nuovo", e -> {
+            // lo stesso limite del servizio (30 secondi tra un invio e l'altro): niente conferme non vere
+            long attesa = 30 - java.time.Duration.between(ultimoInvio, java.time.Instant.now()).toSeconds();
+            if (attesa > 0) {
+                it.boff.bike.ui.componenti.Avvisi.errore("Attendi ancora " + attesa + " secondi prima di chiederne un altro");
+                return;
+            }
             codici.richiedi(indirizzo);
+            ultimoInvio = java.time.Instant.now();
             it.boff.bike.ui.componenti.Avvisi.ok("Se l'email è registrata, ti abbiamo inviato un nuovo codice");
         });
         rinvia.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);

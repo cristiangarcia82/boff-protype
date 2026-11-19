@@ -201,4 +201,41 @@ class AppuntamentiIT {
         assertThat(dopo.getStato()).isEqualTo(StatoAppuntamento.ANNULLATO);
         assertThat(dopo.getNoteCliente()).isNull();
     }
+
+    @Test
+    void dueRichiesteContemporaneeNonPrenotanoLoStessoOrario() throws Exception {
+        LocalDate g = giornoLibero(15);
+        int tentativi = 6;
+        var pronti = new java.util.concurrent.CountDownLatch(1);
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(tentativi);
+        List<java.util.concurrent.Future<Boolean>> esiti = new java.util.ArrayList<>();
+        for (int i = 0; i < tentativi; i++) {
+            esiti.add(pool.submit(() -> {
+                pronti.await();
+                try {
+                    appuntamenti.crea(cliente, consulenza.getId(), luca, g, LocalTime.of(10, 0), null);
+                    return true;
+                } catch (ErroreDominio e) {
+                    return false;
+                }
+            }));
+        }
+        pronti.countDown();
+        long riusciti = 0;
+        for (var f : esiti) if (f.get(30, java.util.concurrent.TimeUnit.SECONDS)) riusciti++;
+        pool.shutdown();
+        assertThat(riusciti).as("un solo appuntamento con Luca alle 10").isEqualTo(1);
+        assertThat(appuntamenti.tra(g, g)).filteredOn(a -> a.getUtente().getId().equals(luca)
+                && a.getOraInizio().equals(LocalTime.of(10, 0))).hasSize(1);
+    }
+
+    @Test
+    void unTurnoNonCopreUnAppuntamentoEUnAppuntamentoNonVaNelPassato() {
+        LocalDate g = giornoLibero(18);
+        appuntamenti.crea(cliente, consulenza.getId(), luca, g, LocalTime.of(10, 0), null);
+        assertThatThrownBy(() -> calendario.aggiungiTurnoVendita(luca, g, LocalTime.of(9, 0), LocalTime.of(12, 0), null))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("appuntamento");
+        assertThatThrownBy(() -> appuntamenti.crea(cliente, consulenza.getId(), luca, calendario.oggi().minusDays(1), LocalTime.of(10, 0), null))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("già passato");
+    }
 }

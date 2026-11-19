@@ -225,3 +225,20 @@ recupero password, cookie, log, configurazione di produzione.
 |---|---|
 | Test | Appuntamenti solo nell'orario di lavoro; turno di vendita che toglie tempo ad appuntamenti e officina (fuori orario o sovrapposto: rifiutato); appuntamento che sposta un lavoro di officina; capacità indipendente dal numero di persone (verificato in ordine alfabetico e inverso). |
 | Trovato in review | Uno spostamento manuale di un lavoro poteva finire sopra un appuntamento: ora è escluso. |
+
+# Review del codice di fine giornata (fasi 10–12) – richiesta del titolare
+
+Revisione delle modifiche da `87487d8` (clienti senza app, privacy in negozio, accessi, calendario, appuntamenti, turni di vendita). Tutto corretto, con test:
+
+| Problema trovato | Gravità | Correzione |
+|---|---|---|
+| Due richieste quasi contemporanee potevano prenotare la stessa persona alla stessa ora: il lock in memoria veniva rilasciato prima del salvataggio | importante | Lock di PostgreSQL tenuto fino al salvataggio (`pg_advisory_xact_lock`), condiviso da appuntamenti e turni di vendita. Test con 6 richieste in parallelo: ne passa una sola |
+| Un turno di vendita poteva coprire un appuntamento già fissato o un intervento fissato a mano | importante | Rifiutato, con il nome del cliente nel messaggio |
+| Il negozio poteva fissare o spostare un appuntamento in un orario già passato di oggi | minore | Rifiutato |
+| Il codice di accesso veniva inviato prima di essere salvato | minore | Inviato dopo il salvataggio |
+| Alla scadenza delle 12 ore, durante l'uso della pagina, compariva un errore di comunicazione | minore | Per le richieste interne di Vaadin niente redirect: la sessione si chiude e la pagina torna al login |
+| Cancellando i dati di un cliente i suoi appuntamenti sparivano senza avvisare il personale | minore | Avviso al personale e ricalcolo |
+| Una finestra intercettava errori di programmazione mostrando "Scegli persona, giorno e ora" | minore | Controlli espliciti dei campi |
+| "Invialo di nuovo" confermava un invio anche quando era bloccato dal limite di 30 secondi | minore | Messaggio con i secondi da attendere |
+
+Rischio residuo noto: la pianificazione dell'officina usa ancora un lock in memoria rilasciato prima del salvataggio (codice precedente, una sola istanza dell'app): due modifiche nello stesso istante possono richiedere un secondo ricalcolo, senza perdere dati.

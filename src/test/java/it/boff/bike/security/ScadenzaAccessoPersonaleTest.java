@@ -27,10 +27,16 @@ class ScadenzaAccessoPersonaleTest {
     }
 
     static MockHttpServletResponse richiesta(MockHttpSession sessione, Instant quando, String ruolo) throws Exception {
+        return richiesta(sessione, quando, ruolo, false);
+    }
+
+    static MockHttpServletResponse richiesta(MockHttpSession sessione, Instant quando, String ruolo, boolean vaadin)
+            throws Exception {
         SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
                 "x@y.it", null, AuthorityUtils.createAuthorityList("ROLE_" + ruolo)));
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/bacheca");
         req.setSession(sessione);
+        if (vaadin) req.setParameter("v-r", "uidl");
         MockHttpServletResponse resp = new MockHttpServletResponse();
         new ScadenzaAccessoPersonale(Clock.fixed(quando, ZoneOffset.UTC)).doFilter(req, resp, new MockFilterChain());
         return resp;
@@ -52,5 +58,14 @@ class ScadenzaAccessoPersonaleTest {
         richiesta(sessione, ORA, "CLIENTE");
         assertThat(richiesta(sessione, ORA.plus(Duration.ofDays(2)), "CLIENTE").getRedirectedUrl()).isNull();
         assertThat(sessione.isInvalid()).isFalse();
+    }
+
+    @Test
+    void unaRichiestaInternaDiVaadinNonVieneRediretta() throws Exception {
+        MockHttpSession sessione = new MockHttpSession();
+        richiesta(sessione, ORA, "STAFF");
+        MockHttpServletResponse r = richiesta(sessione, ORA.plus(Duration.ofHours(13)), "STAFF", true);
+        assertThat(r.getRedirectedUrl()).isNull();
+        assertThat(sessione.isInvalid()).isTrue();
     }
 }

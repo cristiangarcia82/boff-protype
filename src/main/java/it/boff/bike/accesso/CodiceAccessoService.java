@@ -89,8 +89,20 @@ public class CodiceAccessoService {
                 + "Non comunicarlo a nessuno: il negozio non te lo chiederà mai.\n\n"
                 + "Se non l'hai chiesto tu, ignora questa email.";
         String oggetto = codice + " è il tuo codice di accesso a " + properties.nomeNegozio();
-        // invio in un altro thread: la risposta arriva subito, con o senza account
-        CompletableFuture.runAsync(() -> email.invia(destinatario, oggetto, testo));
+        // invio dopo il salvataggio (un codice inviato ma non salvato non funzionerebbe mai) e in un altro
+        // thread: la risposta arriva subito, con o senza account
+        Runnable invio = () -> CompletableFuture.runAsync(() -> email.invia(destinatario, oggetto, testo));
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            invio.run();
+                        }
+                    });
+        } else {
+            invio.run();
+        }
         return Optional.of(codice);
     }
 

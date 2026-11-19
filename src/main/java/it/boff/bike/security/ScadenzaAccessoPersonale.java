@@ -42,7 +42,13 @@ public class ScadenzaAccessoPersonale extends OncePerRequestFilter {
             } else if (((Instant) inizio).plus(AccessoPerRuolo.DURATA_PERSONALE).isBefore(adesso)) {
                 sessione.invalidate();
                 SecurityContextHolder.clearContext();
-                response.sendRedirect(request.getContextPath() + "/login");
+                if (request.getParameter("v-r") != null) {
+                    // richiesta interna di Vaadin (XHR): un redirect non verrebbe seguito; con la sessione
+                    // chiusa Vaadin segnala "sessione scaduta" e ricarica la pagina, che porta al login
+                    chain.doFilter(request, response);
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/login");
+                }
                 return;
             }
         }

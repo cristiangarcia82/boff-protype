@@ -33,11 +33,20 @@ public class CalendarioService {
     private final Clock clock;
     private final Ripianificazione ripianificazione;
     private final TurnoVenditaRepository turni;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final it.boff.bike.appuntamento.AppuntamentoRepository appuntamenti;
+    private final it.boff.bike.pianificazione.AssegnazioneRepository assegnazioni;
 
     public CalendarioService(FasciaOrariaRepository fasce, AssenzaRepository assenze, ChiusuraRepository chiusure,
                              UtenteRepository utenti, BoffProperties properties, Clock clock,
-                             Ripianificazione ripianificazione, TurnoVenditaRepository turni) {
+                             Ripianificazione ripianificazione, TurnoVenditaRepository turni,
+                             org.springframework.jdbc.core.JdbcTemplate jdbc,
+                             it.boff.bike.appuntamento.AppuntamentoRepository appuntamenti,
+                             it.boff.bike.pianificazione.AssegnazioneRepository assegnazioni) {
         this.turni = turni;
+        this.jdbc = jdbc;
+        this.appuntamenti = appuntamenti;
+        this.assegnazioni = assegnazioni;
         this.ripianificazione = ripianificazione;
         this.fasce = fasce;
         this.assenze = assenze;
@@ -190,8 +199,21 @@ public class CalendarioService {
         if (!inOrario) {
             throw new ErroreDominio(persona.getNome() + " non lavora in quell'orario: il turno deve stare nel suo orario");
         }
+        // stesso lock degli appuntamenti: nessuna prenotazione può infilarsi tra il controllo e il salvataggio
+        jdbc.queryForList("SELECT pg_advisory_xact_lock(?)", it.boff.bike.appuntamento.AppuntamentoService.LOCK_AGENDA);
         if (d.turniVendita(utenteId, giorno).stream().anyMatch(t -> t.intervallo().siSovrappone(turno))) {
             throw new ErroreDominio("Si sovrappone a un altro turno di vendita");
+        }
+        // gli appuntamenti e gli interventi fissati a mano non si spostano da soli: niente sovrapposizioni
+        var conflitto = appuntamenti.tra(giorno, giorno, it.boff.bike.appuntamento.StatoAppuntamento.ATTIVI).stream()
+                .filter(a -> a.getUtente().getId().equals(utenteId) && a.intervallo().siSovrappone(turno)).findFirst();
+        if (conflitto.isPresent()) {
+            var a = conflitto.get();
+            throw new ErroreDominio("Alle " + a.getOraInizio() + " " + persona.getNome() + " ha un appuntamento con "
+                    + a.getCliente().getNomeCompleto() + ": spostalo prima o scegli un altro orario");
+        }
+        if (assegnazioni.bloccateDiPersona(utenteId, giorno).stream().anyMatch(a -> a.intervallo().siSovrappone(turno))) {
+            throw new ErroreDominio("In quell'orario c'è un intervento di officina fissato a mano: spostalo o sbloccalo prima");
         }
         String n = note == null || note.isBlank() ? null : note.trim();
         if (n != null && n.length() > 200) throw new ErroreDominio("Nota troppo lunga (massimo 200 caratteri)");

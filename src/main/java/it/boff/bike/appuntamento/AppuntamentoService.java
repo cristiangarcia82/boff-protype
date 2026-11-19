@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Appuntamenti di consulenza. Stanno nell'orario di lavoro di una persona (tolti assenze e turni di vendita)
@@ -57,15 +56,20 @@ public class AppuntamentoService {
     private final CalendarioService calendario;
     private final ApplicationEventPublisher eventi;
     private final Clock clock;
-    private final ReentrantLock lock = new ReentrantLock();
     private final it.boff.bike.pianificazione.AssegnazioneRepository assegnazioni;
     private final it.boff.bike.pianificazione.Ripianificazione ripianificazione;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    /** Chiave del lock condiviso (appuntamenti e turni di vendita) sull'agenda del personale. */
+    public static final long LOCK_AGENDA = 7_312_001L;
 
     public AppuntamentoService(AppuntamentoRepository appuntamenti, TipoAppuntamentoRepository tipi,
                                UtenteRepository utenti, BiciclettaRepository biciclette, CalendarioService calendario,
                                ApplicationEventPublisher eventi, Clock clock,
                                it.boff.bike.pianificazione.AssegnazioneRepository assegnazioni,
-                               it.boff.bike.pianificazione.Ripianificazione ripianificazione) {
+                               it.boff.bike.pianificazione.Ripianificazione ripianificazione,
+                               org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
         this.assegnazioni = assegnazioni;
         this.ripianificazione = ripianificazione;
         this.appuntamenti = appuntamenti;
@@ -170,53 +174,47 @@ public class AppuntamentoService {
 
     /** Il cliente chiede un appuntamento dall'app: lo spazio è tenuto, il negozio conferma. */
     public Appuntamento richiedi(Long clienteId, Long tipoId, LocalDate giorno, LocalTime ora, Long biciId, String note) {
-        lock.lock();
-        try {
-            Utente cliente = cliente(clienteId);
-            if (!cliente.isAttivo()) throw new ErroreDominio("Account non attivo");
-            LocalDate oggi = calendario.oggi();
-            if (giorno.isAfter(oggi.plusDays(GIORNI_PRENOTABILI))) {
-                throw new ErroreDominio("Si può prenotare al massimo " + GIORNI_PRENOTABILI + " giorni avanti");
-            }
-            if (appuntamenti.apertiDelCliente(clienteId, oggi, StatoAppuntamento.ATTIVI) >= MAX_APERTI_PER_CLIENTE) {
-                throw new ErroreDominio("Hai già " + MAX_APERTI_PER_CLIENTE + " appuntamenti in programma: "
-                        + "annullane uno o chiama il negozio");
-            }
-            TipoAppuntamento tipo = tipo(tipoId);
-            if (!tipo.isAttivo()) throw new ErroreDominio("Questo tipo di appuntamento non è più disponibile");
-            Bicicletta bici = biciDelCliente(clienteId, biciId);
-            Utente persona = personaLibera(giorno, ora, tipo.getDurataMin())
-                    .orElseThrow(() -> new ErroreDominio("Quest'orario non è più libero: scegline un altro"));
-            Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, bici, giorno,
-                    new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), pulisci(note), true, adesso()));
-            eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.RICHIESTO));
-            ripianificazione.richiedi("appuntamento richiesto");
-            return a;
-        } finally {
-            lock.unlock();
+        bloccaAgenda();
+        Utente cliente = cliente(clienteId);
+        if (!cliente.isAttivo()) throw new ErroreDominio("Account non attivo");
+        LocalDate oggi = calendario.oggi();
+        if (giorno.isAfter(oggi.plusDays(GIORNI_PRENOTABILI))) {
+            throw new ErroreDominio("Si può prenotare al massimo " + GIORNI_PRENOTABILI + " giorni avanti");
         }
+        if (appuntamenti.apertiDelCliente(clienteId, oggi, StatoAppuntamento.ATTIVI) >= MAX_APERTI_PER_CLIENTE) {
+            throw new ErroreDominio("Hai già " + MAX_APERTI_PER_CLIENTE + " appuntamenti in programma: "
+                    + "annullane uno o chiama il negozio");
+        }
+        TipoAppuntamento tipo = tipo(tipoId);
+        if (!tipo.isAttivo()) throw new ErroreDominio("Questo tipo di appuntamento non è più disponibile");
+        Bicicletta bici = biciDelCliente(clienteId, biciId);
+        Utente persona = personaLibera(giorno, ora, tipo.getDurataMin())
+                .orElseThrow(() -> new ErroreDominio("Quest'orario non è più libero: scegline un altro"));
+        Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, bici, giorno,
+                new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), pulisci(note), true, adesso()));
+        eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.RICHIESTO));
+        ripianificazione.richiedi("appuntamento richiesto");
+        return a;
     }
 
     /** Il negozio fissa un appuntamento (già confermato). Persona null = la sceglie l'app. */
     public Appuntamento crea(Long clienteId, Long tipoId, Long utenteId, LocalDate giorno, LocalTime ora, String note) {
-        lock.lock();
-        try {
-            Utente cliente = cliente(clienteId);
-            TipoAppuntamento tipo = tipo(tipoId);
-            if (giorno.isBefore(calendario.oggi())) throw new ErroreDominio("Non si può fissare un appuntamento nel passato");
-            Utente persona = utenteId == null
-                    ? personaLiberaNegozio(giorno, ora, tipo.getDurataMin())
-                        .orElseThrow(() -> new ErroreDominio("Nessuno è libero a quell'ora"))
-                    : personaSeLibera(utenteId, giorno, ora, tipo.getDurataMin(), null);
-            Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, null, giorno,
-                    new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), null, false, adesso()));
-            a.setNoteInterne(pulisci(note));
-            eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.CREATO_DAL_NEGOZIO));
-            ripianificazione.richiedi("appuntamento fissato");
-            return a;
-        } finally {
-            lock.unlock();
+        bloccaAgenda();
+        Utente cliente = cliente(clienteId);
+        TipoAppuntamento tipo = tipo(tipoId);
+        if (LocalDateTime.of(giorno, ora).isBefore(LocalDateTime.now(clock))) {
+            throw new ErroreDominio("Non si può fissare un appuntamento in un orario già passato");
         }
+        Utente persona = utenteId == null
+                ? personaLiberaNegozio(giorno, ora, tipo.getDurataMin())
+                    .orElseThrow(() -> new ErroreDominio("Nessuno è libero a quell'ora"))
+                : personaSeLibera(utenteId, giorno, ora, tipo.getDurataMin(), null);
+        Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, null, giorno,
+                new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), null, false, adesso()));
+        a.setNoteInterne(pulisci(note));
+        eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.CREATO_DAL_NEGOZIO));
+        ripianificazione.richiedi("appuntamento fissato");
+        return a;
     }
 
     public void conferma(Long id) {
@@ -226,18 +224,16 @@ public class AppuntamentoService {
 
     /** Il negozio sposta un appuntamento (persona, giorno, ora): resta nell'orario di lavoro, vale come confermato. */
     public void sposta(Long id, Long utenteId, LocalDate giorno, LocalTime ora) {
-        lock.lock();
-        try {
-            Appuntamento a = appuntamento(id);
-            if (giorno.isBefore(calendario.oggi())) throw new ErroreDominio("Non si può spostare nel passato");
-            int durata = (int) a.intervallo().minuti();
-            Utente persona = personaSeLibera(utenteId, giorno, ora, durata, id);
-            a.sposta(persona, giorno, new Intervallo(ora, ora.plusMinutes(durata)), adesso());
-            eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.SPOSTATO));
-            ripianificazione.richiedi("appuntamento spostato");
-        } finally {
-            lock.unlock();
+        bloccaAgenda();
+        Appuntamento a = appuntamento(id);
+        if (LocalDateTime.of(giorno, ora).isBefore(LocalDateTime.now(clock))) {
+            throw new ErroreDominio("Non si può spostare in un orario già passato");
         }
+        int durata = (int) a.intervallo().minuti();
+        Utente persona = personaSeLibera(utenteId, giorno, ora, durata, id);
+        a.sposta(persona, giorno, new Intervallo(ora, ora.plusMinutes(durata)), adesso());
+        eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.SPOSTATO));
+        ripianificazione.richiedi("appuntamento spostato");
     }
 
     public void annulla(Long id) {
@@ -295,13 +291,28 @@ public class AppuntamentoService {
     /** Cancellazione dei dati del cliente: annulla quelli futuri e toglie note e bici da tutti. */
     public void perCancellazioneCliente(Long clienteId) {
         OffsetDateTime adesso = adesso();
+        boolean liberato = false;
         for (Appuntamento a : appuntamenti.delCliente(clienteId)) {
-            if (a.isAttivo()) a.annulla(adesso);
+            if (a.isAttivo()) {
+                a.annulla(adesso);
+                eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.ANNULLATO_DAL_CLIENTE));
+                liberato = true;
+            }
             a.cancellaNoteCliente();
         }
+        if (liberato) ripianificazione.richiedi("appuntamenti annullati con la cancellazione dei dati");
     }
 
     // ---------------------------------------------------------------- interni
+
+    /**
+     * Serializza le prenotazioni fino al commit della transazione (lock "advisory" di PostgreSQL):
+     * due richieste contemporanee per lo stesso orario non possono passare entrambe il controllo.
+     * Un lock in memoria rilasciato prima del commit non basterebbe.
+     */
+    private void bloccaAgenda() {
+        jdbc.queryForList("SELECT pg_advisory_xact_lock(?)", LOCK_AGENDA);
+    }
 
     /** Persona libera per una richiesta dall'app (con preavviso): la meno impegnata quel giorno. */
     private Optional<Utente> personaLibera(LocalDate giorno, LocalTime ora, int durata) {
