@@ -87,3 +87,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 21. Errore della CI
     Correggere i test che fallivano su GitHub.
+
+22. Guide in PDF
+    Aggiornare le due guide con clienti senza app, privacy in negozio e
+    accesso con codice e Face ID / Touch ID.
