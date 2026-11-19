@@ -100,4 +100,34 @@ class RecuperoENotificheIT {
         assertThat(pronta.titolo()).isEqualTo("La tua bici è pronta!");
         assertThat(pronta.emailDiRiserva()).isTrue();
     }
+
+    @Autowired NotificheService notifiche;
+
+    @Test
+    void usatoUnLinkGliAltriNonValgonoPiu() {
+        Utente u = nuovoCliente();
+        String primo = recupero.inviaLink(u, false);
+        String secondo = recupero.inviaLink(u, false);
+        recupero.reimposta(secondo, "passwordnuova");
+        assertThat(recupero.tokenValido(primo)).isFalse();
+        assertThatThrownBy(() -> recupero.reimposta(primo, "altrapassword")).isInstanceOf(ErroreDominio.class);
+    }
+
+    @Test
+    void invitoSoloPerClienti() {
+        Utente titolare = repo.findByEmail("titolare@negozio.it").orElseThrow();
+        assertThatThrownBy(() -> recupero.invitaCliente(titolare.getId())).isInstanceOf(ErroreDominio.class);
+    }
+
+    @Test
+    void iscrizionePushVersoIndirizziInterniRifiutata() {
+        Utente u = nuovoCliente();
+        var chiavi = new com.vaadin.flow.server.webpush.WebPushKeys("BPx", "auth");
+        assertThatThrownBy(() -> notifiche.iscrivi(u.getId(),
+                new com.vaadin.flow.server.webpush.WebPushSubscription("http://db:5432/", chiavi)))
+                .isInstanceOf(ErroreDominio.class);
+        notifiche.iscrivi(u.getId(),
+                new com.vaadin.flow.server.webpush.WebPushSubscription("https://fcm.googleapis.com/fcm/send/xyz", chiavi));
+        assertThat(notifiche.haDispositivi(u.getId())).isTrue();
+    }
 }

@@ -11,5 +11,10 @@ public interface TokenPasswordRepository extends JpaRepository<TokenPassword, Lo
 
     void deleteByUtenteId(Long utenteId);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query(
+            "update TokenPassword t set t.usatoIl = :quando where t.utente.id = :utenteId and t.usatoIl is null")
+    int invalidaTutti(Long utenteId, OffsetDateTime quando);
+
     long countByUtenteIdAndCreatoIlAfter(Long utenteId, OffsetDateTime dopo);
 }

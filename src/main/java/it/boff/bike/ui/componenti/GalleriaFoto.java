@@ -39,7 +39,7 @@ public class GalleriaFoto extends Div {
         miniature.addClassName("boff-miniature");
         add(miniature);
         if (aggiungi != null) {
-            Upload upload = new Upload(UploadHandler.inMemory((meta, dati) -> getUI().ifPresent(ui -> ui.access(() -> {
+            Upload upload = new Upload(it.boff.bike.ui.componenti.CaricamentoFoto.gestore((meta, dati) -> getUI().ifPresent(ui -> ui.access(() -> {
                 try {
                     aggiungi.accept(meta.fileName(), dati);
                     aggiorna();

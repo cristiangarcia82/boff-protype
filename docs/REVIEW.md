@@ -120,3 +120,51 @@ Rilettura del codice a fine sviluppo. I problemi trovati durante la notte e già
 | Trovato in review | Testi del caricamento in inglese → tradotti; etichette delle barre ambigue ("2 · 40 min") → "2 volte · 40 min". |
 | Rischio | **Foto HEIC** (formato iPhone): Safari le mostra, Chrome no. Di solito l'iPhone le converte in JPEG durante il caricamento; se così non fosse, sul Mac usare Safari. In backlog: conversione lato server. |
 | Rischio | Le foto stanno nel database (incluse nei backup). Con molte foto il database cresce (stima: 3 foto × 2 MB × 20 lavori/settimana ≈ 6 GB/anno). In backlog: ridimensionamento automatico. |
+
+---
+
+# Review di sicurezza e del codice (dopo la fase 8)
+
+Revisione completa: autenticazione, autorizzazioni, dati in ingresso, file caricati, notifiche,
+recupero password, cookie, log, configurazione di produzione.
+
+## Corretto (con test)
+
+| # | Gravità | Problema | Correzione |
+|---|---|---|---|
+| SEC1 | 🔴 | **SSRF dalle notifiche push.** L'indirizzo dell'iscrizione arriva dal browser: un utente poteva registrare un indirizzo interno (es. `http://db:5432`) e far partire richieste dal server verso la rete interna a ogni notifica. | Accettati solo indirizzi `https` dei servizi push dei browser (Google, Mozilla, Apple, Microsoft), senza porta né credenziali; le iscrizioni non valide vengono scartate anche all'invio. |
+| SEC2 | 🟠 | **Upload: limite di 8 MB solo nel browser.** Una richiesta costruita a mano poteva mandare file enormi, letti interamente in memoria prima del controllo (rischio di esaurire la memoria). | Il server rifiuta prima della lettura i file oltre 8 MB o di dimensione non dichiarata. Provato: 6 MB accettata, 32 MB rifiutata. |
+| SEC3 | 🟠 | **Link di recupero password nei log** quando l'SMTP non è configurato: chi legge i log poteva reimpostare password altrui. | In produzione si registra solo "email non inviata"; il testo completo solo con i dati demo (sviluppo). |
+| SEC4 | 🟠 | **Cookie non marcati Secure dietro il proxy HTTPS.** Con la gestione "framework" degli header Tomcat non sapeva di essere in HTTPS. | Gestione "native" degli header del proxy (accettati solo dalla rete interna) + `SameSite=Lax` e `HttpOnly` sul cookie di sessione. |
+| SEC5 | 🟡 | Recupero password: usato un link, gli altri ancora validi restavano utilizzabili per 2 ore. | Usare un link invalida tutti gli altri dello stesso utente. |
+| SEC6 | 🟡 | Recupero password: con un'email registrata la risposta era più lenta (invio sincrono), indizio per scoprire chi è cliente. | Invio dell'email in un altro thread: tempi di risposta uguali. |
+| SEC7 | 🟡 | Messaggi d'errore: venivano mostrati i testi di `IllegalStateException`/`IllegalArgumentException`, che possono contenere dettagli interni (SQL, indirizzi). | All'utente solo i messaggi scritti per lui (`ErroreDominio`); il resto è un messaggio generico, il dettaglio va nel log. |
+| SEC8 | 🟡 | Blocco tentativi di accesso: la mappa in memoria poteva crescere senza limite (tentativi su milioni di email). | Pulizia delle voci scadute oltre 10.000 voci. |
+| SEC9 | 🟡 | Invito "imposta password" inviabile a qualsiasi utente, anche del personale. | Solo a clienti attivi. |
+| SEC10 | 🟡 | Database di sviluppo raggiungibile dalla rete sulla porta 5432 con password nota. | Esposto solo su `127.0.0.1`. |
+| CR1 | 🟡 | `/clienti/<id>` di un membro del personale lo mostrava come cliente. | La pagina mostra solo clienti. |
+| CR2 | 🟡 | `/lavori/<id>` inesistente generava un errore. | Torna all'elenco dei lavori. |
+
+## Verificato e già corretto
+
+- **SQL injection**: solo query con parametri (JPQL), nessuna concatenazione di testo.
+- **XSS**: Vaadin mostra i testi come testo, nessun HTML costruito da dati utente; foto servite con il tipo
+  riconosciuto dai primi byte (niente SVG o HTML).
+- **CSRF, session fixation, clickjacking, nosniff**: gestiti da Vaadin e Spring Security; HSTS da Caddy.
+- **Autorizzazioni**: ogni schermata dichiara chi può aprirla (`@RolesAllowed`); le operazioni del cliente
+  verificano nel servizio che bici, lavori e foto siano suoi (test dedicati). Le foto si scaricano solo
+  tramite il componente mostrato a chi può vederle.
+- **Password**: BCrypt, minimo 8 caratteri, blocco dopo 5 errori, token di recupero di 256 bit salvati come hash.
+- **Durate e note interne**: mai mostrate al cliente (test dedicati).
+- **Produzione**: database non esposto, app senza porte pubbliche (solo Caddy), container non root,
+  `/actuator/health` senza dettagli, nessun segreto nel codice.
+
+## Rischi accettati (da rivalutare se l'uso cresce)
+
+| # | Rischio | Perché è accettabile oggi |
+|---|---|---|
+| RA1 | La registrazione dice "Esiste già un account con questa email" (si può scoprire se un'email è cliente). | Messaggio utile al cliente; il dato (essere cliente di un negozio di bici) è poco sensibile. |
+| RA2 | Chiunque conosca l'email di un cliente può bloccargli l'accesso per 15 minuti sbagliando 5 password. | Disturbo temporaneo; l'alternativa (blocco per indirizzo IP) indebolisce la protezione dai tentativi. |
+| RA3 | Nessun limite al numero di registrazioni (account finti). | Il titolare può disattivarli; aggiungere un CAPTCHA se si verificasse. |
+| RA4 | I servizi non hanno controlli di ruolo propri: si affidano alle schermate. | Con Vaadin le operazioni partono solo dalle schermate (non c'è un'API esposta). **Se un giorno si aggiunge un'API REST, vanno aggiunti controlli sui servizi.** |
+| RA5 | Nessuna Content-Security-Policy. | Vaadin richiede eccezioni che ne ridurrebbero il valore; il rischio XSS è basso (vedi sopra). |

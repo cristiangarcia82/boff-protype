@@ -56,4 +56,5 @@ public class TokenPassword {
     }
 
     public Utente getUtente() { return utente; }
+    public OffsetDateTime getUsatoIl() { return usatoIl; }
 }

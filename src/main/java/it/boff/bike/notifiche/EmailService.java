@@ -33,7 +33,13 @@ public class EmailService {
     public boolean invia(String a, String oggetto, String testo) {
         JavaMailSender sender = mailSender.getIfAvailable();
         if (sender == null) {
-            log.info("[EMAIL NON CONFIGURATA] A: {} | Oggetto: {}\n{}", a, oggetto, testo);
+            if (properties.demo()) {
+                // solo in sviluppo (dati demo): il testo, con eventuali link, finisce nel log
+                log.info("[EMAIL NON CONFIGURATA] A: {} | Oggetto: {}\n{}", a, oggetto, testo);
+            } else {
+                // in produzione i link di recupero password non devono mai finire nei log
+                log.warn("Email \"{}\" non inviata: server SMTP non configurato (SPRING_MAIL_HOST)", oggetto);
+            }
             return false;
         }
         try {

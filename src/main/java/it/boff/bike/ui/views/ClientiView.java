@@ -100,7 +100,15 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
     @Override
     public void beforeEnter(com.vaadin.flow.router.BeforeEnterEvent event) {
         event.getRouteParameters().getLong("id").ifPresent(id -> {
-            Utente c = utenti.trova(id);
+            Utente c;
+            try {
+                c = utenti.trova(id);
+            } catch (it.boff.bike.common.ErroreDominio e) {
+                return;
+            }
+            if (c.getRuolo() != it.boff.bike.utente.Ruolo.CLIENTE) {
+                return; // la pagina Clienti mostra solo clienti
+            }
             cerca.setValue(c.getNomeCompleto());
             aggiornaElenco();
             // le entità non ridefiniscono equals: si seleziona l'elemento della griglia con lo stesso id

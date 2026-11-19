@@ -133,9 +133,15 @@ public class LavoriView extends Div implements BeforeEnterObserver {
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         event.getRouteParameters().getLong("id").ifPresent(id -> {
+            Lavoro l;
+            try {
+                l = service.dettaglio(id);
+            } catch (it.boff.bike.common.ErroreDominio e) {
+                event.forwardTo(LavoriView.class);
+                return;
+            }
             selezionato = id;
             pannello.mostra(id);
-            Lavoro l = service.dettaglio(id);
             // seleziona la scheda che contiene il lavoro
             filtroPerScheda.forEach((tab, stati) -> {
                 if (stati.contains(l.getStato()) && !filtroPerScheda.get(schede.getSelectedTab()).contains(l.getStato())) {

@@ -42,7 +42,7 @@ public class UiConfig implements VaadinServiceInitListener {
         }));
     }
 
-    /** Messaggio per l'utente: per gli errori "di dominio" (IllegalArgument/State) usa il testo dell'eccezione. */
+    /** Messaggio per l'utente: per gli errori "di dominio" ({@code ErroreDominio}) usa il testo dell'eccezione. */
     static String messaggioPer(Throwable t) {
         for (Throwable x = t; x != null; x = x.getCause()) {
             if (x.getMessage() != null && x.getMessage().contains("web push")) {
@@ -52,9 +52,12 @@ public class UiConfig implements VaadinServiceInitListener {
         }
         Throwable c = t;
         while (c != null) {
-            if ((c instanceof IllegalArgumentException || c instanceof IllegalStateException
-                    || c instanceof it.boff.bike.common.ErroreDominio) && c.getMessage() != null) {
+            // solo i nostri messaggi, scritti per l'utente: mai testi interni di librerie
+            if (c instanceof it.boff.bike.common.ErroreDominio && c.getMessage() != null) {
                 return c.getMessage();
+            }
+            if (c instanceof jakarta.validation.ConstraintViolationException) {
+                return "Alcuni dati non sono validi: controlla i campi e riprova.";
             }
             c = c.getCause();
         }

@@ -60,7 +60,7 @@ public class AnnuncioDialog extends Dialog {
         if (conFoto) {
             Span inAttesa = new Span();
             inAttesa.addClassName("boff-foto-in-attesa");
-            Upload upload = new Upload(UploadHandler.inMemory((meta, dati) -> getUI().ifPresent(ui -> ui.access(() -> {
+            Upload upload = new Upload(it.boff.bike.ui.componenti.CaricamentoFoto.gestore((meta, dati) -> getUI().ifPresent(ui -> ui.access(() -> {
                 foto.add(new FotoScelta(meta.fileName(), dati));
                 inAttesa.setText(foto.size() + " foto pronte da inviare");
             }))));

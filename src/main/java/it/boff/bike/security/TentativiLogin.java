@@ -23,6 +23,8 @@ public class TentativiLogin {
 
     static final int MAX_TENTATIVI = 5;
     static final Duration BLOCCO = Duration.ofMinutes(15);
+    /** Oltre questa soglia si eliminano le voci scadute: la mappa non cresce senza limite. */
+    static final int MAX_VOCI = 10_000;
 
     private record Stato(int errori, Instant ultimo) {
     }
@@ -48,6 +50,13 @@ public class TentativiLogin {
 
     @EventListener
     public void suErrore(AuthenticationFailureBadCredentialsEvent event) {
+        if (stati.size() >= MAX_VOCI) {
+            Instant limite = clock.instant().minus(BLOCCO);
+            stati.values().removeIf(s -> s.ultimo().isBefore(limite));
+            if (stati.size() >= MAX_VOCI) {
+                stati.clear(); // caso estremo (attacco su moltissime email): meglio ripartire che esaurire la memoria
+            }
+        }
         stati.merge(chiave(event.getAuthentication().getName()), new Stato(1, clock.instant()),
                 (vecchio, nuovo) -> new Stato(vecchio.errori() + 1, nuovo.ultimo()));
     }

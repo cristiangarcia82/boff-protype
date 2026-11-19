@@ -36,7 +36,7 @@ public class BiciclettaService {
     public Bicicletta aggiungi(Long proprietarioId, @Valid DatiBicicletta dati) {
         Utente proprietario = utenti.findById(proprietarioId)
                 .filter(u -> u.getRuolo() == Ruolo.CLIENTE)
-                .orElseThrow(() -> new IllegalArgumentException("Solo un cliente può possedere biciclette"));
+                .orElseThrow(() -> new it.boff.bike.common.ErroreDominio("Solo un cliente può possedere biciclette"));
         Bicicletta bici = new Bicicletta(proprietario);
         bici.aggiorna(dati);
         return biciclette.save(bici);

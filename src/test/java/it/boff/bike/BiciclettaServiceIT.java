@@ -101,6 +101,6 @@ class BiciclettaServiceIT {
     void lePersoneDelloStaffNonPossiedonoBici() {
         Long staff = nuovoUtente(Ruolo.STAFF).getId();
         assertThatThrownBy(() -> service.aggiungi(staff, DatiBicicletta.di("A", "B", Tipologia.ALTRO)))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(it.boff.bike.common.ErroreDominio.class);
     }
 }

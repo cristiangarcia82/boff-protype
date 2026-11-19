@@ -2,11 +2,32 @@ package it.boff.bike.ui.componenti;
 
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.UploadI18N;
+import com.vaadin.flow.server.streams.InMemoryUploadCallback;
+import com.vaadin.flow.server.streams.UploadHandler;
+import com.vaadin.flow.server.streams.UploadRejectedException;
+import it.boff.bike.lavoro.FotoService;
 
-/** Testi in italiano per il caricamento delle foto. */
+/** Caricamento delle foto: testi in italiano e limiti verificati dal server. */
 public final class CaricamentoFoto {
 
     private CaricamentoFoto() {
+    }
+
+    /**
+     * Gestore che rifiuta i file troppo grandi (o di dimensione non dichiarata) PRIMA di
+     * leggerli in memoria: il limite impostato sul componente vale solo nel browser e
+     * una richiesta costruita a mano potrebbe aggirarlo.
+     */
+    public static UploadHandler gestore(InMemoryUploadCallback callback) {
+        return UploadHandler.inMemory(callback).validateMetadata(evento -> {
+            if (!dimensioneAmmessa(evento.getFileSize())) {
+                throw new UploadRejectedException("Foto troppo grande (massimo 8 MB)");
+            }
+        });
+    }
+
+    static boolean dimensioneAmmessa(long byte_) {
+        return byte_ > 0 && byte_ <= FotoService.MAX_BYTE;
     }
 
     public static void italiano(Upload upload) {

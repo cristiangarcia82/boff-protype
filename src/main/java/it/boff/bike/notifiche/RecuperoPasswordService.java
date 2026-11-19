@@ -57,7 +57,9 @@ public class RecuperoPasswordService {
 
     /** Il negozio invia a un cliente creato al banco il link per scegliere la password. */
     public void invitaCliente(Long utenteId) {
-        Utente u = utenti.findById(utenteId).orElseThrow(() -> new ErroreDominio("Utente non trovato"));
+        Utente u = utenti.findById(utenteId)
+                .filter(x -> x.getRuolo() == it.boff.bike.utente.Ruolo.CLIENTE && x.isAttivo())
+                .orElseThrow(() -> new ErroreDominio("Invito possibile solo per un cliente attivo"));
         inviaLink(u, true);
     }
 
@@ -78,7 +80,11 @@ public class RecuperoPasswordService {
                 + "Scegli la tua password da questo link (valido 2 ore):\n" + link
                 : "Ciao " + utente.getNome() + ",\n\nper impostare una nuova password apri questo link "
                 + "(valido 2 ore):\n" + link + "\n\nSe non l'hai chiesto tu, ignora questa email.";
-        email.invia(utente.getEmail(), invito ? "Benvenuto in " + properties.nomeNegozio() : "Nuova password", testo);
+        String oggetto = invito ? "Benvenuto in " + properties.nomeNegozio() : "Nuova password";
+        // invio in un altro thread: la risposta arriva subito, con o senza account
+        // (i tempi non rivelano se un'email è registrata)
+        String destinatario = utente.getEmail();
+        java.util.concurrent.CompletableFuture.runAsync(() -> email.invia(destinatario, oggetto, testo));
         return token;
     }
 
@@ -93,7 +99,8 @@ public class RecuperoPasswordService {
                 .filter(x -> x.valido(adesso))
                 .orElseThrow(() -> new ErroreDominio("Il link non è più valido: richiedine uno nuovo"));
         utenteService.impostaPassword(t.getUtente().getId(), nuovaPassword);
-        t.usa(adesso);
+        // un link usato rende inutili anche gli altri ancora validi dello stesso utente
+        tokens.invalidaTutti(t.getUtente().getId(), adesso);
     }
 
     static String hash(String token) {
