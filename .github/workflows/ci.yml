@@ -15,6 +15,6 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Test (unit + integrazione con PostgreSQL in Docker)
-        run: mvn -B verify
+        run: ./mvnw -B verify
       - name: Build di produzione
-        run: mvn -B -Pproduction -DskipTests package
+        run: ./mvnw -B -Pproduction -DskipTests package

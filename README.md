@@ -13,10 +13,10 @@ Documentazione: [piano](docs/PIANO.md) · [decisioni](docs/DECISIONI.md) · [rev
 
 ## Avvio in sviluppo
 
-Requisiti: JDK 21, Maven, Docker.
+Requisiti: JDK 21 e Docker. Maven non serve: `./mvnw` scarica da solo la versione giusta.
 
 ```bash
-BOFF_DEMO=true mvn spring-boot:run
+BOFF_DEMO=true ./mvnw spring-boot:run
 ```
 
 Spring Boot avvia PostgreSQL da `compose.yaml`. Apri <http://localhost:8080>.
@@ -28,7 +28,7 @@ Con `BOFF_DEMO=true` vengono creati utenti, orari, bici e lavori di prova (passw
 | `collaboratore@demo.it` | Collaboratore |
 | `cliente@demo.it`, `paolo.ferri@demo.it`, `sara.conti@demo.it` | Clienti |
 
-Dopo una build di produzione (`mvn -Pproduction package`) esegui `mvn clean` prima di tornare
+Dopo una build di produzione (`./mvnw -Pproduction package`) esegui `./mvnw clean` prima di tornare
 in sviluppo, altrimenti restano in `target/` file del frontend non aggiornati.
 
 Senza SMTP le email (es. recupero password) sono scritte nel log, link compreso.
@@ -37,7 +37,7 @@ Le notifiche push funzionano solo con la build di produzione (service worker att
 ## Test
 
 ```bash
-mvn verify   # test unitari + integrazione su PostgreSQL reale (Testcontainers, serve Docker)
+./mvnw verify   # test unitari + integrazione su PostgreSQL reale (Testcontainers, serve Docker)
 ```
 
 ## Produzione
