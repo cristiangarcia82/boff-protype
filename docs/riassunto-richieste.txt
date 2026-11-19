@@ -1,0 +1,59 @@
+BOFF BIKE - RIASSUNTO DELLE RICHIESTE
+=====================================
+
+1. Piano iniziale
+   Un piano, preferibilmente in Java, per un'app web per il negozio che:
+   - gestisca i clienti e le loro biciclette;
+   - permetta ai clienti di annunciare i lavori da fare prima di portare la bici;
+   - pianifichi la manutenzione con tempi di lavoro e giorni lavorativi;
+   - gestisca le 2 persone (titolare e collaboratore) e i giorni liberi;
+   - separi le ore di vendita da quelle di officina.
+
+2. Risposte alle domande del piano
+   - Il cliente annuncia solo i lavori; la data la sceglie il negozio.
+   - Niente preventivi.
+   - Il collaboratore vede tutto il calendario e, in assenza del titolare,
+     gestisce tutto.
+   - Niente magazzino.
+   - Notifiche push su un'app non pubblicata sugli store.
+
+3. Avvio dello sviluppo
+   Procedere con la fase 0 (struttura di base).
+
+4. Due modi d'uso
+   App pensata per il telefono dei clienti, ma che sfrutti al meglio il
+   monitor del Mac in ufficio.
+
+5. Bici dei clienti
+   Il cliente registra le proprie bici da solo; ogni bici ha almeno marca,
+   modello e tipologia (citta', strada, gravel, MTB...).
+
+6. GitHub
+   Verificare che il collegamento a GitHub funzionasse dopo la configurazione.
+
+7. Lavoro notturno
+   Review da senior engineer di quanto fatto, poi tutte le fasi rimanenti
+   senza fermarsi. Le domande emerse andavano risolte in autonomia,
+   documentando le scelte da valutare al risveglio.
+
+8. Review dopo ogni fase
+   Fare la review alla fine di ogni fase, decidere in autonomia e passare
+   alla successiva. Aggiunte le fasi 6-8: robustezza, funzioni dal backlog,
+   foto e statistiche.
+
+9. Guide
+   Documentazione su com'e' fatta l'app e su cosa fa, per chi lavora in
+   negozio e per i clienti.
+
+10. Schermate per il titolare
+    Immagini dell'app nella guida del negozio, per capire meglio cosa si
+    puo' fare.
+
+11. PDF
+    Un PDF da condividere (realizzato per entrambe le guide).
+
+12. Schermate per i clienti
+    Immagini dell'app anche nella guida per i clienti.
+
+13. Riassunto
+    Un riassunto di tutte le richieste, e questo file di testo da condividere.
