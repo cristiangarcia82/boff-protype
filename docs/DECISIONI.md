@@ -194,3 +194,15 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Cancellazione**: stessa anonimizzazione di D30. Ora si registra la data (`eliminato_il`) e l'email viene tolta del tutto invece di essere sostituita da un indirizzo fittizio. I clienti eliminati spariscono da elenco e ricerche; aprendo il loro indirizzo si vede solo "Cliente eliminato".
 - **Informativa (versione 2)**: aggiunti clienti senza app, foto, notifiche (fornitori push), promemoria (legittimo interesse, disattivabili), fornitori di hosting ed email, conservazione con storico anonimo, come esercitare i diritti senza app (in negozio, telefono, email; entro 30 giorni), reclamo al Garante.
 - ⚠️ **Da completare prima della messa online**: ragione sociale, indirizzo, P. IVA e contatti del negozio; nomi dei fornitori di hosting ed email. Il testo resta una bozza da far verificare da un consulente.
+
+## D45 – Accesso senza password e Mac condiviso (confermato dal titolare)
+- **Codice via email (6 cifre)**, da *Accedi* → *Ricevi un codice via email*. Scelto il codice e non un link: sull'iPhone l'app installata e Safari non condividono l'accesso, un link si aprirebbe in Safari.
+  - Vale 10 minuti, una volta sola, massimo 5 tentativi; un nuovo codice annulla il precedente; massimo 5 invii l'ora e uno ogni 30 secondi. Nel database solo l'hash.
+  - Il codice passa dallo stesso modulo di login della password (una "password" di 6 cifre è un codice: le password hanno almeno 8 caratteri). Valgono quindi le stesse protezioni: blocco dopo 5 errori, cambio di sessione, "resta collegato".
+  - Risposta identica che l'email esista o no.
+- **Passkey (Face ID / Touch ID / impronta / Windows Hello)** con il supporto WebAuthn di Spring Security. Si attivano dal riquadro proposto dopo l'accesso o dal *Profilo*, dove si vedono e si rimuovono i dispositivi. Il server conserva solo la chiave pubblica.
+  - ⚠️ Le passkey sono legate al dominio (`BOFF_URL_PUBBLICO`): se il dominio cambia vanno riattivate.
+- **Durata dell'accesso per ruolo**: clienti 30 giorni; **personale 12 ore**, perché il Mac del negozio è condiviso fra titolare e collaboratore. Anche con la scheda sempre aperta la sessione del personale scade dopo 12 ore dall'accesso.
+- **Mac condiviso, da sapere**: se titolare e collaboratore usano lo **stesso utente di macOS**, le passkey di entrambi stanno nello stesso portachiavi e Touch ID non distingue chi appoggia il dito: chiunque sia registrato su quel Mac può scegliere l'una o l'altra. Per una separazione vera, creare due utenti di macOS (passaggio rapido tra utenti). In alternativa: "Esci" a fine turno.
+- Account disattivati o bloccati non entrano né con il codice né con la passkey. La cancellazione dei dati elimina anche passkey e codici.
+- **Alternative scartate**: login con Google/Apple (account sviluppatore a pagamento, fornitori in più), codici via SMS (costo per messaggio, meno sicuri).

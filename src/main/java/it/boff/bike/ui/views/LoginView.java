@@ -38,7 +38,27 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         messaggio.addClassName("boff-info");
         messaggio.setVisible(false);
 
-        add(messaggio, login,
+        // modi di accesso senza password
+        com.vaadin.flow.component.button.Button passkey = new com.vaadin.flow.component.button.Button(
+                "Accedi con Face ID / Touch ID", com.vaadin.flow.component.icon.VaadinIcon.KEY.create(), e ->
+                it.boff.bike.ui.componenti.Passkey.accedi(com.vaadin.flow.component.UI.getCurrent(), esito -> {
+                    if ("errore".equals(esito)) {
+                        it.boff.bike.ui.componenti.Avvisi.errore("Accesso non riuscito. Su questo dispositivo è attivo? "
+                                + "Puoi attivarlo dal profilo dopo essere entrato con password o codice.");
+                    }
+                }));
+        passkey.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        passkey.setVisible(false);
+        passkey.setWidth("min(320px, 100%)");
+        it.boff.bike.ui.componenti.Passkey.supportata(com.vaadin.flow.component.UI.getCurrent(), passkey::setVisible);
+        com.vaadin.flow.component.button.Button codice = new com.vaadin.flow.component.button.Button(
+                "Ricevi un codice via email", com.vaadin.flow.component.icon.VaadinIcon.ENVELOPE_O.create(),
+                e -> getUI().ifPresent(ui -> ui.navigate(AccessoCodiceView.class)));
+        codice.setWidth("min(320px, 100%)");
+        Paragraph senzaPassword = new Paragraph("Oppure, senza password:");
+        senzaPassword.addClassName("boff-testo-secondario");
+
+        add(messaggio, login, senzaPassword, passkey, codice,
                 new Paragraph(new Span("Nuovo cliente? "), new RouterLink("Crea un account", RegistrazioneView.class)));
     }
 
@@ -51,7 +71,8 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         form.setForgotPassword("Password dimenticata?");
         LoginI18n.ErrorMessage errore = new LoginI18n.ErrorMessage();
         errore.setTitle("Accesso non riuscito");
-        errore.setMessage("Email o password non corretti. Dopo 5 tentativi l'accesso è sospeso per 15 minuti.");
+        errore.setMessage("Email, password o codice non corretti (il codice vale 10 minuti). "
+                + "Dopo 5 tentativi l'accesso è sospeso per 15 minuti.");
         LoginI18n i18n = new LoginI18n();
         i18n.setForm(form);
         i18n.setErrorMessage(errore);

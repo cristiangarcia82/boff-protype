@@ -49,7 +49,8 @@ import java.util.List;
 public class BachecaView extends Div {
 
     public BachecaView(LavoroService lavori, PianificazioneService pianificazione, CalendarioService calendario,
-                       NotificheService notifiche, UtenteCorrente utenteCorrente) {
+                       NotificheService notifiche, UtenteCorrente utenteCorrente,
+                       it.boff.bike.accesso.PasskeyService passkey) {
         addClassName("boff-pagina");
         LocalDate oggi = calendario.oggi();
         LocalDate lunedi = oggi.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -89,7 +90,9 @@ public class BachecaView extends Div {
         corpo.addClassName("boff-bacheca-corpo");
 
         add(new H2("Bacheca"), new AttivaNotifiche(notifiche, utenteCorrente.get().orElseThrow().getId(),
-                "Ricevi un avviso quando un cliente annuncia un nuovo lavoro."), kpi, corpo);
+                "Ricevi un avviso quando un cliente annuncia un nuovo lavoro."),
+                new it.boff.bike.ui.componenti.ProponiPasskey(passkey, utenteCorrente.get().orElseThrow().getEmail()),
+                kpi, corpo);
     }
 
     /** Interventi di oggi per persona, con la casella per segnarli come fatti. */

@@ -195,3 +195,16 @@ recupero password, cookie, log, configurazione di produzione.
 | Trovato in review | Un'email fatta di soli spazi veniva rifiutata come "non valida" invece di essere considerata assente: ora vuota = nessuna email. |
 | Privacy (aggiunta) | Pulsanti per il personale *Scarica / Elimina i dati del cliente*, conferma obbligatoria dell'informativa al banco, informativa aggiornata (D44). Test: cancellazione rifiutata con lavoro aperto, dati anonimi, cliente non più ricercabile, seconda cancellazione rifiutata; creazione senza informativa rifiutata; percorso completo nell'interfaccia. |
 | Rischio residuo | L'informativa contiene ancora segnaposto (dati del negozio e fornitori) da compilare prima della messa online. |
+
+# Review fase 11 – Accesso con codice e passkey
+
+| Voce | Esito |
+|---|---|
+| Codice via email | Una volta sola, 10 minuti, 5 tentativi, nuovo codice annulla il vecchio, limiti di invio, nessuna differenza di risposta per email sconosciute, account disattivati esclusi (test). Login completo via HTTP con verifica del cookie "resta collegato" (test). |
+| Forza bruta | Oltre ai 5 tentativi per codice vale il blocco generale (5 errori sulla stessa email = 15 minuti), condiviso con la password. |
+| Passkey | Provato nel browser con un autenticatore virtuale: attivazione, elenco nel profilo, accesso. Rimozione solo del proprietario, cancellazione con i dati personali (test). |
+| Trovato in review (1) | I filtri WebAuthn leggevano l'utente collegato da un contenitore diverso da quello di Vaadin: la registrazione rispondeva "non autenticato". Allineati. |
+| Trovato in review (2) | Vaadin bloccava l'indirizzo di registrazione della passkey (403): autorizzato per gli utenti collegati. |
+| Trovato in review (3) | Dopo l'accesso con passkey il "resta collegato" non riconosceva l'utente (nome letto dal tipo sbagliato) e l'accesso falliva: corretto. Il filtro WebAuthn ora cambia anche l'id di sessione e usa "resta collegato" come il login normale. |
+| Personale | Accesso di 12 ore (cookie e sessione), test della scadenza con orologio fisso. |
+| Rischio residuo | Sul Mac condiviso con un unico utente macOS, Touch ID non distingue le persone (vedi D45). Le notifiche push e Face ID su un iPhone reale vanno provate dopo la messa online (servono HTTPS e il dominio vero). |

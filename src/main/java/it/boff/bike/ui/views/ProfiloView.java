@@ -37,7 +37,8 @@ import jakarta.validation.ConstraintViolationException;
 public class ProfiloView extends Div {
 
     public ProfiloView(UtenteService service, UtenteCorrente utenteCorrente, PrivacyService privacy,
-                       it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
+                       it.boff.bike.funzionalita.FunzionalitaService funzionalita,
+                       it.boff.bike.accesso.PasskeyService passkey) {
         addClassNames("boff-pagina", "boff-pagina-cliente", "boff-colonna");
         Utente utente = utenteCorrente.get().orElseThrow();
         Long id = utente.getId();
@@ -108,10 +109,59 @@ public class ProfiloView extends Div {
         Div schedaPw = new Div(new H3("Password"), pw, cambia);
         schedaPw.addClassName("boff-card");
 
-        add(new H2("Il mio profilo"), schedaDati, schedaPw);
+        Div schedaPasskey = new Div();
+        schedaPasskey.addClassNames("boff-card", "boff-colonna");
+        schedaPasskey.getStyle().set("gap", "var(--lumo-space-s)");
+        mostraPasskey(schedaPasskey, passkey, utente.getEmail());
+
+        add(new H2("Il mio profilo"), schedaDati, schedaPasskey, schedaPw);
         if (utente.getRuolo() == Ruolo.CLIENTE) {
             add(schedaPrivacy(privacy, utenteCorrente, id));
         }
+    }
+
+    /** Dispositivi con cui si entra con Face ID / Touch ID / impronta, con aggiunta e rimozione. */
+    private void mostraPasskey(Div scheda, it.boff.bike.accesso.PasskeyService passkey, String email) {
+        scheda.removeAll();
+        scheda.add(new H3("Accesso con Face ID / Touch ID"));
+        var elenco = passkey.elenco(email);
+        Paragraph spiegazione = new Paragraph(elenco.isEmpty()
+                ? "Entra senza password: basta il viso o il dito sul dispositivo. Attivalo su ogni telefono o computer che usi."
+                : "Puoi entrare senza password da questi dispositivi:");
+        spiegazione.addClassName("boff-testo-secondario");
+        scheda.add(spiegazione);
+        java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.ITALIAN)
+                .withZone(java.time.ZoneId.of("Europe/Rome"));
+        for (var p : elenco) {
+            String quando = (p.creata() == null ? "" : "attivato il " + f.format(p.creata()))
+                    + (p.ultimoUso() == null ? "" : " · ultimo accesso " + f.format(p.ultimoUso()));
+            com.vaadin.flow.component.html.Span nome = new com.vaadin.flow.component.html.Span(p.nome());
+            com.vaadin.flow.component.html.Span dettagli = new com.vaadin.flow.component.html.Span(quando);
+            dettagli.addClassName("boff-testo-secondario");
+            Button rimuovi = new Button("Rimuovi", e -> {
+                passkey.rimuovi(email, p.id());
+                Avvisi.ok("Dispositivo rimosso. Ricordati di cancellare la passkey anche dalle impostazioni del dispositivo.");
+                mostraPasskey(scheda, passkey, email);
+            });
+            rimuovi.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
+            Div riga = new Div(new Div(nome, new Div(dettagli)), rimuovi);
+            riga.addClassName("boff-intestazione");
+            scheda.add(riga);
+        }
+        Button aggiungi = new Button(elenco.isEmpty() ? "Attiva su questo dispositivo" : "Aggiungi questo dispositivo",
+                com.vaadin.flow.component.icon.VaadinIcon.KEY.create(), e ->
+                it.boff.bike.ui.componenti.Passkey.registra(com.vaadin.flow.component.UI.getCurrent(), esito -> {
+                    switch (esito) {
+                        case "ok" -> { Avvisi.ok("Fatto! Da ora puoi entrare con Face ID / Touch ID"); mostraPasskey(scheda, passkey, email); }
+                        case "gia" -> Avvisi.ok("Questo dispositivo è già attivo");
+                        case "annullato" -> { }
+                        default -> Avvisi.errore("Non è stato possibile attivarlo su questo dispositivo");
+                    }
+                }));
+        aggiungi.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        aggiungi.setVisible(false);
+        it.boff.bike.ui.componenti.Passkey.supportata(com.vaadin.flow.component.UI.getCurrent(), aggiungi::setVisible);
+        scheda.add(new Div(aggiungi));
     }
 
     private Div schedaPrivacy(PrivacyService privacy, UtenteCorrente utenteCorrente, Long id) {

@@ -35,6 +35,8 @@ public class PrivacyService {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PrivacyService.class);
     private final java.time.Clock clock;
+    private final it.boff.bike.accesso.PasskeyService passkey;
+    private final it.boff.bike.accesso.CodiceAccessoService codici;
 
     private final UtenteRepository utenti;
     private final BiciclettaRepository biciclette;
@@ -49,8 +51,11 @@ public class PrivacyService {
     public PrivacyService(UtenteRepository utenti, BiciclettaRepository biciclette, BiciclettaService biciclettaService,
                           LavoroService lavori, IscrizionePushRepository iscrizioni, TokenPasswordRepository tokens,
                           PasswordEncoder passwordEncoder, ObjectMapper json, it.boff.bike.lavoro.FotoService foto,
-                          java.time.Clock clock) {
+                          java.time.Clock clock, it.boff.bike.accesso.PasskeyService passkey,
+                          it.boff.bike.accesso.CodiceAccessoService codici) {
         this.clock = clock;
+        this.passkey = passkey;
+        this.codici = codici;
         this.foto = foto;
         this.utenti = utenti;
         this.biciclette = biciclette;
@@ -141,6 +146,8 @@ public class PrivacyService {
         foto.eliminaDelCliente(clienteId);
         iscrizioni.deleteByUtenteId(clienteId);
         tokens.deleteByUtenteId(clienteId);
+        codici.eliminaDi(clienteId);
+        passkey.eliminaTutte(u.getEmail());
         byte[] casuale = new byte[32];
         new SecureRandom().nextBytes(casuale);
         u.anonimizza(passwordEncoder.encode(HexFormat.of().formatHex(casuale)), java.time.OffsetDateTime.now(clock));

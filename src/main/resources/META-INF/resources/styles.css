@@ -339,3 +339,19 @@ html { --boff-colore-lavoro: #b7791f; }
 .boff-riga-campo > :first-child { flex-grow: 1; }
 .boff-privacy-cliente { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lumo-space-s) var(--lumo-space-m);
   margin-top: var(--lumo-space-m); padding-top: var(--lumo-space-s); border-top: 1px solid var(--lumo-contrast-10pct); }
+
+/* ---- Accesso con codice via email ---- */
+.boff-codice { width: min(380px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--lumo-space-s); }
+.boff-codice h2 { margin: 0; }
+.boff-modulo-codice { display: flex; flex-direction: column; gap: var(--lumo-space-s); }
+.boff-modulo-codice label { font-size: var(--lumo-font-size-s); font-weight: 500; color: var(--lumo-secondary-text-color); }
+.boff-modulo-codice input {
+  font: inherit; font-size: 1.8rem; letter-spacing: 0.4em; text-align: center; padding: var(--lumo-space-s);
+  border: none; border-radius: var(--lumo-border-radius-m); background: var(--lumo-contrast-10pct); color: var(--lumo-body-text-color);
+}
+.boff-modulo-codice input:focus { outline: 2px solid var(--lumo-primary-color-50pct); }
+.boff-modulo-codice button {
+  font: inherit; font-weight: 600; padding: var(--lumo-space-s) var(--lumo-space-m); border: none; cursor: pointer;
+  border-radius: var(--lumo-border-radius-m); background: var(--lumo-primary-color); color: var(--lumo-primary-contrast-color);
+  min-height: var(--lumo-size-m);
+}

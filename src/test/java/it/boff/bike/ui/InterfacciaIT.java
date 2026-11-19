@@ -353,4 +353,16 @@ class InterfacciaIT extends SpringBrowserlessTest {
 
         assertThat(utenti.findAll()).noneMatch(u -> cognome.equals(u.getCognome()));
     }
+
+    @Test
+    void accessoConCodiceViaEmail() {
+        navigate(it.boff.bike.ui.views.AccessoCodiceView.class);
+        test($(EmailField.class).withLabel("Email").single()).setValue("cliente@demo.it");
+        test($(Button.class).withText("Inviami il codice").single()).click();
+        assertThat($(H2.class).first().getText()).isEqualTo("Scrivi il codice");
+        // modulo classico verso /login con l'email nascosta e il campo del codice
+        String html = getCurrentView().getElement().getOuterHTML();
+        assertThat(html).contains("action=\"login\"", "name=\"username\"", "value=\"cliente@demo.it\"",
+                "autocomplete=\"one-time-code\"");
+    }
 }

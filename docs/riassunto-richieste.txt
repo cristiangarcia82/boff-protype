@@ -80,3 +80,10 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 19. Privacy per chi non usa l'app
     Pulsante in negozio per scaricare o cancellare i dati di un cliente
     che lo chiede, e informativa privacy aggiornata.
+
+20. Meccanismi di login
+    Accesso con codice via email e con Face ID / Touch ID. Il Mac del
+    negozio e' condiviso fra titolare e collaboratore.
+
+21. Errore della CI
+    Correggere i test che fallivano su GitHub.

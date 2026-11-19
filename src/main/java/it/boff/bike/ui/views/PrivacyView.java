@@ -21,7 +21,7 @@ import it.boff.bike.config.BoffProperties;
 @AnonymousAllowed
 public class PrivacyView extends Div {
 
-    static final String VERSIONE = "versione 2 · novembre 2026";
+    static final String VERSIONE = "versione 3 · novembre 2026";
 
     public PrivacyView(BoffProperties properties) {
         String negozio = properties.nomeNegozio();
@@ -44,7 +44,11 @@ public class PrivacyView extends Div {
                                 + "anno, numero di telaio, note).",
                         "I lavori richiesti e svolti, con le tue note e le foto che scegli di caricare.",
                         "Se usi l'app: password (conservata solo in forma cifrata) e, se le attivi, "
-                                + "le iscrizioni alle notifiche sui tuoi dispositivi."),
+                                + "le iscrizioni alle notifiche sui tuoi dispositivi.",
+                        "Se entri con Face ID, Touch ID o l'impronta: una chiave pubblica e il nome del dispositivo "
+                                + "(es. \"iPhone\"). Il viso e l'impronta restano sul tuo dispositivo: non li riceviamo mai.",
+                        "Se entri con un codice via email: il codice, conservato solo in forma cifrata, "
+                                + "che vale 10 minuti."),
                 new Paragraph("Se non usi l'app, ti registriamo noi in negozio con i soli dati necessari "
                         + "(nome, cognome e telefono) e ti avvisiamo per telefono."),
 

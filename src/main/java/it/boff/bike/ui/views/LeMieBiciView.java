@@ -42,7 +42,7 @@ public class LeMieBiciView extends Div {
     private final Div elenco = new Div();
 
     public LeMieBiciView(BiciclettaService service, LavoroService lavori, UtenteCorrente utenteCorrente,
-                         NotificheService notifiche) {
+                         NotificheService notifiche, it.boff.bike.accesso.PasskeyService passkey) {
         this.service = service;
         this.lavori = lavori;
         this.utenteId = utenteCorrente.get().orElseThrow().getId();
@@ -57,7 +57,9 @@ public class LeMieBiciView extends Div {
 
         elenco.addClassName("boff-colonna");
         add(intestazione, new AttivaNotifiche(notifiche, utenteId,
-                "Ti avvisiamo quando la bici è arrivata, quando prevediamo di finirla e quando è pronta."), elenco);
+                "Ti avvisiamo quando la bici è arrivata, quando prevediamo di finirla e quando è pronta."),
+                new it.boff.bike.ui.componenti.ProponiPasskey(passkey, utenteCorrente.get().orElseThrow().getEmail()),
+                elenco);
         aggiorna();
     }
 

@@ -3,7 +3,6 @@ package it.boff.bike.security;
 import com.vaadin.flow.spring.security.AuthenticationContext;
 import it.boff.bike.utente.Utente;
 import it.boff.bike.utente.UtenteRepository;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -21,8 +20,8 @@ public class UtenteCorrente {
     }
 
     public Optional<Utente> get() {
-        return authenticationContext.getAuthenticatedUser(UserDetails.class)
-                .flatMap(u -> utenti.findByEmail(u.getUsername()));
+        // nome dell'utente qualunque sia il modo di accesso (password, codice, passkey, "resta collegato")
+        return authenticationContext.getPrincipalName().flatMap(utenti::findByEmail);
     }
 
     public boolean isStaff() {
