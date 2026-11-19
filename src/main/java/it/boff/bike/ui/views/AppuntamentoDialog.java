@@ -86,7 +86,7 @@ public class AppuntamentoDialog extends Dialog {
                 List<LocalTime> liberi = service.orariLiberiDi(persona.getValue().getId(), giorno.getValue(),
                         (int) a.intervallo().minuti(), a.getId());
                 ora.setItems(liberi);
-                ora.setPlaceholder(liberi.isEmpty() ? "Nessun orario libero in vendita" : "Scegli…");
+                ora.setPlaceholder(liberi.isEmpty() ? "Nessun orario libero" : "Scegli…");
                 if (liberi.contains(a.getOraInizio()) && giorno.getValue().equals(a.getData())) ora.setValue(a.getOraInizio());
             };
             persona.addValueChangeListener(e -> aggiornaOre.run());

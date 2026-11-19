@@ -23,8 +23,15 @@ public class Disponibilita implements OreOfficina {
     private final List<Assenza> assenze;
     private final Map<LocalDate, String> chiusure;
     private final boolean festiviChiusi;
+    private final List<TurnoVendita> turni;
 
     Disponibilita(List<FasciaOraria> fasce, List<Assenza> assenze, List<Chiusura> chiusure, boolean festiviChiusi) {
+        this(fasce, assenze, chiusure, festiviChiusi, List.of());
+    }
+
+    Disponibilita(List<FasciaOraria> fasce, List<Assenza> assenze, List<Chiusura> chiusure, boolean festiviChiusi,
+                  List<TurnoVendita> turni) {
+        this.turni = turni;
         this.fascePerPersona = fasce.stream().collect(Collectors.groupingBy(f -> f.getUtente().getId()));
         this.persone = fasce.stream().map(FasciaOraria::getUtente)
                 .collect(Collectors.toMap(Utente::getId, Function.identity(), (a, b) -> a))
@@ -74,10 +81,21 @@ public class Disponibilita implements OreOfficina {
                 .toList();
     }
 
-    /** Intervalli effettivi di un tipo, al netto delle assenze parziali. */
+    /** Turni di vendita inseriti a mano per quella persona e quel giorno. */
+    public List<TurnoVendita> turniVendita(Long utenteId, LocalDate giorno) {
+        if (chiusura(giorno).isPresent() || assenza(utenteId, giorno).isPresent()) return List.of();
+        return turni.stream().filter(t -> t.getUtente().getId().equals(utenteId) && t.getData().equals(giorno))
+                .sorted(Comparator.comparing(TurnoVendita::getOraInizio)).toList();
+    }
+
+    /**
+     * Intervalli effettivi di un tipo, al netto delle assenze parziali e dei turni di vendita
+     * (il tempo al banco non è disponibile per officina e appuntamenti).
+     */
     public List<Intervallo> intervalli(Long utenteId, LocalDate giorno, TipoFascia tipo) {
-        List<Intervallo> assente = assenzeParziali(utenteId, giorno).stream()
-                .map(a -> a.orario().orElseThrow()).toList();
+        List<Intervallo> assente = new java.util.ArrayList<>(assenzeParziali(utenteId, giorno).stream()
+                .map(a -> a.orario().orElseThrow()).toList());
+        turniVendita(utenteId, giorno).forEach(t -> assente.add(t.intervallo()));
         return fasce(utenteId, giorno).stream().filter(f -> f.getTipo() == tipo)
                 .flatMap(f -> f.intervallo().meno(assente).stream()).toList();
     }

@@ -47,7 +47,7 @@ public class AppuntamentiView extends Div {
         nuovo.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         Div intestazione = new Div(new H2("Appuntamenti"), nuovo);
         intestazione.addClassName("boff-intestazione");
-        Paragraph spiegazione = new Paragraph("Consulenze nelle ore di vendita. Le richieste dei clienti tengono già "
+        Paragraph spiegazione = new Paragraph("Consulenze nell'orario di lavoro (tolti i turni di vendita). Le richieste dei clienti tengono già "
                 + "l'orario: confermale, oppure spostale o annullale (il cliente riceve un avviso).");
         spiegazione.addClassName("boff-testo-secondario");
 

@@ -100,31 +100,31 @@ public class DatiIniziali implements ApplicationRunner {
         Utente paolo = creaSeAssente("paolo.ferri@demo.it", "Paolo", "Ferri", Ruolo.CLIENTE, false);
         Utente sara = creaSeAssente("sara.conti@demo.it", "Sara", "Conti", Ruolo.CLIENTE, false);
         lavoriDemo(giulia, paolo, sara);
+        turniDemo(mario, luca);
         appuntamentiDemo(giulia, paolo);
         log.warn("Utenti demo attivi (password '{}'). Non usare boff.demo=true in produzione!", PASSWORD_DEMO);
     }
 
     /**
-     * Orario tipico di un negozio di bici (chiuso domenica e lunedì mattina):
-     * il titolare la mattina in officina e il pomeriggio al banco, il collaboratore il contrario.
-     * Il sabato si vende soprattutto.
+     * Orario tipico di un negozio di bici (chiuso domenica e lunedì mattina). Dalla fase 12 l'orario è
+     * solo orario di lavoro: il tempo al banco si aggiunge a mano (vedi {@link #turniDemo}).
      */
     private void orariDemo(Utente mario, Utente luca) {
         if (calendario.orarioDi(mario.getId()).isEmpty()) {
             List<NuovaFascia> f = new ArrayList<>();
             for (DayOfWeek g : List.of(TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)) {
                 f.add(fascia(g, "09:00", "12:30", TipoFascia.MANUTENZIONE));
-                f.add(fascia(g, "15:00", "19:30", TipoFascia.VENDITA));
+                f.add(fascia(g, "15:00", "19:30", TipoFascia.MANUTENZIONE));
             }
-            f.add(fascia(SATURDAY, "09:00", "12:30", TipoFascia.VENDITA));
-            f.add(fascia(SATURDAY, "15:00", "19:00", TipoFascia.VENDITA));
+            f.add(fascia(SATURDAY, "09:00", "12:30", TipoFascia.MANUTENZIONE));
+            f.add(fascia(SATURDAY, "15:00", "19:00", TipoFascia.MANUTENZIONE));
             calendario.salvaOrario(mario.getId(), f);
         }
         if (calendario.orarioDi(luca.getId()).isEmpty()) {
             List<NuovaFascia> f = new ArrayList<>();
             f.add(fascia(MONDAY, "15:00", "19:30", TipoFascia.MANUTENZIONE));
             for (DayOfWeek g : List.of(TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)) {
-                f.add(fascia(g, "09:00", "12:30", TipoFascia.VENDITA));
+                f.add(fascia(g, "09:00", "12:30", TipoFascia.MANUTENZIONE));
                 f.add(fascia(g, "15:00", "19:30", TipoFascia.MANUTENZIONE));
             }
             f.add(fascia(SATURDAY, "09:00", "12:30", TipoFascia.MANUTENZIONE));
@@ -151,6 +151,17 @@ public class DatiIniziali implements ApplicationRunner {
         Lavoro ebike = lavori.creaAlBanco(haibike.getId(), tipi("Diagnosi e aggiornamento e-bike", "Regolazione freni"), null);
         lavori.impostaDettagli(ebike.getId(), false, calendario.oggi().plusDays(4), null);
         lavori.creaAlBanco(graziella.getId(), tipi("Riparazione foratura", "Lavaggio"), null);
+    }
+
+    /** Turni di vendita di esempio: il sabato pomeriggio il titolare è al banco. */
+    private void turniDemo(Utente mario, Utente luca) {
+        LocalDate sabato = calendario.oggi().with(java.time.temporal.TemporalAdjusters.next(SATURDAY));
+        if (!calendario.disponibilita(sabato, sabato).turniVendita(mario.getId(), sabato).isEmpty()) return;
+        try {
+            calendario.aggiungiTurnoVendita(mario.getId(), sabato, LocalTime.of(15, 0), LocalTime.of(19, 0), "Sabato al banco");
+        } catch (RuntimeException e) {
+            log.debug("Turno demo non inserito: {}", e.getMessage());
+        }
     }
 
     /** Un appuntamento da confermare (richiesto dall'app) e uno confermato, nei prossimi giorni. */

@@ -31,8 +31,9 @@ import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Appuntamenti di consulenza. Stanno nelle fasce di <b>vendita</b> di una persona (quelle di officina
- * restano ai lavori sulle bici): il cliente sceglie giorno e ora fra quelli liberi, il negozio conferma.
+ * Appuntamenti di consulenza. Stanno nell'orario di lavoro di una persona (tolti assenze e turni di vendita)
+ * e hanno la precedenza sui lavori di officina, che si ripianificano attorno; non si sovrappongono agli
+ * interventi fissati a mano. Il cliente sceglie giorno e ora fra quelli liberi, il negozio conferma.
  * Chi segue l'appuntamento lo sceglie l'app (la persona libera meno impegnata quel giorno) o il negozio.
  */
 @Service
@@ -57,10 +58,16 @@ public class AppuntamentoService {
     private final ApplicationEventPublisher eventi;
     private final Clock clock;
     private final ReentrantLock lock = new ReentrantLock();
+    private final it.boff.bike.pianificazione.AssegnazioneRepository assegnazioni;
+    private final it.boff.bike.pianificazione.Ripianificazione ripianificazione;
 
     public AppuntamentoService(AppuntamentoRepository appuntamenti, TipoAppuntamentoRepository tipi,
                                UtenteRepository utenti, BiciclettaRepository biciclette, CalendarioService calendario,
-                               ApplicationEventPublisher eventi, Clock clock) {
+                               ApplicationEventPublisher eventi, Clock clock,
+                               it.boff.bike.pianificazione.AssegnazioneRepository assegnazioni,
+                               it.boff.bike.pianificazione.Ripianificazione ripianificazione) {
+        this.assegnazioni = assegnazioni;
+        this.ripianificazione = ripianificazione;
         this.appuntamenti = appuntamenti;
         this.tipi = tipi;
         this.utenti = utenti;
@@ -97,7 +104,7 @@ public class AppuntamentoService {
     public Map<LocalDate, List<LocalTime>> orariLiberi(Long tipoId, LocalDate dal, LocalDate al) {
         TipoAppuntamento tipo = tipo(tipoId);
         Disponibilita d = calendario.disponibilita(dal, al);
-        List<Appuntamento> occupati = appuntamenti.tra(dal, al, StatoAppuntamento.ATTIVI);
+        List<Occupato> occupati = occupati(dal, al);
         LocalDateTime minimo = LocalDateTime.now(clock).plus(PREAVVISO);
         Map<LocalDate, List<LocalTime>> risultato = new TreeMap<>();
         for (LocalDate g = dal; !g.isAfter(al); g = g.plusDays(1)) {
@@ -114,19 +121,32 @@ public class AppuntamentoService {
     @Transactional(readOnly = true)
     public List<LocalTime> orariLiberiDi(Long utenteId, LocalDate giorno, int durataMin, Long esclusoAppuntamento) {
         Disponibilita d = calendario.disponibilita(giorno, giorno);
-        List<Appuntamento> occupati = appuntamenti.tra(giorno, giorno, StatoAppuntamento.ATTIVI);
-        return inizi(d, occupati, utenteId, giorno, durataMin, esclusoAppuntamento, LocalDateTime.now(clock));
+        return inizi(d, occupati(giorno, giorno), utenteId, giorno, durataMin, esclusoAppuntamento, LocalDateTime.now(clock));
     }
 
-    private static List<LocalTime> inizi(Disponibilita d, List<Appuntamento> occupati, Long persona, LocalDate g,
+    /** Tempo già preso: appuntamenti attivi e interventi di officina fissati a mano. */
+    record Occupato(Long utenteId, LocalDate data, Intervallo intervallo, Long appuntamentoId) {
+    }
+
+    private List<Occupato> occupati(LocalDate dal, LocalDate al) {
+        List<Occupato> o = new ArrayList<>();
+        appuntamenti.tra(dal, al, StatoAppuntamento.ATTIVI)
+                .forEach(a -> o.add(new Occupato(a.getUtente().getId(), a.getData(), a.intervallo(), a.getId())));
+        assegnazioni.bloccateTra(dal, al)
+                .forEach(a -> o.add(new Occupato(a.getUtente().getId(), a.getData(), a.intervallo(), null)));
+        return o;
+    }
+
+    /** Orario di lavoro della persona (al netto di assenze e turni di vendita), meno ciò che è già preso. */
+    private static List<LocalTime> inizi(Disponibilita d, List<Occupato> occupati, Long persona, LocalDate g,
                                          int durata, Long escluso, LocalDateTime minimo) {
         List<Intervallo> presi = occupati.stream()
-                .filter(a -> a.getUtente().getId().equals(persona) && a.getData().equals(g)
-                        && !a.getId().equals(escluso))
-                .map(Appuntamento::intervallo).toList();
+                .filter(a -> a.utenteId().equals(persona) && a.data().equals(g)
+                        && (a.appuntamentoId() == null || !a.appuntamentoId().equals(escluso)))
+                .map(Occupato::intervallo).toList();
         List<LocalTime> risultato = new ArrayList<>();
-        for (Intervallo vendita : d.intervalli(persona, g, TipoFascia.VENDITA)) {
-            for (Intervallo libero : vendita.meno(presi)) {
+        for (Intervallo lavoro : d.officina(persona, g)) {
+            for (Intervallo libero : lavoro.meno(presi)) {
                 LocalTime t = arrotonda(libero.inizio());
                 while (t != null && !t.plusMinutes(durata).isAfter(libero.fine()) && t.plusMinutes(durata).isAfter(t)) {
                     if (!LocalDateTime.of(g, t).isBefore(minimo)) risultato.add(t);
@@ -170,6 +190,7 @@ public class AppuntamentoService {
             Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, bici, giorno,
                     new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), pulisci(note), true, adesso()));
             eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.RICHIESTO));
+            ripianificazione.richiedi("appuntamento richiesto");
             return a;
         } finally {
             lock.unlock();
@@ -185,12 +206,13 @@ public class AppuntamentoService {
             if (giorno.isBefore(calendario.oggi())) throw new ErroreDominio("Non si può fissare un appuntamento nel passato");
             Utente persona = utenteId == null
                     ? personaLiberaNegozio(giorno, ora, tipo.getDurataMin())
-                        .orElseThrow(() -> new ErroreDominio("Nessuno è libero a quell'ora nelle ore di vendita"))
+                        .orElseThrow(() -> new ErroreDominio("Nessuno è libero a quell'ora"))
                     : personaSeLibera(utenteId, giorno, ora, tipo.getDurataMin(), null);
             Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, null, giorno,
                     new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), null, false, adesso()));
             a.setNoteInterne(pulisci(note));
             eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.CREATO_DAL_NEGOZIO));
+            ripianificazione.richiedi("appuntamento fissato");
             return a;
         } finally {
             lock.unlock();
@@ -202,7 +224,7 @@ public class AppuntamentoService {
         eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.CONFERMATO));
     }
 
-    /** Il negozio sposta un appuntamento (persona, giorno, ora): resta nelle ore di vendita, vale come confermato. */
+    /** Il negozio sposta un appuntamento (persona, giorno, ora): resta nell'orario di lavoro, vale come confermato. */
     public void sposta(Long id, Long utenteId, LocalDate giorno, LocalTime ora) {
         lock.lock();
         try {
@@ -212,6 +234,7 @@ public class AppuntamentoService {
             Utente persona = personaSeLibera(utenteId, giorno, ora, durata, id);
             a.sposta(persona, giorno, new Intervallo(ora, ora.plusMinutes(durata)), adesso());
             eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.SPOSTATO));
+            ripianificazione.richiedi("appuntamento spostato");
         } finally {
             lock.unlock();
         }
@@ -220,6 +243,7 @@ public class AppuntamentoService {
     public void annulla(Long id) {
         appuntamento(id).annulla(adesso());
         eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.ANNULLATO_DAL_NEGOZIO));
+        ripianificazione.richiedi("appuntamento annullato");
     }
 
     public void annullaDelCliente(Long clienteId, Long id) {
@@ -230,6 +254,7 @@ public class AppuntamentoService {
         }
         a.annulla(adesso());
         eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.ANNULLATO_DAL_CLIENTE));
+        ripianificazione.richiedi("appuntamento annullato");
     }
 
     public void segnaSvolto(Long id) {
@@ -286,36 +311,36 @@ public class AppuntamentoService {
 
     private Optional<Utente> personaLiberaNegozio(LocalDate giorno, LocalTime ora, int durata) {
         Disponibilita d = calendario.disponibilita(giorno, giorno);
-        List<Appuntamento> occupati = appuntamenti.tra(giorno, giorno, StatoAppuntamento.ATTIVI);
+        List<Occupato> occupati = occupati(giorno, giorno);
         return d.personale().stream()
                 .filter(p -> entra(d, occupati, p.getId(), giorno, ora, durata, null))
                 .min(Comparator.comparingLong(p -> occupati.stream()
-                        .filter(a -> a.getUtente().getId().equals(p.getId())).count()));
+                        .filter(a -> a.utenteId().equals(p.getId()) && a.appuntamentoId() != null).count()));
     }
 
     private Utente personaSeLibera(Long utenteId, LocalDate giorno, LocalTime ora, int durata, Long escluso) {
         Utente persona = utenti.findById(utenteId).filter(u -> u.getRuolo() == Ruolo.STAFF && u.isAttivo())
                 .orElseThrow(() -> new ErroreDominio("Persona non trovata"));
         Disponibilita d = calendario.disponibilita(giorno, giorno);
-        List<Appuntamento> occupati = appuntamenti.tra(giorno, giorno, StatoAppuntamento.ATTIVI);
-        if (!entra(d, occupati, utenteId, giorno, ora, durata, escluso)) {
+        if (!entra(d, occupati(giorno, giorno), utenteId, giorno, ora, durata, escluso)) {
             throw new ErroreDominio(persona.getNome() + " non è libero/a alle " + ora
-                    + " nelle ore di vendita per " + durata + " minuti");
+                    + " per " + durata + " minuti (fuori orario, turno di vendita, altro appuntamento o intervento fissato)");
         }
         return persona;
     }
 
-    /** true se [ora, ora+durata) sta in una fascia di vendita della persona e non tocca altri appuntamenti. */
-    private static boolean entra(Disponibilita d, List<Appuntamento> occupati, Long persona, LocalDate g,
+    /** true se [ora, ora+durata) sta nell'orario di lavoro della persona e non tocca nulla di già preso. */
+    private static boolean entra(Disponibilita d, List<Occupato> occupati, Long persona, LocalDate g,
                                  LocalTime ora, int durata, Long escluso) {
         LocalTime fine = ora.plusMinutes(durata);
         if (!fine.isAfter(ora)) return false;
         Intervallo voluto = new Intervallo(ora, fine);
-        boolean inVendita = d.intervalli(persona, g, TipoFascia.VENDITA).stream()
+        boolean inOrario = d.officina(persona, g).stream()
                 .anyMatch(v -> !ora.isBefore(v.inizio()) && !fine.isAfter(v.fine()));
-        boolean libero = occupati.stream().noneMatch(a -> a.getUtente().getId().equals(persona) && a.getData().equals(g)
-                && !a.getId().equals(escluso) && a.intervallo().siSovrappone(voluto));
-        return inVendita && libero;
+        boolean libero = occupati.stream().noneMatch(a -> a.utenteId().equals(persona) && a.data().equals(g)
+                && (a.appuntamentoId() == null || !a.appuntamentoId().equals(escluso))
+                && a.intervallo().siSovrappone(voluto));
+        return inOrario && libero;
     }
 
     private Bicicletta biciDelCliente(Long clienteId, Long biciId) {

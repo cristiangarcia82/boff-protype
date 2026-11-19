@@ -32,10 +32,12 @@ public class CalendarioService {
     private final BoffProperties properties;
     private final Clock clock;
     private final Ripianificazione ripianificazione;
+    private final TurnoVenditaRepository turni;
 
     public CalendarioService(FasciaOrariaRepository fasce, AssenzaRepository assenze, ChiusuraRepository chiusure,
                              UtenteRepository utenti, BoffProperties properties, Clock clock,
-                             Ripianificazione ripianificazione) {
+                             Ripianificazione ripianificazione, TurnoVenditaRepository turni) {
+        this.turni = turni;
         this.ripianificazione = ripianificazione;
         this.fasce = fasce;
         this.assenze = assenze;
@@ -167,6 +169,42 @@ public class CalendarioService {
         return risultato;
     }
 
+    // ---------------------------------------------------------------- turni di vendita
+
+    /**
+     * Il titolare mette una persona al banco in un giorno preciso: dentro il suo orario di lavoro,
+     * senza sovrapporsi ad altri turni. Lavori e appuntamenti lasciano libero quel tempo.
+     */
+    public TurnoVendita aggiungiTurnoVendita(Long utenteId, LocalDate giorno, java.time.LocalTime dalle,
+                                             java.time.LocalTime alle, String note) {
+        if (dalle == null || alle == null || !alle.isAfter(dalle)) {
+            throw new ErroreDominio("L'ora di fine deve essere dopo l'ora di inizio");
+        }
+        if (giorno.isBefore(oggi())) throw new ErroreDominio("Non si può inserire nel passato");
+        Utente persona = utenti.findById(utenteId).filter(u -> u.getRuolo() == Ruolo.STAFF)
+                .orElseThrow(() -> new ErroreDominio("Persona non trovata"));
+        Intervallo turno = new Intervallo(dalle, alle);
+        Disponibilita d = disponibilita(giorno, giorno);
+        boolean inOrario = d.fasce(utenteId, giorno).stream()
+                .anyMatch(f -> !dalle.isBefore(f.getOraInizio()) && !alle.isAfter(f.getOraFine()));
+        if (!inOrario) {
+            throw new ErroreDominio(persona.getNome() + " non lavora in quell'orario: il turno deve stare nel suo orario");
+        }
+        if (d.turniVendita(utenteId, giorno).stream().anyMatch(t -> t.intervallo().siSovrappone(turno))) {
+            throw new ErroreDominio("Si sovrappone a un altro turno di vendita");
+        }
+        String n = note == null || note.isBlank() ? null : note.trim();
+        if (n != null && n.length() > 200) throw new ErroreDominio("Nota troppo lunga (massimo 200 caratteri)");
+        TurnoVendita t = turni.save(new TurnoVendita(persona, giorno, turno, n));
+        ripianificazione.richiedi("turno di vendita");
+        return t;
+    }
+
+    public void rimuoviTurnoVendita(Long turnoId) {
+        turni.deleteById(turnoId);
+        ripianificazione.richiedi("turno di vendita eliminato");
+    }
+
     /** Giorno chiuso: {@code chiusuraId} è null per le festività nazionali (non eliminabili). */
     public record GiornoChiuso(LocalDate data, String descrizione, Long chiusuraId) {
     }
@@ -176,7 +214,7 @@ public class CalendarioService {
     @Transactional(readOnly = true)
     public Disponibilita disponibilita(LocalDate dal, LocalDate al) {
         return new Disponibilita(fasce.diPersonaleAttivo(), assenze.tra(dal, al),
-                chiusure.findByDataBetweenOrderByData(dal, al), properties.festiviChiusi());
+                chiusure.findByDataBetweenOrderByData(dal, al), properties.festiviChiusi(), turni.tra(dal, al));
     }
 
     private static String nome(DayOfWeek giorno) {

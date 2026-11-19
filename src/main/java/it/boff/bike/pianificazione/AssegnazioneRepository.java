@@ -61,6 +61,10 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
             """)
     int eliminaTranne(Collection<Long> lavori, LocalDate oggi, Collection<Long> conserva);
 
+    /** Interventi fissati a mano in un periodo (gli appuntamenti non ci si possono sovrapporre). */
+    @Query("select a from Assegnazione a join fetch a.utente where a.bloccata = true and a.data between :dal and :al")
+    List<Assegnazione> bloccateTra(LocalDate dal, LocalDate al);
+
     @Query("select a from Assegnazione a where a.utente.id = :utenteId and a.data = :data and a.bloccata = true")
     List<Assegnazione> bloccateDiPersona(Long utenteId, LocalDate data);
 }

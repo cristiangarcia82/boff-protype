@@ -196,7 +196,7 @@ html {
 .boff-fasce { display: flex; flex-direction: column; gap: var(--lumo-space-xs); }
 .boff-fascia {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     gap: var(--lumo-space-xs);
     align-items: center;
     border-left: 4px solid var(--lumo-contrast-30pct);
@@ -460,3 +460,15 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-slot.appuntamento .boff-slot-etichetta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .boff-slot > * { flex-shrink: 0; }
+
+/* ---- Turni di vendita inseriti a mano ---- */
+.boff-cella { position: relative; }
+.boff-aggiungi-turno { position: absolute; top: 2px; right: 2px; opacity: 0; transition: opacity .15s; z-index: 2; }
+.boff-cella:hover .boff-aggiungi-turno, .boff-aggiungi-turno:focus-visible { opacity: 1; }
+@media (hover: none) { .boff-aggiungi-turno { opacity: .6; } }
+.boff-slot.turno {
+    border-left-color: var(--boff-colore-vendita);
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--boff-colore-vendita) 14%, var(--lumo-base-color)) 0 6px,
+        color-mix(in srgb, var(--boff-colore-vendita) 6%, var(--lumo-base-color)) 6px 12px);
+}
+.boff-fascia > vaadin-select[hidden] { display: none; }

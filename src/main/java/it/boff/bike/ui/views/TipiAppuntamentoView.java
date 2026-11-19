@@ -40,7 +40,7 @@ public class TipiAppuntamentoView extends Div {
         Div intestazione = new Div(new H2("Tipi di appuntamento"), nuovo);
         intestazione.addClassName("boff-intestazione");
         Paragraph spiegazione = new Paragraph("Le consulenze che i clienti possono prenotare dall'app. La durata decide "
-                + "quanto tempo occupa nelle ore di vendita; un tipo disattivato non si può più prenotare.");
+                + "quanto tempo occupa nell'orario di lavoro; un tipo disattivato non si può più prenotare.");
         spiegazione.addClassName("boff-testo-secondario");
 
         griglia.addColumn(TipoAppuntamento::getNome).setHeader("Nome").setFlexGrow(2);

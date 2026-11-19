@@ -219,3 +219,9 @@ recupero password, cookie, log, configurazione di produzione.
 | Test fragili trovati | Due test davano per scontato un'officina vuota o un intervento in un solo pezzo e fallivano con un ordine di esecuzione diverso: resi indipendenti (verificato in ordine alfabetico e inverso). |
 | Trovato in review (interfaccia) | Pulsante dell'orario scelto illeggibile (testo bianco su fondo trasparente); nome del cliente nascosto nei blocchi brevi della linea del tempo: corretti. |
 | Rischio residuo | Un appuntamento non si trascina nel calendario (si sposta dal dettaglio). Il logo è una ricostruzione vettoriale dall'immagine del profilo: sostituibile con il file originale (`icons/logo.svg` e `icons/logo.png`). |
+
+## Aggiornamento: orario di lavoro unico e turni di vendita
+| Voce | Esito |
+|---|---|
+| Test | Appuntamenti solo nell'orario di lavoro; turno di vendita che toglie tempo ad appuntamenti e officina (fuori orario o sovrapposto: rifiutato); appuntamento che sposta un lavoro di officina; capacità indipendente dal numero di persone (verificato in ordine alfabetico e inverso). |
+| Trovato in review | Uno spostamento manuale di un lavoro poteva finire sopra un appuntamento: ora è escluso. |

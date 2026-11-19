@@ -59,11 +59,14 @@ public class PianificazioneService {
     /** Un ricalcolo alla volta (l'app gira su una sola istanza). */
     private final ReentrantLock lock = new ReentrantLock();
     private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
+    private final it.boff.bike.appuntamento.AppuntamentoRepository appuntamenti;
 
     public PianificazioneService(AssegnazioneRepository assegnazioni, LavoroService lavori,
                                  CalendarioService calendario, UtenteRepository utenti, EntityManager em,
                                  BoffProperties properties, Clock clock,
-                                 it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
+                                 it.boff.bike.funzionalita.FunzionalitaService funzionalita,
+                                 it.boff.bike.appuntamento.AppuntamentoRepository appuntamenti) {
+        this.appuntamenti = appuntamenti;
         this.funzionalita = funzionalita;
         this.assegnazioni = assegnazioni;
         this.lavori = lavori;
@@ -122,11 +125,13 @@ public class PianificazioneService {
      * Ricalcolo che conserva il calendario: si tengono le assegnazioni di interventi ancora da fare;
      * se un intervento ne ha più del necessario (durata ridotta) si ripianifica solo quello.
      */
-    private static List<Long> daConservare(List<Assegnazione> daOggi) {
+    private static List<Long> daConservare(List<Assegnazione> daOggi, Disponibilita d, List<Occupato> appuntamenti) {
         Map<Long, List<Assegnazione>> perRiga = new HashMap<>();
         for (Assegnazione a : daOggi) {
             RigaLavoro r = a.getRiga();
             if (r.isCompletata() || !r.isValida()) continue;
+            // un intervento non fissato finito sopra un appuntamento, un turno di vendita o un'assenza si ricolloca
+            if (!a.isBloccata() && !ancoraValida(a, d, appuntamenti)) continue;
             perRiga.computeIfAbsent(r.getId(), k -> new ArrayList<>()).add(a);
         }
         List<Long> conserva = new ArrayList<>();
@@ -137,6 +142,16 @@ public class PianificazioneService {
             }
         }
         return conserva;
+    }
+
+    private static boolean ancoraValida(Assegnazione a, Disponibilita d, List<Occupato> appuntamenti) {
+        Intervallo i = a.intervallo();
+        Long p = a.getUtente().getId();
+        boolean inOrario = d.officina(p, a.getData()).stream()
+                .anyMatch(o -> !i.inizio().isBefore(o.inizio()) && !i.fine().isAfter(o.fine()));
+        boolean libera = appuntamenti.stream().noneMatch(o -> o.utenteId().equals(p) && o.data().equals(a.getData())
+                && o.intervallo().siSovrappone(i));
+        return inOrario && libera;
     }
 
     /** Numero di ricalcoli eseguiti dall'avvio (diagnostica e test). */
@@ -156,10 +171,15 @@ public class PianificazioneService {
         List<Long> ids = inOfficina.stream().map(Lavoro::getId).toList();
         List<Long> idsQuery = ids.isEmpty() ? List.of(-1L) : ids;
 
+        Disponibilita disponibilita = calendario.disponibilita(oggi, oggi.plusDays(Pianificatore.GIORNI_ORIZZONTE));
+        // gli appuntamenti di consulenza hanno la precedenza: il loro tempo non va all'officina
+        List<Occupato> appuntamentiAttivi = appuntamenti.tra(oggi, oggi.plusDays(Pianificatore.GIORNI_ORIZZONTE),
+                        it.boff.bike.appuntamento.StatoAppuntamento.ATTIVI).stream()
+                .map(a -> new Occupato(a.getUtente().getId(), a.getData(), a.intervallo(), null)).toList();
         if (completo) {
             assegnazioni.eliminaDaRicalcolare(idsQuery, oggi);
         } else {
-            List<Long> conserva = daConservare(assegnazioni.daOggi(oggi, idsQuery));
+            List<Long> conserva = daConservare(assegnazioni.daOggi(oggi, idsQuery), disponibilita, appuntamentiAttivi);
             assegnazioni.eliminaTranne(idsQuery, oggi, conserva.isEmpty() ? List.of(-1L) : conserva);
         }
         em.flush();
@@ -170,7 +190,7 @@ public class PianificazioneService {
         List<Assegnazione> bloccate = completo ? assegnazioni.bloccateDa(oggi, idsQuery) : assegnazioni.daOggi(oggi, idsQuery);
         Map<Long, Integer> minutiBloccatiPerRiga = new HashMap<>();
         Map<Long, LocalDateTime> fineBloccatePerLavoro = new HashMap<>();
-        List<Occupato> occupati = new ArrayList<>();
+        List<Occupato> occupati = new ArrayList<>(appuntamentiAttivi);
         for (Assegnazione a : bloccate) {
             Long lavoroId = a.getRiga().getLavoro().getId();
             occupati.add(new Occupato(a.getUtente().getId(), a.getData(), a.intervallo(), lavoroId));
@@ -195,7 +215,6 @@ public class PianificazioneService {
                     l.isUrgente(), l.getDataPromessa(), arrivo, righe));
         }
 
-        Disponibilita disponibilita = calendario.disponibilita(oggi, oggi.plusDays(Pianificatore.GIORNI_ORIZZONTE));
         Pianificatore.Risultato r = new Pianificatore(disponibilita, adesso, occupati)
                 .pianifica(daPianificare, fineBloccatePerLavoro);
 
@@ -251,14 +270,18 @@ public class PianificazioneService {
             java.util.Set<Long> ids = new java.util.HashSet<>(assegnazioniIds);
             Disponibilita d = calendario.disponibilita(giorno, giorno);
             Utente persona = utenti.findById(utenteId).orElseThrow();
+            var appuntamentiDelGiorno = appuntamenti.tra(giorno, giorno, it.boff.bike.appuntamento.StatoAppuntamento.ATTIVI);
             LocalTime prossima = ora;
             for (Assegnazione a : daSpostare) {
                 long durata = a.intervallo().minuti();
                 // occupano spazio gli interventi fissati, tranne quelli del gruppo non ancora collocati
                 int posizione = assegnazioniIds.indexOf(a.getId());
-                List<Intervallo> occupati = assegnazioni.bloccateDiPersona(utenteId, giorno).stream()
+                List<Intervallo> occupati = new ArrayList<>(assegnazioni.bloccateDiPersona(utenteId, giorno).stream()
                         .filter(x -> !ids.contains(x.getId()) || assegnazioniIds.indexOf(x.getId()) < posizione)
-                        .map(Assegnazione::intervallo).toList();
+                        .map(Assegnazione::intervallo).toList());
+                // nemmeno sopra un appuntamento di consulenza
+                appuntamentiDelGiorno.stream().filter(x -> x.getUtente().getId().equals(utenteId))
+                        .forEach(x -> occupati.add(x.intervallo()));
                 LocalTime minimo = giorno.equals(adesso.toLocalDate()) ? Pianificatore.arrotonda(adesso.toLocalTime()) : LocalTime.MIN;
                 Intervallo destinazione = null;
                 for (Intervallo fascia : d.officina(utenteId, giorno)) {

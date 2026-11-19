@@ -133,7 +133,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
 
         Div intestazione = new Div(new H2("Calendario"), navigazione);
         intestazione.addClassName("boff-intestazione");
-        Div legenda = new Div(voceLegenda("vendita", "Vendita e consulenze"), voceLegenda("officina", "Officina"),
+        Div legenda = new Div(voceLegenda("officina", "Orario di lavoro"), voceLegenda("vendita", "Turno di vendita (+)"),
                 voceLegenda("lavoro", "Lavoro in officina"), voceLegenda("appuntamento", "Appuntamento"),
                 voceLegenda("assenza", "Assente / chiuso"));
         Span suggerimento = new Span("Tocca una bici per i dettagli; trascinala su un'altra persona o giorno per spostarla.");
@@ -317,6 +317,8 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             return cella;
         }
         List<Assegnazione> elencoCella = assegnazioniPerCella.getOrDefault(p.getId() + "|" + g, List.of());
+        List<it.boff.bike.calendario.TurnoVendita> turni = d.turniVendita(p.getId(), g);
+        if (!g.isBefore(calendario.oggi())) cella.add(pulsanteTurno(p, g, fasce));
         if (vista == Vista.TEMPO) {
             return lineaDelTempo(cella, d, p, g, fasce, elencoCella);
         }
@@ -332,6 +334,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
                 b.addClassNames("boff-blocco", "assenza");
                 cella.add(b);
             });
+            turni.forEach(t -> cella.add(slotTurno(t)));
             elencoCella.stream().sorted(java.util.Comparator.comparing(Assegnazione::getOraInizio))
                     .forEach(a -> cella.add(chip(a)));
             appuntamentiDi(p, g).forEach(a -> cella.add(slotAppuntamento(a)));
@@ -360,6 +363,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         List<Blocco> blocchi = new java.util.ArrayList<>();
         raggruppa(elencoCella).forEach(gruppo -> blocchi.add(new Blocco(gruppo.get(0).getOraInizio(), slot(gruppo))));
         appuntamentiDi(p, g).forEach(a -> blocchi.add(new Blocco(a.getOraInizio(), slotAppuntamento(a))));
+        turni.forEach(t -> blocchi.add(new Blocco(t.getOraInizio(), slotTurno(t))));
         blocchi.stream().sorted(java.util.Comparator.comparing(Blocco::inizio)).forEach(b -> cella.add(b.c()));
         capacita(cella, d, p, g, elencoCella, false);
         return cella;
@@ -369,11 +373,12 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
     private void capacita(Div cella, Disponibilita d, Utente p, LocalDate g, List<Assegnazione> elenco, boolean estesa) {
         long officina = d.minuti(p.getId(), g, TipoFascia.MANUTENZIONE);
         if (officina <= 0) return;
-        long occupati = elenco.stream().mapToLong(a -> a.intervallo().minuti()).sum();
-        String completo = "Officina: " + Durate.formatta(Math.max(0, officina - occupati)) + " liberi su "
-                + Durate.formatta(officina);
+        long occupati = elenco.stream().mapToLong(a -> a.intervallo().minuti()).sum()
+                + appuntamentiDi(p, g).stream().mapToLong(a -> a.intervallo().minuti()).sum();
+        String completo = "Ore di lavoro: " + Durate.formatta(Math.max(0, officina - occupati)) + " libere su "
+                + Durate.formatta(officina) + " (tolti vendita, lavori e appuntamenti)";
         Span cap = new Span(estesa ? completo
-                : occupati >= officina ? "Officina piena" : "Libero " + Durate.formatta(officina - occupati));
+                : occupati >= officina ? "Pieno" : "Libero " + Durate.formatta(officina - occupati));
         cap.addClassName("boff-capacita");
         cap.setTitle(completo);
         if (occupati >= officina) cap.addClassName("pieno");
@@ -430,6 +435,13 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
                     .set("height", Math.max(18, px(fine) - px(inizio) - 2) + "px");
             tela.add(s);
         }
+        for (var t : d.turniVendita(p.getId(), g)) {
+            Component s = slotTurno(t);
+            s.getElement().getClassList().add("posizionato");
+            s.getElement().getStyle().set("top", px(t.getOraInizio()) + "px")
+                    .set("height", Math.max(18, px(t.getOraFine()) - px(t.getOraInizio()) - 2) + "px");
+            tela.add(s);
+        }
         for (var a : appuntamentiDi(p, g)) {
             Component s = slotAppuntamento(a);
             s.getElement().getClassList().add("posizionato");
@@ -471,6 +483,86 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         slot.getElement().setAttribute("tabindex", "0");
         slot.addClickListener(e -> new AppuntamentoDialog(appuntamenti, personaleAttivo, calendario.oggi(), a.getId(),
                 this::mostra).open());
+        return slot;
+    }
+
+    /** "+" in alto nella cella: aggiunge un turno di vendita (tempo al banco) per quella persona e quel giorno. */
+    private Component pulsanteTurno(Utente p, LocalDate g, List<FasciaOraria> fasce) {
+        Button piu = new Button(VaadinIcon.PLUS.create(), e -> dialogoTurno(p, g, fasce));
+        piu.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+        piu.addClassName("boff-aggiungi-turno");
+        piu.setTooltipText("Turno di vendita");
+        piu.setAriaLabel("Aggiungi un turno di vendita per " + p.getNome() + " " + Formati.giorno(g));
+        return piu;
+    }
+
+    private void dialogoTurno(Utente p, LocalDate g, List<FasciaOraria> fasce) {
+        Dialog d = new Dialog();
+        d.setHeaderTitle("Turno di vendita");
+        d.setWidth("min(440px, 100vw)");
+        Paragraph chi = new Paragraph(p.getNomeCompleto() + " al banco · " + Formati.giorno(g)
+                + ". In quel tempo l'app non mette lavori di officina né appuntamenti.");
+        chi.addClassName("boff-testo-secondario");
+        TimePicker dalle = new TimePicker("Dalle");
+        TimePicker alle = new TimePicker("Alle");
+        for (TimePicker t : List.of(dalle, alle)) {
+            t.setStep(java.time.Duration.ofMinutes(15));
+            t.setLocale(Locale.ITALY);
+        }
+        FasciaOraria ultima = fasce.get(fasce.size() - 1);
+        dalle.setValue(ultima.getOraInizio());
+        alle.setValue(ultima.getOraFine());
+        com.vaadin.flow.component.textfield.TextField note = new com.vaadin.flow.component.textfield.TextField("Nota (facoltativa)");
+        note.setMaxLength(200);
+        note.setPlaceholder("es. sabato di promozioni");
+        Div riga = new Div(dalle, alle);
+        riga.addClassName("boff-modulo-riga");
+        d.add(chi, riga, note);
+        Button salva = new Button("Aggiungi", e -> {
+            try {
+                calendario.aggiungiTurnoVendita(p.getId(), g, dalle.getValue(), alle.getValue(), note.getValue());
+                Avvisi.ok("Turno di vendita aggiunto");
+                d.close();
+                mostraEsito(pianificazione.aggiorna());
+                mostra();
+            } catch (ErroreDominio ex) {
+                Avvisi.errore(ex.getMessage());
+            }
+        });
+        salva.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        d.getFooter().add(new Button("Annulla", e -> d.close()), salva);
+        d.open();
+    }
+
+    /** Un turno di vendita inserito a mano; toccandolo si può togliere. */
+    private Component slotTurno(it.boff.bike.calendario.TurnoVendita t) {
+        Div slot = new Div();
+        slot.addClassNames("boff-slot", "turno");
+        Span titolo = new Span("Vendita");
+        titolo.addClassName("boff-slot-bici");
+        Span quando = new Span(breve(t.getOraInizio()) + "–" + breve(t.getOraFine()));
+        quando.addClassName("boff-slot-orario");
+        Div riga = new Div(quando);
+        riga.addClassName("boff-slot-riga");
+        if (t.getNote() != null) riga.add(new Span(t.getNote()));
+        slot.add(titolo, riga);
+        slot.setTitle("Turno di vendita " + t.getOraInizio() + "–" + t.getOraFine() + (t.getNote() == null ? "" : " · " + t.getNote()));
+        slot.getElement().setAttribute("role", "button");
+        slot.getElement().setAttribute("tabindex", "0");
+        slot.addClickListener(e -> {
+            com.vaadin.flow.component.confirmdialog.ConfirmDialog c = new com.vaadin.flow.component.confirmdialog.ConfirmDialog(
+                    "Togliere il turno di vendita?", t.getUtente().getNomeCompleto() + ", " + Formati.giorno(t.getData())
+                    + " " + t.getOraInizio() + "–" + t.getOraFine() + ": quel tempo torna disponibile per lavori e appuntamenti.",
+                    "Togli", ev -> {
+                        calendario.rimuoviTurnoVendita(t.getId());
+                        Avvisi.ok("Turno di vendita tolto");
+                        mostraEsito(pianificazione.aggiorna());
+                        mostra();
+                    });
+            c.setCancelable(true);
+            c.setCancelText("Annulla");
+            c.open();
+        });
         return slot;
     }
 

@@ -110,3 +110,10 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 27. Logo
     Il logo del negozio nell'applicazione.
+
+28. Niente fasce fisse di vendita
+    Togliere le ore dedicate alla vendita dall'orario: i turni di vendita
+    li inserisce il titolare a mano nel calendario.
+
+29. Review finale
+    Review del codice al termine, senza domande.

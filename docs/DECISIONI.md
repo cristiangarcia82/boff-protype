@@ -227,7 +227,7 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - In entrambi i casi gli interventi fissati a mano non si spostano. Il calendario mostra un avviso quando il ricalcolo automatico è spento.
 - ⚠️ Con il ricalcolo spento, un lavoro urgente o con data promessa vicina non scavalca gli altri finché non si preme *Ripianifica* (l'avviso "finisce dopo la data promessa" resta).
 
-## D49 – Appuntamenti di consulenza nelle ore di vendita (richiesta del titolare)
+## D49 – Appuntamenti di consulenza (richiesta del titolare; dove stanno: vedi D50)
 - Le ore di **vendita** di ogni persona (impostate in *Impostazioni → Orari*, già per persona) diventano prenotabili per **consulenze**: acquisto, e-bike, posizionamento in sella, consegna bici nuova. Le ore di **officina** restano ai lavori: le due pianificazioni non si toccano.
 - **Tipi di appuntamento** (*Impostazioni → Tipi di appuntamento*): nome, descrizione per il cliente, durata, prenotabile sì/no.
 - **Dal cliente** (*menu → Appuntamenti*, invito nella pagina *Le mie bici*): sceglie il tipo, poi un giorno e un orario fra quelli **liberi** (passo di 30 minuti, almeno 2 ore di preavviso, fino a 30 giorni). La richiesta **tiene già l'orario** (nessun doppione) ed è *da confermare*. Facoltativi: bici e note. Massimo 3 appuntamenti futuri per cliente; può annullarli finché non sono passati.
@@ -237,3 +237,12 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Privacy**: gli appuntamenti sono nell'export dei dati; la cancellazione annulla quelli futuri e toglie note e bici. Informativa versione 4.
 - **Alternative scartate**: il cliente propone solo una preferenza e il negozio sceglie l'ora (più telefonate); il cliente sceglie anche la persona (le ore di vendita cambiano di settimana in settimana).
 - ⚠️ Da valutare con l'uso: preavviso minimo, limite di 3, tipi di appuntamento iniziali.
+
+## D50 – Niente più fasce fisse di vendita: orario di lavoro e turni di vendita a mano (richiesta del titolare)
+- L'orario settimanale di ogni persona è **solo orario di lavoro** (*Impostazioni → Orari*, senza la scelta Vendita/Officina). Le vecchie fasce di vendita sono diventate ore di lavoro (migrazione V15), così nessuno perde ore.
+- In queste ore l'app mette **lavori di officina** e **appuntamenti di consulenza**:
+  - gli appuntamenti hanno la **precedenza**: un lavoro non fissato che si trova sopra un appuntamento viene ricollocato (anche con il ricalcolo automatico spento); un lavoro trascinato a mano non può finire sopra un appuntamento;
+  - un appuntamento non può sovrapporsi a un intervento **fissato a mano**.
+- **Turni di vendita**: il titolare (o il collaboratore) li aggiunge dal calendario con il "+" di ogni cella (persona, giorno, dalle–alle, nota). Devono stare nell'orario di lavoro e non sovrapporsi; in quel tempo niente officina né appuntamenti. Si tolgono toccandoli. Ne compare uno di esempio nei dati demo (sabato pomeriggio).
+- "Libero" nel calendario = ore di lavoro meno turni di vendita, lavori e appuntamenti.
+- ⚠️ Il tipo di fascia "Vendita" resta nel modello solo per compatibilità; l'interfaccia non lo usa più.

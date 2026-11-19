@@ -20,7 +20,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 
-/** Un appuntamento di consulenza: un cliente, una persona del negozio, un orario nelle ore di vendita. */
+/** Un appuntamento di consulenza: un cliente, una persona del negozio, un orario nel suo orario di lavoro. */
 @Entity
 @Table(name = "appuntamento")
 public class Appuntamento {

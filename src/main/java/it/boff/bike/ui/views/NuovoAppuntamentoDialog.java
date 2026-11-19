@@ -68,7 +68,7 @@ class NuovoAppuntamentoDialog extends Dialog {
                 liberi.addAll(service.orariLiberiDi(u.getId(), giorno.getValue(), tipo.getValue().getDurataMin(), null));
             }
             ora.setItems(liberi);
-            ora.setPlaceholder(liberi.isEmpty() ? "Nessun orario libero nelle ore di vendita" : "Scegli…");
+            ora.setPlaceholder(liberi.isEmpty() ? "Nessun orario libero" : "Scegli…");
         };
         tipo.addValueChangeListener(e -> aggiorna.run());
         persona.addValueChangeListener(e -> aggiorna.run());

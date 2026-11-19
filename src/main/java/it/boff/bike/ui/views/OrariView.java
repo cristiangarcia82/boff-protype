@@ -65,7 +65,9 @@ public class OrariView extends Div {
             tipo.setAriaLabel("Tipo");
             inizio.setValue(da);
             fine.setValue(a);
-            tipo.setValue(t);
+            // le fasce di vendita fisse non ci sono più: ogni fascia è orario di lavoro
+            tipo.setValue(TipoFascia.MANUTENZIONE);
+            tipo.setVisible(false);
             inizio.addValueChangeListener(e -> aggiornaRiepilogo());
             fine.addValueChangeListener(e -> aggiornaRiepilogo());
             tipo.addValueChangeListener(e -> { aggiornaClasse(); aggiornaRiepilogo(); });
@@ -108,9 +110,10 @@ public class OrariView extends Div {
         Div intestazione = new Div(new H2("Orari settimanali"), salva);
         intestazione.addClassName("boff-intestazione");
 
-        Paragraph spiegazione = new Paragraph("Per ogni persona indica quando lavora e se è al banco (Vendita) "
-                + "o in officina. La pianificazione usa solo le ore di officina. Giorni liberi occasionali, "
-                + "ferie e chiusure si inseriscono in \"Assenze e chiusure\".");
+        Paragraph spiegazione = new Paragraph("Per ogni persona indica quando lavora. In queste ore l'app mette "
+                + "i lavori di officina e gli appuntamenti di consulenza. Il tempo al banco lo aggiungi tu dal "
+                + "calendario, giorno per giorno (\"Turno di vendita\"). Giorni liberi, ferie e chiusure si "
+                + "inseriscono in \"Assenze e chiusure\".");
         spiegazione.addClassName("boff-testo-secondario");
         riepilogo.addClassName("boff-riepilogo");
         settimana.addClassName("boff-settimana-orari");
@@ -185,8 +188,7 @@ public class OrariView extends Div {
                 if (r.tipo.getValue() == TipoFascia.VENDITA) vendita += m; else officina += m;
             }
         }
-        riepilogo.setText("Totale settimana: " + Durate.formatta(vendita + officina) + " — vendita "
-                + Durate.formatta(vendita) + ", officina " + Durate.formatta(officina));
+        riepilogo.setText("Totale settimana: " + Durate.formatta(vendita + officina));
     }
 
     private void salva() {
