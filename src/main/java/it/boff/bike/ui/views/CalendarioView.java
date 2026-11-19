@@ -375,12 +375,12 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         if (officina <= 0) return;
         long occupati = elenco.stream().mapToLong(a -> a.intervallo().minuti()).sum()
                 + appuntamentiDi(p, g).stream().mapToLong(a -> a.intervallo().minuti()).sum();
-        String completo = "Ore di lavoro: " + Durate.formatta(Math.max(0, officina - occupati)) + " libere su "
-                + Durate.formatta(officina) + " (tolti vendita, lavori e appuntamenti)";
+        String completo = "Libere " + Durate.formatta(Math.max(0, officina - occupati)) + " su "
+                + Durate.formatta(officina);
         Span cap = new Span(estesa ? completo
                 : occupati >= officina ? "Pieno" : "Libero " + Durate.formatta(officina - occupati));
         cap.addClassName("boff-capacita");
-        cap.setTitle(completo);
+        cap.setTitle(completo + " di lavoro (tolti turni di vendita, lavori e appuntamenti)");
         if (occupati >= officina) cap.addClassName("pieno");
         cella.add(cap);
     }
