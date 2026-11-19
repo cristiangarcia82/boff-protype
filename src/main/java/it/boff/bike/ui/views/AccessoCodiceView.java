@@ -35,7 +35,9 @@ public class AccessoCodiceView extends VerticalLayout {
         setAlignItems(FlexComponent.Alignment.CENTER);
         setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         contenuto.addClassNames("boff-card", "boff-codice");
-        add(contenuto, new RouterLink("Torna all'accesso con password", LoginView.class));
+        com.vaadin.flow.component.html.Image logo = new com.vaadin.flow.component.html.Image("icons/logo.svg", "Boff Bike");
+        logo.addClassName("boff-logo-grande");
+        add(logo, contenuto, new RouterLink("Torna all'accesso con password", LoginView.class));
         chiediEmail(null);
     }
 

@@ -136,8 +136,11 @@ public class MainLayout extends AppLayout {
     }
 
     private static H1 titolo() {
-        H1 titolo = new H1("Boff Bike");
-        titolo.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
+        // logo del negozio (decorativo: il nome è già scritto accanto)
+        com.vaadin.flow.component.html.Image logo = new com.vaadin.flow.component.html.Image("icons/logo.svg", "");
+        logo.addClassName("boff-logo");
+        H1 titolo = new H1(logo, new Span("Boff Bike"));
+        titolo.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE, "boff-titolo");
         return titolo;
     }
 

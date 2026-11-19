@@ -13,7 +13,7 @@ import com.vaadin.flow.theme.lumo.Lumo;
  */
 @PWA(name = "Boff Bike - Officina", shortName = "Boff Bike",
         description = "Gestione clienti, biciclette e lavori di officina",
-        iconPath = "icons/icon.png", backgroundColor = "#ffffff", themeColor = "#1f6f43")
+        iconPath = "icons/logo.png", backgroundColor = "#262626", themeColor = "#1f6f43")
 @Meta(name = "apple-mobile-web-app-capable", content = "yes")
 @Meta(name = "apple-mobile-web-app-status-bar-style", content = "default")
 @StyleSheet(Lumo.STYLESHEET)

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" role="img" aria-label="Boff Bike">
+  <title>Boff Bike</title>
+  <rect width="150" height="150" fill="#262626"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <!-- tratto superiore con l'uncino a destra -->
+    <path d="M48 36 H88 Q95 36 96 44"/>
+    <!-- asta verticale e raggio verso il centro della ruota -->
+    <path d="M48 36 L52 73 L80 98"/>
+    <!-- ruota -->
+    <circle cx="80" cy="98" r="26"/>
+  </g>
+</svg>

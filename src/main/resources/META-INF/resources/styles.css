@@ -424,3 +424,8 @@ html { --boff-colore-lavoro: #b7791f; }
 .boff-etichetta-settimana { font-size: var(--lumo-font-size-xs); font-weight: 600; color: var(--lumo-secondary-text-color); text-transform: uppercase; letter-spacing: .03em; display: flex; align-items: flex-end; }
 .boff-griglia-settimana > .seconda { border-top: 3px solid var(--lumo-contrast-20pct); }
 .boff-testa-giorno.passato { color: var(--lumo-tertiary-text-color); }
+
+/* ---- Logo del negozio ---- */
+.boff-titolo { display: inline-flex; align-items: center; gap: var(--lumo-space-s); }
+.boff-logo { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
+.boff-logo-grande { width: 88px; height: 88px; border-radius: 18px; box-shadow: 0 2px 8px var(--lumo-contrast-20pct); }

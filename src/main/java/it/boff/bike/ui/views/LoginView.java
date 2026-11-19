@@ -58,7 +58,9 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         Paragraph senzaPassword = new Paragraph("Oppure, senza password:");
         senzaPassword.addClassName("boff-testo-secondario");
 
-        add(messaggio, login, senzaPassword, passkey, codice,
+        com.vaadin.flow.component.html.Image logo = new com.vaadin.flow.component.html.Image("icons/logo.svg", "Boff Bike");
+        logo.addClassName("boff-logo-grande");
+        add(logo, messaggio, login, senzaPassword, passkey, codice,
                 new Paragraph(new Span("Nuovo cliente? "), new RouterLink("Crea un account", RegistrazioneView.class)));
     }
 
