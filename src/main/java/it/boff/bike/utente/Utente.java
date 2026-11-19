@@ -20,7 +20,8 @@ public class Utente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    /** Null per i clienti gestiti dal negozio che non usano l'app. */
+    @Column(unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
@@ -83,6 +84,11 @@ public class Utente {
     public boolean isAttivo() { return attivo; }
     public OffsetDateTime getCreatoIl() { return creatoIl; }
 
+    /** true se il cliente può accedere all'app (ha un'email). */
+    public boolean usaApp() {
+        return email != null;
+    }
+
     public String getNomeCompleto() {
         return nome + " " + cognome;
     }
@@ -108,6 +114,7 @@ public class Utente {
 
     public void setAttivo(boolean attivo) { this.attivo = attivo; }
     public void setNome(String nome) { this.nome = nome; }
+    public void setEmail(String email) { this.email = normalizzaEmail(email); }
     public void setCognome(String cognome) { this.cognome = cognome; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
     public void setPrivacyAccettataIl(OffsetDateTime quando) { this.privacyAccettataIl = quando; }

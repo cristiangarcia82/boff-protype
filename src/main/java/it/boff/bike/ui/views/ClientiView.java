@@ -79,7 +79,7 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
 
         griglia.addColumn(Utente::getNomeCompleto).setHeader("Cliente").setAutoWidth(true).setFlexGrow(1);
         griglia.addColumn(Utente::getTelefono).setHeader("Telefono").setAutoWidth(true);
-        griglia.addColumn(Utente::getEmail).setHeader("Email").setAutoWidth(true);
+        griglia.addColumn(u -> u.usaApp() ? u.getEmail() : "senza app").setHeader("Email").setAutoWidth(true);
         griglia.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         griglia.setHeight("min(70vh, 640px)");
         griglia.asSingleSelect().addValueChangeListener(e -> mostra(e.getValue()));
@@ -139,8 +139,15 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
 
         Div contatti = new Div(
                 riga(VaadinIcon.PHONE, c.getTelefono() == null ? "–" : null,
-                        c.getTelefono() == null ? null : new Anchor("tel:" + c.getTelefono(), c.getTelefono())),
-                riga(VaadinIcon.ENVELOPE, null, new Anchor("mailto:" + c.getEmail(), c.getEmail())));
+                        c.getTelefono() == null ? null : new Anchor("tel:" + c.getTelefono(), c.getTelefono())));
+        if (c.usaApp()) {
+            contatti.add(riga(VaadinIcon.ENVELOPE, null, new Anchor("mailto:" + c.getEmail(), c.getEmail())));
+        } else {
+            Span senzaApp = new Span("Senza app: avvisatelo per telefono");
+            senzaApp.getElement().getThemeList().add("badge");
+            senzaApp.getElement().getThemeList().add("contrast");
+            contatti.add(senzaApp);
+        }
         if (!c.isAttivo()) {
             Span disattivato = new Span("Account disattivato");
             disattivato.getElement().getThemeList().add("badge error");
@@ -155,6 +162,7 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
         });
         invito.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         invito.setTooltipText("Per i clienti registrati al banco: ricevono un link per scegliere la password");
+        invito.setVisible(c.usaApp());
         schedaCliente.add(invito);
         if (titolare) {
             Button attiva = new Button(c.isAttivo() ? "Disattiva account" : "Riattiva account", e -> {

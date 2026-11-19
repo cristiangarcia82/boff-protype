@@ -305,4 +305,38 @@ class InterfacciaIT extends SpringBrowserlessTest {
             catalogo.salva(lungo);
         }
     }
+
+    @Test
+    @WithMockUser(username = "collaboratore@demo.it", roles = "STAFF")
+    void lavoroAlBancoPerUnClienteSenzaApp() {
+        String cognome = "Banco" + UUID.randomUUID().toString().substring(0, 8);
+        navigate(LavoriView.class);
+        test($(Button.class).withText("Nuovo lavoro").single()).click();
+
+        // nuovo cliente senza email, creato senza uscire dalla finestra
+        test($(Button.class).withText("Nuovo cliente").single()).click();
+        test($(TextField.class).withLabel("Nome").single()).setValue("Gino");
+        test($(TextField.class).withLabel("Cognome").single()).setValue(cognome);
+        test($(TextField.class).withLabel("Telefono").single()).setValue("0461 123456");
+        test($(Button.class).withText("Salva").single()).click();
+
+        // nuova bici, sempre dalla stessa finestra
+        test($(Button.class).withText("Nuova bici").single()).click();
+        test($(TextField.class).withLabel("Marca").single()).setValue("Atala");
+        test($(TextField.class).withLabel("Modello").single()).setValue("Città");
+        test($(com.vaadin.flow.component.select.Select.class).withLabel("Tipologia").single())
+                .selectItem(Tipologia.CITTA.getEtichetta());
+        test($(Button.class).withText("Salva").single()).click();
+
+        test($(TextArea.class).single()).setValue("Freni che fischiano");
+        test($(Button.class).withText("Crea lavoro").single()).click();
+
+        var cliente = utenti.findAll().stream().filter(u -> cognome.equals(u.getCognome())).findFirst().orElseThrow();
+        assertThat(cliente.usaApp()).isFalse();
+        var biciCliente = biciclette.elencoDi(cliente.getId());
+        assertThat(biciCliente).singleElement().satisfies(b -> assertThat(b.getMarca()).isEqualTo("Atala"));
+        assertThat(lavori.storicoBici(biciCliente.get(0).getId())).singleElement()
+                .satisfies(l -> assertThat(l.getStato()).isIn(StatoLavoro.IN_OFFICINA.toArray()));
+        assertThat($(com.vaadin.flow.component.html.Span.class).withText("Senza app").exists()).isTrue();
+    }
 }

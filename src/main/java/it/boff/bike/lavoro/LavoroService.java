@@ -90,6 +90,19 @@ public class LavoroService {
         if (approva) ripianifica("intervento extra approvato");
     }
 
+    /** Il negozio registra la risposta data dal cliente di persona o al telefono. */
+    public void registraRispostaExtra(Long rigaId, boolean approva) {
+        RigaLavoro r = riga(rigaId);
+        if (!r.isInAttesaDiApprovazione()) {
+            throw new ErroreDominio("Questo intervento non è in attesa di risposta");
+        }
+        if (!r.getLavoro().getStato().isAperto()) {
+            throw new ErroreDominio("Il lavoro è chiuso");
+        }
+        r.rispondi(approva, adesso());
+        if (approva) ripianifica("intervento extra approvato");
+    }
+
     @Transactional(readOnly = true)
     public List<Lavoro> lavoriDelCliente(Long clienteId) {
         return lavori.delCliente(clienteId);

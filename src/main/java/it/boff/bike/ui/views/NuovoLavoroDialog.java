@@ -18,6 +18,10 @@ import it.boff.bike.lavoro.Lavoro;
 import it.boff.bike.lavoro.LavoroService;
 import it.boff.bike.ui.componenti.Avvisi;
 import it.boff.bike.utente.Utente;
+import it.boff.bike.utente.DatiAnagrafica;
+import it.boff.bike.bicicletta.DatiBicicletta;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import it.boff.bike.utente.UtenteService;
 
 import java.util.function.Consumer;
@@ -35,16 +39,42 @@ class NuovoLavoroDialog extends Dialog {
                 .skip(q.getOffset()).limit(q.getLimit()));
         cliente.setItemLabelGenerator(u -> u.getNomeCompleto() + (u.getTelefono() == null ? "" : " · " + u.getTelefono()));
         cliente.setWidthFull();
-        cliente.setHelperText("Se non c'è, crealo prima da \"Clienti\"");
+        cliente.setHelperText("Cerca per nome o telefono");
 
         Select<Bicicletta> bici = new Select<>();
         bici.setLabel("Bici");
         bici.setItemLabelGenerator(Bicicletta::getNome);
         bici.setEnabled(false);
         bici.setWidthFull();
-        Paragraph nessunaBici = new Paragraph("Questo cliente non ha bici registrate: aggiungila da \"Clienti\".");
-        nessunaBici.addClassName("boff-errore");
+        Paragraph nessunaBici = new Paragraph("Questo cliente non ha ancora bici: aggiungila qui sotto.");
+        nessunaBici.addClassName("boff-testo-secondario");
         nessunaBici.setVisible(false);
+
+        // creazione rapida, senza lasciare la finestra: utile per chi arriva in negozio e non usa l'app
+        Button nuovoCliente = new Button("Nuovo cliente", VaadinIcon.PLUS.create(), e ->
+                new ClienteDialog(new DatiAnagrafica(), true, dati -> {
+                    Utente u = utenti.creaCliente(dati);
+                    cliente.setValue(u);
+                    Avvisi.ok("Cliente creato");
+                }).open());
+        nuovoCliente.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        Button nuovaBici = new Button("Nuova bici", VaadinIcon.PLUS.create(), e -> {
+            if (cliente.getValue() == null) {
+                Avvisi.errore("Scegli o crea prima il cliente");
+                return;
+            }
+            Long clienteId = cliente.getValue().getId();
+            new BiciclettaDialog(new DatiBicicletta(), true, dati -> {
+                Bicicletta b = biciclette.aggiungi(clienteId, dati);
+                var elenco = biciclette.elencoDi(clienteId);
+                bici.setItems(elenco);
+                bici.setEnabled(true);
+                elenco.stream().filter(x -> x.getId().equals(b.getId())).findFirst().ifPresent(bici::setValue);
+                nessunaBici.setVisible(false);
+                Avvisi.ok("Bici aggiunta");
+            }, null).open();
+        });
+        nuovaBici.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
         cliente.addValueChangeListener(e -> {
             var elenco = e.getValue() == null ? java.util.List.<Bicicletta>of() : biciclette.elencoDi(e.getValue().getId());
             bici.setItems(elenco);
@@ -60,7 +90,11 @@ class NuovoLavoroDialog extends Dialog {
         TextArea note = new TextArea("Descrizione del problema (dal cliente)");
         note.setWidthFull();
 
-        add(cliente, nessunaBici, bici, interventi, note);
+        Div rigaCliente = new Div(cliente, nuovoCliente);
+        rigaCliente.addClassName("boff-riga-campo");
+        Div rigaBici = new Div(bici, nuovaBici);
+        rigaBici.addClassName("boff-riga-campo");
+        add(rigaCliente, nessunaBici, rigaBici, interventi, note);
         Button ok = new Button("Crea lavoro", e -> {
             if (bici.getValue() == null) {
                 Avvisi.errore("Scegli cliente e bici");

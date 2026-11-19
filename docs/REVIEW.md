@@ -182,3 +182,15 @@ recupero password, cookie, log, configurazione di produzione.
 | Tempo effettivo | Accettato solo per interventi fatti, 1–1440 minuti; cancellato se si toglie la spunta (test). |
 | Trovato in review | Nella prima versione gli interruttori della pagina Funzionalità non avevano un'etichetta di stato chiara: aggiunta l'etichetta "Attiva / Spenta". |
 | Rischio residuo | Il calcolo del carico avviene a ogni apertura della pagina bici da parte del cliente: trascurabile per un negozio, da memorizzare se gli accessi crescessero molto. |
+
+# Review fase 10 – Clienti senza app
+
+| Voce | Esito |
+|---|---|
+| Dati | Email facoltativa solo per i clienti (vincolo `CHECK` nel database oltre ai controlli nel servizio). Più clienti senza email convivono (in PostgreSQL i `NULL` non violano l'unicità). |
+| Accesso | Un account senza email non può accedere (nessun nome utente): nessun rischio di account "aperti". La registrazione dal telefono e gli account del personale richiedono ancora l'email (test). |
+| Invito | "Invia link" rifiutato finché manca l'email; aggiunta l'email, l'invito funziona; un'email già usata da un altro account è rifiutata (test). |
+| Notifiche | "Bici pronta", promemoria e approvazioni per un cliente senza app non generano errori né tentativi di invio (test del percorso completo dal banco al ritiro). |
+| Interfaccia | Test senza browser della creazione di cliente e bici dentro *Nuovo lavoro*; verificato anche nel browser. |
+| Trovato in review | Un'email fatta di soli spazi veniva rifiutata come "non valida" invece di essere considerata assente: ora vuota = nessuna email. |
+| Rischio residuo | Un cliente senza app non può scaricare o cancellare i propri dati da solo: se lo chiede, deve farlo il negozio. La funzione di cancellazione esiste nel servizio ma non c'è ancora un pulsante per il personale: da aggiungere se capita. Ricordarlo nell'informativa privacy. |

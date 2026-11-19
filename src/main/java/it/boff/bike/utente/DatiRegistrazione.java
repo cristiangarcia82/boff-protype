@@ -16,6 +16,11 @@ public class DatiRegistrazione extends DatiAnagrafica {
     @AssertTrue(message = "Per registrarti devi accettare l'informativa privacy")
     private boolean privacyAccettata;
 
+    /** Chi si registra da solo (o un collaboratore) deve avere l'email: è il nome utente. */
+    @Override
+    @NotBlank(message = "Indica l'email")
+    public String getEmail() { return super.getEmail(); }
+
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public boolean isPrivacyAccettata() { return privacyAccettata; }

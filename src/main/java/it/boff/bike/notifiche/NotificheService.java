@@ -111,7 +111,7 @@ public class NotificheService {
                 }
             }
         }
-        if (!consegnata && emailDiRiserva) {
+        if (!consegnata && emailDiRiserva && u.usaApp()) {
             email.invia(u.getEmail(), titolo, "Ciao " + u.getNome() + ",\n\n" + testo);
         }
         return consegnata;

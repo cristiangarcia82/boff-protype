@@ -16,7 +16,7 @@ public class DatiAnagrafica {
     @Size(max = 100, message = "Massimo 100 caratteri")
     private String cognome;
 
-    @NotBlank(message = "Indica l'email")
+    /** Facoltativa per i clienti creati dal negozio (senza email il cliente non usa l'app). */
     @Email(message = "Email non valida")
     @Size(max = 255, message = "Email troppo lunga")
     private String email;
@@ -39,7 +39,8 @@ public class DatiAnagrafica {
     public String getCognome() { return cognome; }
     public void setCognome(String cognome) { this.cognome = cognome; }
     public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    /** Vuota o solo spazi = nessuna email. */
+    public void setEmail(String email) { this.email = email == null || email.isBlank() ? null : email.trim(); }
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
 }

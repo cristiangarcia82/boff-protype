@@ -52,9 +52,19 @@ public class UtenteService {
         return utenti.save(nuovo(dati, passwordEncoder.encode(dati.getPassword()), Ruolo.STAFF));
     }
 
-    /** Modifica nome, cognome e telefono (l'email, che è il nome utente, non cambia). */
+    /**
+     * Modifica nome, cognome e telefono. L'email (nome utente) non cambia, con un'eccezione:
+     * a un cliente senza app si può aggiungere l'email, così potrà iniziare a usarla.
+     */
     public Utente aggiornaAnagrafica(Long utenteId, @Valid DatiAnagrafica dati) {
         Utente u = trova(utenteId);
+        String nuova = vuotaANull(Utente.normalizzaEmail(dati.getEmail()));
+        if (!u.usaApp() && nuova != null) {
+            if (utenti.existsByEmail(nuova)) {
+                throw new ErroreDominio("Esiste già un account con questa email");
+            }
+            u.setEmail(nuova);
+        }
         u.setNome(dati.getNome().trim());
         u.setCognome(dati.getCognome().trim());
         u.setTelefono(dati.getTelefono().trim());
@@ -109,13 +119,20 @@ public class UtenteService {
     }
 
     private Utente nuovo(DatiAnagrafica dati, String passwordHash, Ruolo ruolo) {
-        String email = Utente.normalizzaEmail(dati.getEmail());
-        if (utenti.existsByEmail(email)) {
+        String email = vuotaANull(Utente.normalizzaEmail(dati.getEmail()));
+        if (email == null && ruolo != Ruolo.CLIENTE) {
+            throw new ErroreDominio("L'email è obbligatoria per il personale");
+        }
+        if (email != null && utenti.existsByEmail(email)) {
             throw new ErroreDominio("Esiste già un account con questa email");
         }
         Utente u = new Utente(email, passwordHash, dati.getNome().trim(), dati.getCognome().trim(), ruolo, false);
         u.setTelefono(dati.getTelefono() == null ? null : dati.getTelefono().trim());
         return u;
+    }
+
+    private static String vuotaANull(String s) {
+        return s == null || s.isBlank() ? null : s;
     }
 
     private String passwordCasuale() {

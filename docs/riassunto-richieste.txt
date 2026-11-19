@@ -57,3 +57,22 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 13. Riassunto
     Un riassunto di tutte le richieste, e questo file di testo da condividere.
+
+14. Attivita' di manutenzione
+    Il titolare definisce nuove attivita' nel catalogo, che i clienti
+    scelgono quando annunciano un lavoro; resta sempre il testo libero.
+
+15. Durate riservate
+    I clienti non vedono mai la durata prevista: solo chi lavora in negozio.
+
+16. Review di codice e sicurezza
+    Review completa del codice sviluppato e dei controlli di sicurezza.
+
+17. Nuove funzionalita'
+    Implementare approvazione dei lavori extra, promemoria di manutenzione,
+    tempo effettivo e avviso di officina piena, ma attive solo se
+    l'officina le accende esplicitamente.
+
+18. Clienti senza app
+    Gestire i lavori anche per chi arriva in negozio o non usa l'app:
+    cliente con solo nome e telefono, creato al momento insieme alla bici.

@@ -22,10 +22,12 @@ class ClienteDialog extends Dialog {
 
         TextField nome = new TextField("Nome");
         TextField cognome = new TextField("Cognome");
-        EmailField email = new EmailField("Email");
-        email.setReadOnly(!nuovo);
-        if (nuovo) {
-            email.setHelperText("Il cliente imposterà la password con \"Password dimenticata?\"");
+        EmailField email = new EmailField("Email (facoltativa)");
+        boolean modificabile = nuovo || dati.getEmail() == null || dati.getEmail().isBlank();
+        email.setReadOnly(!modificabile);
+        if (modificabile) {
+            email.setHelperText("Senza email il cliente non usa l'app: lo avviserete per telefono. "
+                    + "Con l'email potrà ricevere il link per scegliere la password.");
         }
         TextField telefono = new TextField("Telefono");
 

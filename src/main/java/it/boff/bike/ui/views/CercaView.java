@@ -58,7 +58,8 @@ public class CercaView extends Div implements BeforeEnterObserver {
             RouterLink link = new RouterLink(ClientiView.class, new RouteParameters("id", String.valueOf(c.getId())));
             Span nome = new Span(c.getNomeCompleto());
             nome.addClassName("boff-bici-nome-piccolo");
-            Span dettagli = new Span((c.getTelefono() == null ? "" : c.getTelefono() + " · ") + c.getEmail());
+            Span dettagli = new Span((c.getTelefono() == null ? "" : c.getTelefono())
+                    + (c.usaApp() ? " · " + c.getEmail() : " · senza app"));
             dettagli.addClassName("boff-testo-secondario");
             link.add(nome, dettagli);
             link.addClassName("boff-voce-elenco");

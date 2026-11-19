@@ -82,11 +82,25 @@ class LavoroPannello extends Div {
         if (cliente.getTelefono() != null) {
             clienteRiga.add(new Anchor("tel:" + cliente.getTelefono(), cliente.getTelefono()));
         }
+        if (!cliente.usaApp()) {
+            Span senzaApp = new Span("Senza app");
+            senzaApp.getElement().getThemeList().add("badge");
+            senzaApp.getElement().getThemeList().add("contrast");
+            senzaApp.setTitle("Il cliente non usa l'app: non riceve notifiche né email");
+            clienteRiga.add(senzaApp);
+        }
         Div date = new Div(new Span("Annunciato " + Formati.quando(l.getAnnunciatoIl())));
         if (l.getCheckinIl() != null) date.add(new Span(" · in negozio dal " + Formati.quando(l.getCheckinIl())));
         if (l.getFinePrevista() != null) date.add(new Span(" · pronta prevista " + Formati.giorno(l.getFinePrevista())));
         date.addClassName("boff-testo-secondario");
-        Div schedaTesta = new Div(testa, bici, clienteRiga, date, azioni(l));
+        Div schedaTesta = new Div(testa, bici, clienteRiga, date);
+        if (!cliente.usaApp() && l.getStato() == StatoLavoro.PRONTO) {
+            Paragraph chiama = new Paragraph("Il cliente non usa l'app: chiamalo per dirgli che la bici è pronta"
+                    + (cliente.getTelefono() == null ? "." : " (" + cliente.getTelefono() + ")."));
+            chiama.addClassName("boff-avviso");
+            schedaTesta.add(chiama);
+        }
+        schedaTesta.add(azioni(l));
         schedaTesta.addClassName("boff-card");
         add(schedaTesta);
 
@@ -223,6 +237,17 @@ class LavoroPannello extends Div {
                 nota.addClassName("boff-testo-secondario");
                 testo.add(new Div(nota));
             }
+            if (r.isInAttesaDiApprovazione() && l.getStato().isAperto()) {
+                // risposta data a voce o al telefono
+                Button si = new Button("Ha detto sì", e -> esegui(() -> service.registraRispostaExtra(r.getId(), true),
+                        "Risposta registrata"));
+                Button no = new Button("Ha detto no", e -> esegui(() -> service.registraRispostaExtra(r.getId(), false),
+                        "Risposta registrata"));
+                si.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+                no.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+                si.setTooltipText("Il cliente ha risposto di persona o al telefono");
+                testo.add(new Div(si, no));
+            }
         }
         IntegerField durata = new IntegerField();
         durata.setValue(r.getDurataMin());
@@ -266,13 +291,16 @@ class LavoroPannello extends Div {
     private Component aggiungiRiga(Lavoro l) {
         boolean approvazione = funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.APPROVAZIONE_EXTRA)
                 && StatoLavoro.IN_OFFICINA.contains(l.getStato());
-        Checkbox chiedi = new Checkbox("Chiedi l'approvazione del cliente", approvazione);
+        // un cliente senza app non può rispondere dall'app: di default si aggiunge l'intervento direttamente
+        Checkbox chiedi = new Checkbox("Chiedi l'approvazione del cliente",
+                approvazione && l.getBicicletta().getProprietario().usaApp());
         chiedi.setVisible(approvazione);
         TextField motivo = new TextField();
         motivo.setPlaceholder("Motivo, visibile al cliente (es. pastiglie consumate)");
         motivo.setMaxLength(300);
         motivo.setWidthFull();
         motivo.setVisible(approvazione);
+        motivo.setVisible(chiedi.getValue());
         chiedi.addValueChangeListener(e -> motivo.setVisible(e.getValue()));
         ComboBox<TipoIntervento> dalCatalogo = new ComboBox<>();
         dalCatalogo.setPlaceholder("Aggiungi dal catalogo…");

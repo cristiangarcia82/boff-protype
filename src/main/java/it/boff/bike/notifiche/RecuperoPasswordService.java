@@ -60,6 +60,9 @@ public class RecuperoPasswordService {
         Utente u = utenti.findById(utenteId)
                 .filter(x -> x.getRuolo() == it.boff.bike.utente.Ruolo.CLIENTE && x.isAttivo())
                 .orElseThrow(() -> new ErroreDominio("Invito possibile solo per un cliente attivo"));
+        if (!u.usaApp()) {
+            throw new ErroreDominio("Il cliente non ha un'email: aggiungila con \"Modifica\" e poi invia il link");
+        }
         inviaLink(u, true);
     }
 

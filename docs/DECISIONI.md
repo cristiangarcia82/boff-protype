@@ -13,11 +13,11 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Decisione**: niente tabella `operatore`; ogni utente `STAFF` attivo è un'unità lavorativa con il suo orario.
 - **Perché**: tu e il collaboratore siete sia utenti sia operatori. Se un giorno ci fosse uno staff che non lavora in officina, basterà non dargli ore di manutenzione.
 
-## D3 – Clienti creati dal negozio ⚠️
+## D3 – Clienti creati dal negozio (aggiornata in fase 10, vedi D43)
 - **Contesto**: un cliente può presentarsi in negozio senza essersi registrato.
 - **Decisione**: lo staff crea il cliente con nome, email e telefono; l'account nasce con una password casuale che nessuno conosce. Il cliente la imposta con "Password dimenticata?" (link via email, fase 5).
 - **Alternativa scartata**: password provvisoria comunicata a voce (insicura e scomoda).
-- **Da valutare**: clienti senza email (anziani, ecc.). Oggi l'email è obbligatoria perché è il nome utente.
+- **Risolto in fase 10**: l'email ora è facoltativa per i clienti creati dal negozio (D43).
 
 ## D4 – Rimozione di una bici = archiviazione
 - **Decisione**: la bici sparisce dall'elenco ma resta nel database.
@@ -177,3 +177,13 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 
 ## D42 – Avviso di officina piena
 - Occupazione = minuti pianificati / ore di officina disponibili, da adesso ai prossimi 7 giorni. Oltre la soglia (default 85%) il cliente vede un avviso generico nella pagina della bici e nel modulo di annuncio. Mai numeri, percentuali o orari.
+
+## D43 – Clienti senza app
+- **Contesto**: chi entra in negozio o non vuole usare l'app deve comunque avere lavori, bici e storico.
+- **Decisione**: stessa tabella `utente`, con **email facoltativa solo per i clienti creati dal negozio** (vincolo nel database: il personale deve averla; chi si registra da solo pure, perché è il nome utente). Un cliente senza email non può accedere: è un "cliente senza app".
+- Cliente e bici si creano **direttamente dalla finestra *Nuovo lavoro***, senza passare da *Clienti*. Basta nome, cognome e telefono.
+- Il negozio vede il badge **"Senza app"** (elenco clienti, ricerca, pannello del lavoro) e, quando la bici è pronta, il promemoria **"chiamalo"** con il numero.
+- Notifiche, email e promemoria per questi clienti semplicemente non partono (nessun errore).
+- Approvazione extra (se attiva): per loro la casella "Chiedi l'approvazione" parte spenta; se la si usa, il negozio registra la risposta data a voce con **"Ha detto sì / Ha detto no"**.
+- Se in seguito il cliente vuole l'app: *Modifica* → si aggiunge l'email (una sola volta; poi non si cambia dal negozio) → *Invia link* per scegliere la password. Storico e bici restano.
+- **Alternativa scartata**: tabella `cliente` separata dall'account (D1): duplicava ricerca, bici e storico e complicava il passaggio da "senza app" a "con app".

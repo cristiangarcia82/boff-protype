@@ -31,6 +31,9 @@ public class EmailService {
 
     /** @return true se l'email è stata consegnata al server SMTP */
     public boolean invia(String a, String oggetto, String testo) {
+        if (a == null || a.isBlank()) {
+            return false; // cliente senza email: lo avvisa il negozio per telefono
+        }
         JavaMailSender sender = mailSender.getIfAvailable();
         if (sender == null) {
             if (properties.demo()) {
