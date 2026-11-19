@@ -48,6 +48,7 @@ class InterfacciaIT extends SpringBrowserlessTest {
     @Autowired BiciclettaService biciclette;
     @Autowired LavoroService lavori;
     @Autowired CatalogoService catalogo;
+    @Autowired it.boff.bike.pianificazione.PianificazioneService pianificazione;
 
     @Test
     @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
@@ -287,8 +288,10 @@ class InterfacciaIT extends SpringBrowserlessTest {
                 Tipologia.STRADA)).getId();
         TipoIntervento lungo = catalogo.salva(new TipoIntervento("Ricostruzione " + System.nanoTime(), 1440));
         Long pieno = lavori.creaAlBanco(altra, List.of(lungo.getId()), null).getId();
-        lavori.aggiungiDaCatalogo(pieno, lungo.getId());
-        lavori.aggiungiDaCatalogo(pieno, lungo.getId());
+        // dimensionato sulla capacità reale della settimana (dipende da giorno e ora del test)
+        for (long m = 1440; m <= pianificazione.carico(7).capacita() + 1440; m += 1440) {
+            lavori.aggiungiDaCatalogo(pieno, lungo.getId());
+        }
         try {
             navigate("le-mie-bici/" + bici, BiciView.class);
             assertThat(getCurrentView().getElement().getTextRecursively()).doesNotContain("molto impegnata");

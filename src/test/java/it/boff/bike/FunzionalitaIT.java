@@ -176,9 +176,11 @@ class FunzionalitaIT {
         assertThat(prima.capacita()).as("i dati demo hanno ore di officina").isPositive();
         // un lavoro enorme riempie la settimana
         TipoIntervento lungo = catalogo.salva(new TipoIntervento("Restauro completo " + System.nanoTime(), 1440));
-        Long id = lavori.creaAlBanco(bici, List.of(lungo.getId(), lungo.getId()), null).getId();
-        lavori.aggiungiDaCatalogo(id, lungo.getId());
-        lavori.aggiungiDaCatalogo(id, lungo.getId());
+        Long id = lavori.creaAlBanco(bici, List.of(lungo.getId()), null).getId();
+        // dimensionato sulla capacità reale: le ore libere cambiano con il giorno e l'ora in cui gira il test
+        for (long m = 1440; m <= prima.capacita() + 1440; m += 1440) {
+            lavori.aggiungiDaCatalogo(id, lungo.getId());
+        }
         try {
             assertThat(pianificazione.carico(7).percento()).isGreaterThanOrEqualTo(90);
         } finally {
