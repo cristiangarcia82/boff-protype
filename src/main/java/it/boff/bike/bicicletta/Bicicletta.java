@@ -50,6 +50,9 @@ public class Bicicletta {
     @Column(nullable = false)
     private boolean archiviata;
 
+    @Column(name = "promemoria_inviato_il")
+    private java.time.OffsetDateTime promemoriaInviatoIl;
+
     protected Bicicletta() {
     }
 
@@ -90,6 +93,8 @@ public class Bicicletta {
     public String getNumeroTelaio() { return numeroTelaio; }
     public String getNote() { return note; }
     public boolean isArchiviata() { return archiviata; }
+    public java.time.OffsetDateTime getPromemoriaInviatoIl() { return promemoriaInviatoIl; }
+    public void segnaPromemoriaInviato(java.time.OffsetDateTime quando) { this.promemoriaInviatoIl = quando; }
 
     public String getNome() {
         return marca + " " + modello;

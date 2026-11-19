@@ -234,4 +234,75 @@ class InterfacciaIT extends SpringBrowserlessTest {
         String elenco = getCurrentView().getElement().getTextRecursively();
         assertThat(DURATA.matcher(elenco).find()).as("durate nell'elenco bici").isFalse();
     }
+
+    @Autowired it.boff.bike.funzionalita.FunzionalitaService funzionalita;
+
+    @org.junit.jupiter.api.AfterEach
+    void spegniFunzionalita() {
+        for (var f : it.boff.bike.funzionalita.Funzionalita.values()) funzionalita.imposta(f, false);
+    }
+
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void ilTitolareAttivaUnaFunzionalita() {
+        navigate(it.boff.bike.ui.views.FunzionalitaView.class);
+        String testo = getCurrentView().getElement().getTextRecursively();
+        assertThat(testo).contains("Approvazione dei lavori extra", "Promemoria di manutenzione",
+                "Tempo effettivo degli interventi", "Avviso di officina piena");
+        List<Checkbox> interruttori = $(Checkbox.class).withCaption("Attiva").all();
+        assertThat(interruttori).hasSize(4).allMatch(c -> !c.getValue());
+        test(interruttori.get(0)).click();
+        assertThat(funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.APPROVAZIONE_EXTRA)).isTrue();
+    }
+
+    @Test
+    @WithMockUser(username = "cliente@demo.it", roles = "CLIENTE")
+    void ilClienteApprovaUnInterventoExtraSenzaVedereITempi() {
+        funzionalita.imposta(it.boff.bike.funzionalita.Funzionalita.APPROVAZIONE_EXTRA, true);
+        Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Cervelo", "R5 " + UUID.randomUUID(),
+                Tipologia.STRADA)).getId();
+        Long id = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+        Long extra = lavori.proponiExtra(id, null, "Sostituzione pastiglie", 25, "Consumate al 90%").getId();
+
+        navigate("le-mie-bici/" + bici, BiciView.class);
+        String pagina = getCurrentView().getElement().getTextRecursively();
+        assertThat(pagina).contains("Serve il tuo ok: Sostituzione pastiglie", "Consumate al 90%");
+        assertThat(DURATA.matcher(pagina).find()).as("nessuna durata nella richiesta: " + pagina).isFalse();
+
+        test($(Button.class).withText("Approva").single()).click();
+        assertThat(lavori.dettaglio(id).getRighe().stream().filter(r -> r.getId().equals(extra)).findFirst().orElseThrow()
+                .getApprovazione()).isEqualTo(it.boff.bike.lavoro.Approvazione.APPROVATA);
+        assertThat(getCurrentView().getElement().getTextRecursively()).doesNotContain("Serve il tuo ok");
+    }
+
+    @Test
+    @WithMockUser(username = "cliente@demo.it", roles = "CLIENTE")
+    void avvisoDiOfficinaPienaSoloSeAttivo() {
+        Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Orbea", "Orca " + UUID.randomUUID(),
+                Tipologia.STRADA)).getId();
+        // officina piena: un lavoro enorme su un'altra bici
+        Long altra = biciclette.aggiungi(cliente, DatiBicicletta.di("Trek", "Madone " + UUID.randomUUID(),
+                Tipologia.STRADA)).getId();
+        TipoIntervento lungo = catalogo.salva(new TipoIntervento("Ricostruzione " + System.nanoTime(), 1440));
+        Long pieno = lavori.creaAlBanco(altra, List.of(lungo.getId()), null).getId();
+        lavori.aggiungiDaCatalogo(pieno, lungo.getId());
+        lavori.aggiungiDaCatalogo(pieno, lungo.getId());
+        try {
+            navigate("le-mie-bici/" + bici, BiciView.class);
+            assertThat(getCurrentView().getElement().getTextRecursively()).doesNotContain("molto impegnata");
+
+            funzionalita.imposta(it.boff.bike.funzionalita.Funzionalita.AVVISO_CARICO, true);
+            funzionalita.impostaSogliaCarico(80);
+            navigate("le-mie-bici/" + bici, BiciView.class);
+            String pagina = getCurrentView().getElement().getTextRecursively();
+            assertThat(pagina).contains("l'officina è molto impegnata");
+            assertThat(pagina).doesNotContain("%");
+        } finally {
+            lavori.annulla(pieno);
+            lungo.setAttivo(false);
+            catalogo.salva(lungo);
+        }
+    }
 }

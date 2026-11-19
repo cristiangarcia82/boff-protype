@@ -48,12 +48,18 @@ public class BiciView extends Div implements BeforeEnterObserver {
     private final LavoroService lavori;
     private final CatalogoService catalogo;
     private final FotoService foto;
+    private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
+    private final it.boff.bike.pianificazione.PianificazioneService pianificazione;
     private final Long clienteId;
     private Long biciId;
 
     public BiciView(BiciclettaService biciclette, LavoroService lavori, CatalogoService catalogo,
-                    UtenteCorrente utenteCorrente, FotoService foto) {
+                    UtenteCorrente utenteCorrente, FotoService foto,
+                    it.boff.bike.funzionalita.FunzionalitaService funzionalita,
+                    it.boff.bike.pianificazione.PianificazioneService pianificazione) {
         this.foto = foto;
+        this.funzionalita = funzionalita;
+        this.pianificazione = pianificazione;
         this.biciclette = biciclette;
         this.lavori = lavori;
         this.catalogo = catalogo;
@@ -100,8 +106,9 @@ public class BiciView extends Div implements BeforeEnterObserver {
             annuncia.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
             annuncia.setWidthFull();
             Div card = new Div(new H3("Serve un intervento?"),
-                    new Paragraph("Indicaci cosa fare: quando porti la bici in negozio sapremo già di cosa ha bisogno."),
-                    annuncia);
+                    new Paragraph("Indicaci cosa fare: quando porti la bici in negozio sapremo già di cosa ha bisogno."));
+            avvisoCarico().ifPresent(card::add);
+            card.add(annuncia);
             card.addClassName("boff-card");
             add(card);
         }
@@ -124,7 +131,9 @@ public class BiciView extends Div implements BeforeEnterObserver {
         card.addClassNames("boff-card", "boff-lavoro-corrente");
         Div testa = new Div(new H3("Lavoro in corso"), new BadgeStato(l.getStato()));
         testa.addClassName("boff-intestazione");
-        card.add(testa, new Paragraph(messaggioPer(l)), elencoRighe(l, true));
+        card.add(testa, new Paragraph(messaggioPer(l)));
+        l.getRighe().stream().filter(RigaLavoro::isInAttesaDiApprovazione).forEach(r -> card.add(richiesta(l, r)));
+        card.add(elencoRighe(l, true));
         if (l.getNoteCliente() != null) {
             Paragraph note = new Paragraph("Le tue note: " + l.getNoteCliente());
             note.addClassName("boff-testo-secondario");
@@ -163,23 +172,71 @@ public class BiciView extends Div implements BeforeEnterObserver {
         };
     }
 
+    /** Richiesta di approvazione di un intervento extra: solo descrizione e motivo, mai i tempi. */
+    private Div richiesta(Lavoro l, RigaLavoro r) {
+        Div box = new Div();
+        box.addClassName("boff-approvazione");
+        Span titolo = new Span("Serve il tuo ok: " + r.getDescrizione());
+        titolo.addClassName("boff-bici-nome-piccolo");
+        box.add(titolo);
+        if (r.getNotaApprovazione() != null) {
+            Paragraph nota = new Paragraph(r.getNotaApprovazione());
+            nota.addClassName("boff-testo-secondario");
+            box.add(nota);
+        }
+        Button si = new Button("Approva", VaadinIcon.CHECK.create(), e -> rispondi(r, true));
+        si.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button no = new Button("No, grazie", e -> rispondi(r, false));
+        Div azioni = new Div(si, no);
+        azioni.addClassName("boff-azioni");
+        box.add(azioni);
+        return box;
+    }
+
+    private void rispondi(RigaLavoro r, boolean approva) {
+        try {
+            lavori.rispondiExtra(clienteId, r.getId(), approva);
+            Avvisi.ok(approva ? "Grazie, lo aggiungiamo al lavoro" : "Va bene, non lo faremo");
+        } catch (it.boff.bike.common.ErroreDominio ex) {
+            Avvisi.errore(ex.getMessage());
+        }
+        mostra();
+    }
+
+    /** Avviso "officina piena" (funzionalità opzionale): mai numeri o orari al cliente. */
+    private Optional<Paragraph> avvisoCarico() {
+        if (!funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.AVVISO_CARICO)
+                || pianificazione.carico(7).percento() < funzionalita.sogliaCarico()) {
+            return Optional.empty();
+        }
+        Paragraph p = new Paragraph("In questi giorni l'officina è molto impegnata: "
+                + "i tempi di consegna potrebbero essere più lunghi del solito.");
+        p.addClassName("boff-avviso");
+        return Optional.of(p);
+    }
+
     private static UnorderedList elencoRighe(Lavoro l, boolean conStato) {
         UnorderedList ul = new UnorderedList();
         ul.addClassName("boff-righe-cliente");
         for (RigaLavoro r : l.getRighe()) {
+            if (r.isInAttesaDiApprovazione()) continue; // mostrata come richiesta
             ListItem li = new ListItem();
             if (conStato && r.isCompletata()) {
                 li.add(VaadinIcon.CHECK.create());
                 li.addClassName("fatto");
             }
             li.add(new Span(r.getDescrizione()));
+            if (r.getApprovazione() == it.boff.bike.lavoro.Approvazione.RIFIUTATA) {
+                li.addClassName("rifiutata");
+                li.add(new Span(" (non approvato)"));
+            }
             ul.add(li);
         }
         return ul;
     }
 
     private void annuncia(Bicicletta b) {
-        new AnnuncioDialog("Annuncia un lavoro – " + b.getNome(),
+        AnnuncioDialog dialogo = new AnnuncioDialog("Annuncia un lavoro – " + b.getNome(),
                 "Seleziona gli interventi e/o descrivi il problema. Non serve prendere appuntamento: "
                         + "porta la bici quando vuoi, organizziamo noi i lavori.",
                 catalogo.attivi(), true, (tipi, note, scelte) -> {
@@ -194,7 +251,9 @@ public class BiciView extends Div implements BeforeEnterObserver {
                     }
                     Avvisi.ok("Richiesta inviata al negozio" + (scartate > 0 ? " (" + scartate + " foto non accettate)" : ""));
                     mostra();
-                }).open();
+                });
+        avvisoCarico().ifPresent(dialogo::mostraAvviso);
+        dialogo.open();
     }
 
     private void modifica(Bicicletta b) {

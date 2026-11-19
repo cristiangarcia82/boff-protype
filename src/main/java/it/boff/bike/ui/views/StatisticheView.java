@@ -29,8 +29,11 @@ public class StatisticheView extends Div {
     private final StatisticheService statistiche;
     private final Div contenuto = new Div();
 
-    public StatisticheView(StatisticheService statistiche) {
+    private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
+
+    public StatisticheView(StatisticheService statistiche, it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
         this.statistiche = statistiche;
+        this.funzionalita = funzionalita;
         addClassName("boff-pagina");
         Tabs periodo = new Tabs(new Tab("Ultimi 30 giorni"), new Tab("Ultimi 3 mesi"), new Tab("Ultimo anno"));
         periodo.addSelectedChangeListener(e -> mostra(PERIODI[periodo.getSelectedIndex()]));
@@ -90,6 +93,37 @@ public class StatisticheView extends Div {
             schedaInterventi.add(barre, nota);
         }
         contenuto.add(kpi, schedaInterventi);
+        if (funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.TEMPO_EFFETTIVO)) {
+            contenuto.add(tempiReali(giorni));
+        }
+    }
+
+    /** Tempo standard del catalogo contro tempo reale registrato. */
+    private Div tempiReali(int giorni) {
+        Div card = new Div(new H3("Tempi standard e tempi reali"));
+        card.addClassName("boff-card");
+        card.getStyle().set("margin-top", "var(--lumo-space-m)");
+        var righe = statistiche.tempiEffettivi(giorni);
+        if (righe.isEmpty()) {
+            Paragraph p = new Paragraph("Ancora nessun tempo reale registrato nel periodo: si inserisce nel dettaglio "
+                    + "del lavoro quando un intervento è fatto.");
+            p.addClassName("boff-testo-secondario");
+            card.add(p);
+            return card;
+        }
+        com.vaadin.flow.component.grid.Grid<StatisticheService.Confronto> g = new com.vaadin.flow.component.grid.Grid<>();
+        g.addColumn(StatisticheService.Confronto::intervento).setHeader("Intervento").setFlexGrow(3);
+        g.addColumn(StatisticheService.Confronto::casi).setHeader("Casi").setAutoWidth(true);
+        g.addColumn(c -> Durate.formatta(Math.round(c.stimatoMedio()))).setHeader("Standard").setAutoWidth(true);
+        g.addColumn(c -> Durate.formatta(Math.round(c.effettivoMedio()))).setHeader("Reale (media)").setAutoWidth(true);
+        g.addColumn(c -> (c.scartoPercento() > 0 ? "+" : "") + c.scartoPercento() + "%").setHeader("Scarto").setAutoWidth(true);
+        g.setItems(righe);
+        g.setAllRowsVisible(true);
+        Paragraph nota = new Paragraph("Scarto positivo = ci si mette più del tempo standard: valuta di aggiornarlo "
+                + "nel Catalogo interventi. Con pochi casi la media è poco affidabile.");
+        nota.addClassName("boff-testo-secondario");
+        card.add(g, nota);
+        return card;
     }
 
     private static Div tessera(String valore, String etichetta) {

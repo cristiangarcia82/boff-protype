@@ -57,6 +57,41 @@ public class NotificheLavori {
         }
     }
 
+    /** Funzionalità "approvazione lavori extra": richiesta al cliente (notifica, o email di riserva). */
+    @Async
+    @TransactionalEventListener(fallbackExecution = true)
+    public void suProposta(it.boff.bike.lavoro.InterventoExtraProposto evento) {
+        try {
+            Lavoro l = lavori.dettaglio(evento.lavoroId());
+            l.getRighe().stream().filter(r -> r.getId().equals(evento.rigaId())).findFirst().ifPresent(r -> {
+                String testo = "Sulla tua " + l.getBicicletta().getNome() + " servirebbe anche: " + r.getDescrizione()
+                        + (r.getNotaApprovazione() == null ? "" : " (" + r.getNotaApprovazione() + ")")
+                        + ". Apri l'app per approvare o rifiutare.";
+                notifiche.notifica(l.getBicicletta().getProprietario().getId(), "Serve il tuo ok", testo, true);
+            });
+        } catch (RuntimeException e) {
+            log.warn("Richiesta di approvazione per il lavoro {} non inviata: {}", evento.lavoroId(), e.getMessage());
+        }
+    }
+
+    /** Risposta del cliente: avviso al personale. */
+    @Async
+    @TransactionalEventListener(fallbackExecution = true)
+    public void suRisposta(it.boff.bike.lavoro.InterventoExtraRisposto evento) {
+        try {
+            Lavoro l = lavori.dettaglio(evento.lavoroId());
+            String descr = l.getRighe().stream().filter(r -> r.getId().equals(evento.rigaId()))
+                    .map(it.boff.bike.lavoro.RigaLavoro::getDescrizione).findFirst().orElse("intervento extra");
+            String testo = l.getBicicletta().getProprietario().getNomeCompleto() + " ha "
+                    + (evento.approvato() ? "approvato" : "rifiutato") + ": " + descr + " (" + l.getBicicletta().getNome() + ")";
+            for (Utente s : utenti.personale()) {
+                if (s.isAttivo()) notifiche.notifica(s.getId(), evento.approvato() ? "Intervento approvato" : "Intervento rifiutato", testo, false);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Risposta per il lavoro {} non notificata: {}", evento.lavoroId(), e.getMessage());
+        }
+    }
+
     record Messaggio(Long destinatario, boolean alPersonale, String titolo, String testo, boolean emailDiRiserva) {
     }
 

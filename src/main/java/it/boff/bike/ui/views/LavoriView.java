@@ -66,9 +66,10 @@ public class LavoriView extends Div implements BeforeEnterObserver {
     private Long selezionato;
 
     public LavoriView(LavoroService service, CatalogoService catalogo, UtenteService utenti,
-                      BiciclettaService biciclette, PianificazioneService pianificazione, FotoService foto) {
+                      BiciclettaService biciclette, PianificazioneService pianificazione, FotoService foto,
+                      it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
         this.service = service;
-        this.pannello = new LavoroPannello(service, catalogo, pianificazione, foto, this::aggiornaElenco);
+        this.pannello = new LavoroPannello(service, catalogo, pianificazione, foto, funzionalita, this::aggiornaElenco);
         addClassName("boff-pagina");
 
         Button nuovo = new Button("Nuovo lavoro", VaadinIcon.PLUS.create(), e ->

@@ -158,3 +158,22 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 ## D37 – Statistiche essenziali, senza grafici complessi
 - Indicatori numerici e un elenco a barre degli interventi più richiesti. Niente librerie di grafici: sono domande semplici ("quanto lavoro, quanto ci mettiamo, rispettiamo le promesse?").
 - **Non misurato**: il tempo reale di lavoro (l'app conosce solo i tempi stimati). Se interessasse, si può aggiungere un "tempo effettivo" quando si segna un intervento come fatto.
+
+## D38 – Funzionalità opzionali spente di default (richiesta del titolare)
+- Pagina *Impostazioni → Funzionalità* (solo titolare): quattro interruttori, effetto immediato, nessun cambiamento finché non si attivano.
+
+## D39 – Approvazione dei lavori extra
+- Il negozio propone un intervento in più (dal catalogo o libero) con un **motivo** visibile al cliente. Il cliente riceve una notifica (o un'email) e risponde con **Approva** / **No, grazie**.
+- In attesa di risposta l'intervento **non entra in calendario** e la bici **non può essere segnata pronta**; se rifiutato resta visibile barrato e non viene fatto.
+- Il cliente vede descrizione e motivo, **mai la durata**. Il personale riceve una notifica con la risposta.
+
+## D40 – Promemoria di manutenzione
+- Ogni giorno alle 10:12 (ora del negozio) un promemoria ai clienti la cui bici è stata **ritirata** da più dei mesi impostati (default 12). Un solo promemoria per ritiro; nessuno se c'è già un lavoro aperto.
+- Il cliente può disattivarli dal profilo ("Ricevi i promemoria per il tagliando"). ⚠️ Conviene citarli nell'informativa privacy.
+
+## D41 – Tempo effettivo
+- Quando un intervento è fatto si può indicare il tempo reale; togliendo la spunta il dato si cancella. Le Statistiche confrontano tempo standard e reale per voce del catalogo (scarto %).
+- Il calendario continua a usare i tempi standard: il tempo reale serve a correggere il catalogo, non a ripianificare.
+
+## D42 – Avviso di officina piena
+- Occupazione = minuti pianificati / ore di officina disponibili, da adesso ai prossimi 7 giorni. Oltre la soglia (default 85%) il cliente vede un avviso generico nella pagina della bici e nel modulo di annuncio. Mai numeri, percentuali o orari.

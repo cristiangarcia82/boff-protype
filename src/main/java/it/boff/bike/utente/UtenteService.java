@@ -78,6 +78,11 @@ public class UtenteService {
         trova(utenteId).setPasswordHash(passwordEncoder.encode(nuova));
     }
 
+    /** Il cliente sceglie se ricevere i promemoria di manutenzione. */
+    public void impostaPromemoria(Long utenteId, boolean attivi) {
+        trova(utenteId).setPromemoriaAttivi(attivi);
+    }
+
     /** Attiva o disattiva un account. Il titolare non può disattivare sé stesso. */
     public void impostaAttivo(Long utenteId, boolean attivo) {
         Utente u = trova(utenteId);

@@ -48,6 +48,9 @@ public class Utente {
     @Column(name = "privacy_accettata_il")
     private OffsetDateTime privacyAccettataIl;
 
+    @Column(name = "promemoria_attivi", nullable = false)
+    private boolean promemoriaAttivi = true;
+
     @Column(name = "creato_il", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime creatoIl;
 
@@ -85,6 +88,8 @@ public class Utente {
     }
 
     public String getTelefono() { return telefono; }
+    public boolean isPromemoriaAttivi() { return promemoriaAttivi; }
+    public void setPromemoriaAttivi(boolean attivi) { this.promemoriaAttivi = attivi; }
     public OffsetDateTime getPrivacyAccettataIl() { return privacyAccettataIl; }
 
     /**

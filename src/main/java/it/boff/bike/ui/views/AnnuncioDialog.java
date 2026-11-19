@@ -34,6 +34,13 @@ public class AnnuncioDialog extends Dialog {
         void invia(List<Long> tipiIntervento, String note, List<FotoScelta> foto);
     }
 
+    private Paragraph spiegazioneTesto;
+
+    /** Avviso mostrato sopra la scelta degli interventi (es. officina molto impegnata). */
+    public void mostraAvviso(Paragraph avviso) {
+        addComponentAsFirst(avviso);
+    }
+
     public AnnuncioDialog(String titolo, String spiegazione, List<TipoIntervento> catalogo,
                           BiConsumer<List<Long>, String> invia) {
         this(titolo, spiegazione, catalogo, false, (t, n, f) -> invia.accept(t, n));
@@ -54,7 +61,7 @@ public class AnnuncioDialog extends Dialog {
         note.setMaxLength(LavoroService.MAX_NOTE);
         note.setWidthFull();
 
-        add(new Paragraph(spiegazione), interventi, note);
+        add(spiegazioneTesto = new Paragraph(spiegazione), interventi, note);
 
         List<FotoScelta> foto = new ArrayList<>();
         if (conFoto) {

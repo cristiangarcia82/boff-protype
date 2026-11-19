@@ -78,3 +78,4 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 | 6. Robustezza | Test interfaccia in CI, un ricalcolo per azione, scarica dati / elimina account | ✅ completata |
 | 7. Backlog | Assenze di mezza giornata, orario esatto negli spostamenti, ricerca rapida | ✅ completata |
 | 8. Foto e statistiche | Foto del problema nell'annuncio e nel lavoro, statistiche per il titolare | ✅ completata |
+| 9. Funzionalità opzionali | Approvazione lavori extra, promemoria di manutenzione, tempo effettivo, avviso di officina piena (tutte spente di default) | ✅ completata |

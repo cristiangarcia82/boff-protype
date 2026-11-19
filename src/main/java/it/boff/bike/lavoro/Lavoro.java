@@ -116,11 +116,15 @@ public class Lavoro {
     }
 
     public int minutiTotali() {
-        return righe.stream().mapToInt(RigaLavoro::getDurataMin).sum();
+        return righe.stream().filter(RigaLavoro::isValida).mapToInt(RigaLavoro::getDurataMin).sum();
     }
 
     public int minutiDaFare() {
-        return righe.stream().filter(r -> !r.isCompletata()).mapToInt(RigaLavoro::getDurataMin).sum();
+        return righe.stream().filter(r -> r.isValida() && !r.isCompletata()).mapToInt(RigaLavoro::getDurataMin).sum();
+    }
+
+    public boolean haApprovazioniInAttesa() {
+        return righe.stream().anyMatch(RigaLavoro::isInAttesaDiApprovazione);
     }
 
     // ---- transizioni ----
@@ -153,7 +157,11 @@ public class Lavoro {
     /** Segna la bici come pronta: tutte le righe risultano completate. */
     void segnaPronto(OffsetDateTime adesso) {
         richiedi(StatoLavoro.IN_OFFICINA, "segnare la bici come pronta");
-        righe.forEach(r -> r.setCompletata(true));
+        if (haApprovazioniInAttesa()) {
+            throw new ErroreDominio("C'è un intervento in attesa della risposta del cliente: "
+                    + "aspetta la sua risposta o rimuovilo");
+        }
+        righe.stream().filter(RigaLavoro::isValida).forEach(r -> r.setCompletata(true));
         stato = StatoLavoro.PRONTO;
         prontoIl = adesso;
     }

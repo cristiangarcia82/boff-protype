@@ -36,11 +36,14 @@ public class LavoroService {
     private final ApplicationEventPublisher eventi;
     private final Clock clock;
     private final Ripianificazione ripianificazione;
+    private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
 
     public LavoroService(LavoroRepository lavori, RigaLavoroRepository righe, BiciclettaRepository biciclette,
                          TipoInterventoRepository catalogo, ApplicationEventPublisher eventi, Clock clock,
-                         Ripianificazione ripianificazione) {
+                         Ripianificazione ripianificazione,
+                         it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
         this.ripianificazione = ripianificazione;
+        this.funzionalita = funzionalita;
         this.lavori = lavori;
         this.righe = righe;
         this.biciclette = biciclette;
@@ -67,6 +70,24 @@ public class LavoroService {
             throw new ErroreDominio("La bici è già in negozio: per annullare contatta il negozio");
         }
         cambia(l, x -> x.annulla(adesso()));
+    }
+
+    /** Il cliente approva o rifiuta un intervento in più proposto dal negozio. */
+    public void rispondiExtra(Long clienteId, Long rigaId, boolean approva) {
+        RigaLavoro r = riga(rigaId);
+        Lavoro l = r.getLavoro();
+        if (!l.getBicicletta().getProprietario().getId().equals(clienteId)) {
+            throw new ErroreDominio("Intervento non trovato");
+        }
+        if (!r.isInAttesaDiApprovazione()) {
+            throw new ErroreDominio("Hai già risposto a questa richiesta");
+        }
+        if (!l.getStato().isAperto()) {
+            throw new ErroreDominio("Il lavoro è chiuso");
+        }
+        r.rispondi(approva, adesso());
+        eventi.publishEvent(new InterventoExtraRisposto(l.getId(), r.getId(), approva));
+        if (approva) ripianifica("intervento extra approvato");
     }
 
     @Transactional(readOnly = true)
@@ -146,6 +167,49 @@ public class LavoroService {
         TipoIntervento t = catalogo.findById(tipoId).orElseThrow(() -> new ErroreDominio("Intervento non trovato"));
         ripianifica("nuovo intervento");
         return l.aggiungiRiga(t, t.getNome(), t.getDurataStandardMin());
+    }
+
+    /**
+     * Funzionalità "approvazione lavori extra": il negozio propone un intervento in più,
+     * che entra in calendario solo dopo il sì del cliente.
+     */
+    public RigaLavoro proponiExtra(Long lavoroId, Long tipoId, String descrizione, Integer durataMin, String nota) {
+        if (!funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.APPROVAZIONE_EXTRA)) {
+            throw new ErroreDominio("L'approvazione dei lavori extra non è attiva (Impostazioni → Funzionalità)");
+        }
+        Lavoro l = dettaglio(lavoroId);
+        if (!StatoLavoro.IN_OFFICINA.contains(l.getStato())) {
+            throw new ErroreDominio("Si possono proporre interventi extra solo con la bici in officina");
+        }
+        RigaLavoro r;
+        if (tipoId != null) {
+            TipoIntervento t = catalogo.findById(tipoId).orElseThrow(() -> new ErroreDominio("Intervento non trovato"));
+            r = l.aggiungiRiga(t, t.getNome(), t.getDurataStandardMin());
+        } else {
+            if (descrizione == null || descrizione.isBlank() || durataMin == null) {
+                throw new ErroreDominio("Descrivi l'intervento e indica i minuti previsti");
+            }
+            r = l.aggiungiRiga(null, pulisci(descrizione, 200), controllaDurata(durataMin));
+        }
+        r.proponi(pulisci(nota, 300));
+        lavori.flush();
+        eventi.publishEvent(new InterventoExtraProposto(l.getId(), r.getId()));
+        return r;
+    }
+
+    /** Funzionalità "tempo effettivo": minuti realmente impiegati per un intervento fatto. */
+    public void registraTempoEffettivo(Long rigaId, int minuti) {
+        if (!funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.TEMPO_EFFETTIVO)) {
+            throw new ErroreDominio("La registrazione del tempo effettivo non è attiva");
+        }
+        RigaLavoro r = riga(rigaId);
+        if (!r.isCompletata()) {
+            throw new ErroreDominio("Segna prima l'intervento come fatto");
+        }
+        if (minuti < 1 || minuti > 1440) {
+            throw new ErroreDominio("Indica un tempo tra 1 minuto e 24 ore");
+        }
+        r.setMinutiEffettivi(minuti);
     }
 
     public RigaLavoro aggiungiLibera(Long lavoroId, String descrizione, int durataMin) {

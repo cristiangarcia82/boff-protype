@@ -76,7 +76,16 @@ public class LeMieBiciView extends Div {
                 .collect(Collectors.toMap(l -> l.getBicicletta().getId(), Function.identity(), (a, b) -> a));
         bici.forEach(b -> {
             Lavoro l = aperti.get(b.getId());
-            elenco.add(new SchedaBici(b, l == null ? null : new BadgeStato(l.getStato()), () -> apri(b)));
+            com.vaadin.flow.component.Component badge = null;
+            if (l != null && l.haApprovazioniInAttesa()) {
+                com.vaadin.flow.component.html.Span ok = new com.vaadin.flow.component.html.Span("Serve il tuo ok");
+                ok.getElement().getThemeList().add("badge");
+                ok.getElement().getThemeList().add("primary");
+                badge = ok;
+            } else if (l != null) {
+                badge = new BadgeStato(l.getStato());
+            }
+            elenco.add(new SchedaBici(b, badge, () -> apri(b)));
         });
         Paragraph suggerimento = new Paragraph("Tocca una bici per annunciare un lavoro o vedere lo storico.");
         suggerimento.addClassName("boff-testo-secondario");

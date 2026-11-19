@@ -33,6 +33,7 @@ import it.boff.bike.ui.views.ClientiView;
 import it.boff.bike.ui.views.LavoriView;
 import it.boff.bike.ui.views.LeMieBiciView;
 import it.boff.bike.ui.views.ProfiloView;
+import it.boff.bike.ui.views.FunzionalitaView;
 import it.boff.bike.ui.views.StatisticheView;
 import it.boff.bike.ui.views.UtentiView;
 import it.boff.bike.utente.Utente;
@@ -169,7 +170,8 @@ public class MainLayout extends AppLayout {
 
         static java.util.List<VoceMenu> impostazioni() {
             return java.util.List.of(new VoceMenu("Orari", OrariView.class, VaadinIcon.CLOCK),
-                    new VoceMenu("Statistiche", StatisticheView.class, VaadinIcon.BAR_CHART));
+                    new VoceMenu("Statistiche", StatisticheView.class, VaadinIcon.BAR_CHART),
+                    new VoceMenu("Funzionalità", FunzionalitaView.class, VaadinIcon.SLIDERS));
         }
     }
 }

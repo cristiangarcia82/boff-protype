@@ -133,7 +133,7 @@ public class PianificazioneService {
             List<RigaDaPianificare> righe = new ArrayList<>();
             for (RigaLavoro r : l.getRighe()) {
                 righePerId.put(r.getId(), r);
-                if (r.isCompletata()) continue;
+                if (r.isCompletata() || !r.isValida()) continue; // extra in attesa o rifiutati: fuori calendario
                 int restanti = r.getDurataMin() - minutiBloccatiPerRiga.getOrDefault(r.getId(), 0);
                 if (restanti > 0) righe.add(new RigaDaPianificare(r.getId(), restanti));
             }
@@ -240,6 +240,38 @@ public class PianificazioneService {
     @Transactional(readOnly = true)
     public List<Assegnazione> diLavoro(Long lavoroId) {
         return assegnazioni.diLavoro(lavoroId);
+    }
+
+    /** Occupazione dell'officina: minuti assegnati e disponibili da adesso ai prossimi giorni. */
+    public record Carico(long assegnati, long capacita) {
+        public int percento() {
+            return capacita == 0 ? 100 : (int) Math.round(100.0 * assegnati / capacita);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Carico carico(int giorni) {
+        LocalDateTime adesso = LocalDateTime.now(clock);
+        LocalDate oggi = adesso.toLocalDate(), fine = oggi.plusDays(giorni - 1);
+        Disponibilita d = calendario.disponibilita(oggi, fine);
+        long capacita = 0;
+        for (Long p : d.persone()) {
+            for (LocalDate g = oggi; !g.isAfter(fine); g = g.plusDays(1)) {
+                for (Intervallo i : d.officina(p, g)) {
+                    if (g.equals(oggi)) {
+                        if (!i.fine().isAfter(adesso.toLocalTime())) continue;
+                        capacita += i.inizio().isBefore(adesso.toLocalTime())
+                                ? java.time.Duration.between(adesso.toLocalTime(), i.fine()).toMinutes() : i.minuti();
+                    } else {
+                        capacita += i.minuti();
+                    }
+                }
+            }
+        }
+        long assegnati = assegnazioni.tra(oggi, fine).stream()
+                .filter(a -> a.getData().isAfter(oggi) || a.getOraFine().isAfter(adesso.toLocalTime()))
+                .mapToLong(a -> a.intervallo().minuti()).sum();
+        return new Carico(assegnati, capacita);
     }
 
     /** Minuti già assegnati per persona e giorno nel periodo. */

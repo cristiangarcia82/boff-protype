@@ -168,3 +168,17 @@ recupero password, cookie, log, configurazione di produzione.
 | RA3 | Nessun limite al numero di registrazioni (account finti). | Il titolare può disattivarli; aggiungere un CAPTCHA se si verificasse. |
 | RA4 | I servizi non hanno controlli di ruolo propri: si affidano alle schermate. | Con Vaadin le operazioni partono solo dalle schermate (non c'è un'API esposta). **Se un giorno si aggiunge un'API REST, vanno aggiunti controlli sui servizi.** |
 | RA5 | Nessuna Content-Security-Policy. | Vaadin richiede eccezioni che ne ridurrebbero il valore; il rischio XSS è basso (vedi sopra). |
+
+---
+
+# Review fase 9 – Funzionalità opzionali
+
+| Voce | Esito |
+|---|---|
+| Spente di default | Verificato con test: con gli interruttori spenti le nuove funzioni sono rifiutate dal servizio (non solo nascoste nell'interfaccia). |
+| Approvazione extra | Solo il proprietario della bici può rispondere, una sola volta, solo con lavoro aperto (test). Interventi in attesa o rifiutati esclusi da calendario, minuti, statistiche e "bici pronta". |
+| Riservatezza tempi | La richiesta al cliente non mostra durate (test d'interfaccia con controllo automatico del testo). L'avviso di carico non mostra numeri (test). |
+| Promemoria | Rispettano la scelta del cliente e non si ripetono per lo stesso ritiro (test con date retrodatate). |
+| Tempo effettivo | Accettato solo per interventi fatti, 1–1440 minuti; cancellato se si toglie la spunta (test). |
+| Trovato in review | Nella prima versione gli interruttori della pagina Funzionalità non avevano un'etichetta di stato chiara: aggiunta l'etichetta "Attiva / Spenta". |
+| Rischio residuo | Il calcolo del carico avviene a ogni apertura della pagina bici da parte del cliente: trascurabile per un negozio, da memorizzare se gli accessi crescessero molto. |

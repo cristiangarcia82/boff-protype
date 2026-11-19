@@ -66,12 +66,33 @@ public class StatisticheService {
         List<Intervento> frequenti = em.createQuery("""
                 select new it.boff.bike.statistiche.StatisticheService$Intervento(r.descrizione, count(r), sum(r.durataMin))
                 from RigaLavoro r where r.lavoro.annunciatoIl >= :dal and r.lavoro.stato <> :annullato
+                  and (r.approvazione is null or r.approvazione = it.boff.bike.lavoro.Approvazione.APPROVATA)
                 group by r.descrizione order by count(r) desc, r.descrizione
                 """, Intervento.class)
                 .setParameter("dal", dal).setParameter("annullato", StatoLavoro.ANNULLATO)
                 .setMaxResults(10).getResultList();
 
         return new Riepilogo(giorni, nuovi, ritirati, annullati, clienti, media, puntualita, promessi.size(), frequenti);
+    }
+
+    /** Confronto tra tempo standard e tempo effettivo per intervento del catalogo. */
+    public record Confronto(String intervento, long casi, double stimatoMedio, double effettivoMedio) {
+        /** Scarto percentuale dell'effettivo rispetto allo stimato (positivo = ci si mette di più). */
+        public int scartoPercento() {
+            return stimatoMedio == 0 ? 0 : (int) Math.round(100.0 * (effettivoMedio - stimatoMedio) / stimatoMedio);
+        }
+    }
+
+    public List<Confronto> tempiEffettivi(int giorni) {
+        OffsetDateTime dal = OffsetDateTime.now(clock).minusDays(giorni);
+        return em.createQuery("""
+                select new it.boff.bike.statistiche.StatisticheService$Confronto(
+                    r.tipoIntervento.nome, count(r), avg(r.durataMin), avg(r.minutiEffettivi))
+                from RigaLavoro r
+                where r.minutiEffettivi is not null and r.tipoIntervento is not null and r.lavoro.prontoIl >= :dal
+                group by r.tipoIntervento.nome
+                order by count(r) desc, r.tipoIntervento.nome
+                """, Confronto.class).setParameter("dal", dal).setMaxResults(15).getResultList();
     }
 
     private long conta(String jpql, OffsetDateTime dal) {

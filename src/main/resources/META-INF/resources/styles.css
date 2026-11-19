@@ -312,3 +312,26 @@ html { --boff-colore-lavoro: #b7791f; }
     .boff-barre .riga { grid-template-columns: 1fr auto; }
     .boff-barre .traccia { grid-column: 1 / -1; order: 3; }
 }
+
+/* ---- Funzionalità opzionali ---- */
+.boff-badge-riga { margin-left: var(--lumo-space-s); }
+.boff-riga-lavoro.rifiutata span.descr { text-decoration: line-through; color: var(--lumo-secondary-text-color); }
+.boff-tempo-reale {
+    display: flex; align-items: center; justify-content: flex-end; gap: var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color); padding-bottom: var(--lumo-space-xs);
+}
+.boff-tempo-reale vaadin-integer-field { width: 7.5em; }
+.boff-avviso {
+    background: var(--lumo-warning-color-10pct, var(--lumo-contrast-5pct));
+    border-left: 4px solid var(--lumo-warning-color, var(--lumo-contrast-50pct));
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+}
+.boff-approvazione {
+    border: 1px solid var(--lumo-primary-color-50pct);
+    border-radius: var(--lumo-border-radius-m);
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    margin: var(--lumo-space-s) 0;
+}
+.boff-approvazione .boff-azioni { margin-top: var(--lumo-space-s); }
+.boff-righe-cliente li.rifiutata { color: var(--lumo-secondary-text-color); text-decoration: line-through; }

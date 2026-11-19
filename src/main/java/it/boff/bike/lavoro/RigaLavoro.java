@@ -40,6 +40,20 @@ public class RigaLavoro {
     @Column(nullable = false)
     private int ordine;
 
+    /** Solo per gli interventi extra proposti al cliente; null = intervento normale. */
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    private Approvazione approvazione;
+
+    @Column(name = "nota_approvazione")
+    private String notaApprovazione;
+
+    @Column(name = "risposta_il")
+    private java.time.OffsetDateTime rispostaIl;
+
+    /** Minuti realmente impiegati (funzionalità "tempo effettivo"). */
+    @Column(name = "minuti_effettivi")
+    private Integer minutiEffettivi;
+
     protected RigaLavoro() {
     }
 
@@ -58,7 +72,35 @@ public class RigaLavoro {
     public int getDurataMin() { return durataMin; }
     public boolean isCompletata() { return completata; }
     public int getOrdine() { return ordine; }
+    public Approvazione getApprovazione() { return approvazione; }
+    public String getNotaApprovazione() { return notaApprovazione; }
+    public java.time.OffsetDateTime getRispostaIl() { return rispostaIl; }
+    public Integer getMinutiEffettivi() { return minutiEffettivi; }
+
+    /** Da fare davvero: interventi normali o extra approvati (non quelli in attesa o rifiutati). */
+    public boolean isValida() {
+        return approvazione == null || approvazione == Approvazione.APPROVATA;
+    }
+
+    public boolean isInAttesaDiApprovazione() {
+        return approvazione == Approvazione.DA_APPROVARE;
+    }
+
+    void proponi(String nota) {
+        this.approvazione = Approvazione.DA_APPROVARE;
+        this.notaApprovazione = nota;
+    }
+
+    void rispondi(boolean approvata, java.time.OffsetDateTime quando) {
+        this.approvazione = approvata ? Approvazione.APPROVATA : Approvazione.RIFIUTATA;
+        this.rispostaIl = quando;
+    }
+
+    void setMinutiEffettivi(Integer minuti) { this.minutiEffettivi = minuti; }
 
     void setDurataMin(int durataMin) { this.durataMin = durataMin; }
-    void setCompletata(boolean completata) { this.completata = completata; }
+    void setCompletata(boolean completata) {
+        this.completata = completata;
+        if (!completata) this.minutiEffettivi = null;
+    }
 }

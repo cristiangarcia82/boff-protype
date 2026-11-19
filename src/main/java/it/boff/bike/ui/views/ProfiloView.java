@@ -36,7 +36,8 @@ import jakarta.validation.ConstraintViolationException;
 @PermitAll
 public class ProfiloView extends Div {
 
-    public ProfiloView(UtenteService service, UtenteCorrente utenteCorrente, PrivacyService privacy) {
+    public ProfiloView(UtenteService service, UtenteCorrente utenteCorrente, PrivacyService privacy,
+                       it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
         addClassNames("boff-pagina", "boff-pagina-cliente", "boff-colonna");
         Utente utente = utenteCorrente.get().orElseThrow();
         Long id = utente.getId();
@@ -67,6 +68,16 @@ public class ProfiloView extends Div {
         FormLayout dati = new FormLayout(nome, cognome, email, telefono);
         dati.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("440px", 2));
         Div schedaDati = new Div(new H3("I tuoi dati"), dati, salva);
+        if (utente.getRuolo() == Ruolo.CLIENTE
+                && funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.PROMEMORIA_MANUTENZIONE)) {
+            com.vaadin.flow.component.checkbox.Checkbox promemoria = new com.vaadin.flow.component.checkbox.Checkbox(
+                    "Ricevi i promemoria per il tagliando", utente.isPromemoriaAttivi());
+            promemoria.addValueChangeListener(e -> {
+                service.impostaPromemoria(id, e.getValue());
+                Avvisi.ok(e.getValue() ? "Promemoria attivati" : "Promemoria disattivati");
+            });
+            schedaDati.add(new Div(promemoria));
+        }
         schedaDati.addClassName("boff-card");
 
         PasswordField attuale = new PasswordField("Password attuale");

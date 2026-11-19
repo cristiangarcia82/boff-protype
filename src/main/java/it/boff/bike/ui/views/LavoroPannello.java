@@ -43,12 +43,15 @@ class LavoroPannello extends Div {
     private final CatalogoService catalogo;
     private final PianificazioneService pianificazione;
     private final FotoService foto;
+    private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
     private final Runnable dopoModifica;
     private Long lavoroId;
 
     LavoroPannello(LavoroService service, CatalogoService catalogo, PianificazioneService pianificazione,
-                   FotoService foto, Runnable dopoModifica) {
+                   FotoService foto, it.boff.bike.funzionalita.FunzionalitaService funzionalita,
+                   Runnable dopoModifica) {
         this.foto = foto;
+        this.funzionalita = funzionalita;
         this.pianificazione = pianificazione;
         this.service = service;
         this.catalogo = catalogo;
@@ -98,7 +101,7 @@ class LavoroPannello extends Div {
         totale.addClassName("boff-totale");
         interventi.add(totale);
         if (aperto) {
-            interventi.add(aggiungiRiga());
+            interventi.add(aggiungiRiga(l));
         }
         add(interventi);
 
@@ -197,13 +200,30 @@ class LavoroPannello extends Div {
     private Component riga(Lavoro l, RigaLavoro r) {
         Checkbox fatto = new Checkbox(r.isCompletata());
         fatto.setAriaLabel("Fatto");
-        fatto.setEnabled(StatoLavoro.IN_OFFICINA.contains(l.getStato()));
+        fatto.setEnabled(StatoLavoro.IN_OFFICINA.contains(l.getStato()) && r.isValida());
         fatto.addValueChangeListener(e -> {
             if (e.isFromClient()) esegui(() -> service.segnaRiga(r.getId(), e.getValue()),
                     e.getValue() ? "Intervento fatto" : "Intervento da rifare");
         });
         Span descr = new Span(r.getDescrizione());
         descr.addClassName("descr");
+        Div testo = new Div(descr);
+        if (r.getApprovazione() != null) {
+            Span badge = new Span(r.getApprovazione().getEtichetta());
+            badge.getElement().getThemeList().add("badge");
+            badge.getElement().getThemeList().add(switch (r.getApprovazione()) {
+                case DA_APPROVARE -> "contrast";
+                case APPROVATA -> "success";
+                case RIFIUTATA -> "error";
+            });
+            badge.addClassName("boff-badge-riga");
+            testo.add(badge);
+            if (r.getNotaApprovazione() != null) {
+                Span nota = new Span(r.getNotaApprovazione());
+                nota.addClassName("boff-testo-secondario");
+                testo.add(new Div(nota));
+            }
+        }
         IntegerField durata = new IntegerField();
         durata.setValue(r.getDurataMin());
         durata.setSuffixComponent(new Span("min"));
@@ -220,13 +240,40 @@ class LavoroPannello extends Div {
         rimuovi.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ERROR);
         rimuovi.setAriaLabel("Rimuovi intervento");
         rimuovi.setVisible(l.getStato().isAperto() && l.getRighe().size() > 1);
-        Div d = new Div(fatto, descr, durata, rimuovi);
+        Div d = new Div(fatto, testo, durata, rimuovi);
         d.addClassName("boff-riga-lavoro");
         if (r.isCompletata()) d.addClassName("fatto");
+        if (r.getApprovazione() == it.boff.bike.lavoro.Approvazione.RIFIUTATA) d.addClassName("rifiutata");
+        if (r.isCompletata() && funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.TEMPO_EFFETTIVO)) {
+            IntegerField reale = new IntegerField();
+            reale.setPlaceholder("reali");
+            reale.setValue(r.getMinutiEffettivi());
+            reale.setSuffixComponent(new Span("min"));
+            reale.setAriaLabel("Minuti effettivi");
+            reale.setTooltipText("Quanto ci hai messo davvero");
+            reale.addValueChangeListener(e -> {
+                if (e.isFromClient() && e.getValue() != null) {
+                    esegui(() -> service.registraTempoEffettivo(r.getId(), e.getValue()), "Tempo effettivo salvato");
+                }
+            });
+            Div effettivo = new Div(new Span("Tempo reale"), reale);
+            effettivo.addClassName("boff-tempo-reale");
+            return new Div(d, effettivo);
+        }
         return d;
     }
 
-    private Component aggiungiRiga() {
+    private Component aggiungiRiga(Lavoro l) {
+        boolean approvazione = funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.APPROVAZIONE_EXTRA)
+                && StatoLavoro.IN_OFFICINA.contains(l.getStato());
+        Checkbox chiedi = new Checkbox("Chiedi l'approvazione del cliente", approvazione);
+        chiedi.setVisible(approvazione);
+        TextField motivo = new TextField();
+        motivo.setPlaceholder("Motivo, visibile al cliente (es. pastiglie consumate)");
+        motivo.setMaxLength(300);
+        motivo.setWidthFull();
+        motivo.setVisible(approvazione);
+        chiedi.addValueChangeListener(e -> motivo.setVisible(e.getValue()));
         ComboBox<TipoIntervento> dalCatalogo = new ComboBox<>();
         dalCatalogo.setPlaceholder("Aggiungi dal catalogo…");
         dalCatalogo.setItems(catalogo.attivi());
@@ -234,7 +281,12 @@ class LavoroPannello extends Div {
         dalCatalogo.setWidthFull();
         dalCatalogo.addValueChangeListener(e -> {
             if (e.getValue() != null) {
-                esegui(() -> service.aggiungiDaCatalogo(lavoroId, e.getValue().getId()), "Intervento aggiunto");
+                if (chiedi.getValue()) {
+                    esegui(() -> service.proponiExtra(lavoroId, e.getValue().getId(), null, null, motivo.getValue()),
+                            "Richiesta inviata al cliente");
+                } else {
+                    esegui(() -> service.aggiungiDaCatalogo(lavoroId, e.getValue().getId()), "Intervento aggiunto");
+                }
             }
         });
         TextField libera = new TextField();
@@ -248,12 +300,17 @@ class LavoroPannello extends Div {
                 Avvisi.errore("Indica i minuti previsti");
                 return;
             }
-            esegui(() -> service.aggiungiLibera(lavoroId, libera.getValue(), min.getValue()), "Intervento aggiunto");
+            if (chiedi.getValue()) {
+                esegui(() -> service.proponiExtra(lavoroId, null, libera.getValue(), min.getValue(), motivo.getValue()),
+                        "Richiesta inviata al cliente");
+            } else {
+                esegui(() -> service.aggiungiLibera(lavoroId, libera.getValue(), min.getValue()), "Intervento aggiunto");
+            }
         });
         aggiungi.setAriaLabel("Aggiungi intervento libero");
         Div riga = new Div(libera, min, aggiungi);
         riga.addClassName("boff-riga-aggiungi");
-        Div box = new Div(dalCatalogo, riga);
+        Div box = new Div(chiedi, motivo, dalCatalogo, riga);
         box.addClassName("boff-colonna");
         box.getStyle().set("margin-top", "var(--lumo-space-m)").set("gap", "var(--lumo-space-s)");
         return box;
