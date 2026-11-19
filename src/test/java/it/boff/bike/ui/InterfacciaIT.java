@@ -198,4 +198,40 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat(lavori.storicoBiciDelCliente(cliente, bici)).singleElement()
                 .satisfies(l -> assertThat(l.getNoteCliente()).isEqualTo("Montare un supporto per il seggiolino bimbo"));
     }
+
+    /** Durate come "20 min", "1 h", "1 h 30 min": sono informazioni interne al negozio. */
+    private static final java.util.regex.Pattern DURATA = java.util.regex.Pattern.compile("\\b\\d+\\s*(min|h)\\b");
+
+    @Test
+    @WithMockUser(username = "cliente@demo.it", roles = "CLIENTE")
+    void ilClienteNonVedeMaiLeDuratePreviste() {
+        Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Colnago", "V4 " + UUID.randomUUID(),
+                Tipologia.STRADA)).getId();
+
+        // modulo di annuncio: solo i nomi delle attività
+        navigate("le-mie-bici/" + bici, BiciView.class);
+        test($(Button.class).withText("Annuncia un lavoro").single()).click();
+        String modulo = $(it.boff.bike.ui.views.AnnuncioDialog.class).single().getElement().getTextRecursively();
+        assertThat(DURATA.matcher(modulo).find()).as("durate nel modulo di annuncio: " + modulo).isFalse();
+        @SuppressWarnings("unchecked")
+        CheckboxGroup<TipoIntervento> scelte = $(CheckboxGroup.class).single();
+        List<String> etichette = scelte.getListDataView().getItems()
+                .map(t -> scelte.getItemLabelGenerator().apply(t)).toList();
+        assertThat(etichette).contains("Regolazione cambio")
+                .noneMatch(e -> DURATA.matcher(e).find());
+
+        // lavoro in corso, anche dopo che il negozio ha modificato i tempi
+        Long id = lavori.annuncia(cliente, bici, List.of(catalogo.attivi().get(0).getId()), "Controllo").getId();
+        lavori.checkIn(id);
+        lavori.modificaDurata(lavori.dettaglio(id).getRighe().get(0).getId(), 95);
+        navigate("le-mie-bici/" + bici, BiciView.class);
+        String pagina = getCurrentView().getElement().getTextRecursively();
+        assertThat(pagina).contains("Lavoro in corso");
+        assertThat(DURATA.matcher(pagina).find()).as("durate nella pagina della bici: " + pagina).isFalse();
+
+        navigate(LeMieBiciView.class);
+        String elenco = getCurrentView().getElement().getTextRecursively();
+        assertThat(DURATA.matcher(elenco).find()).as("durate nell'elenco bici").isFalse();
+    }
 }

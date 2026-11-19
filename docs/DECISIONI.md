@@ -55,8 +55,9 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Decisione**: se il cliente scrive solo una nota senza scegliere interventi, si crea una riga "Da valutare in negozio" da 30 minuti, che lo staff sostituisce dopo aver visto la bici.
 - **Perché**: la pianificazione ha bisogno di una stima; 30 minuti è prudente per una diagnosi. Cambiabile.
 
-## D13 – I tempi non sono mostrati al cliente
-- **Decisione**: il cliente vede interventi, stato e data prevista, non i minuti stimati.
+## D13 – I tempi non sono mostrati al cliente (confermato dal titolare)
+- **Decisione**: il cliente vede interventi, stato e data prevista, non i minuti stimati. Le durate compaiono solo nelle schermate del personale.
+- **Garanzia**: test automatici verificano che modulo di annuncio, pagina della bici, elenco bici ed esportazione dei dati non contengano durate.
 - **Perché**: i tempi sono uno strumento interno di pianificazione e potrebbero essere letti come impegni o prezzi.
 
 ## D14 – "Bici pronta" chiude tutti gli interventi

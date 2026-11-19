@@ -41,6 +41,8 @@ class PrivacyIT {
 
         String json = privacy.esporta(u.getId());
         assertThat(json).contains("Colnago", "C64", "Telaio da controllare", "Anna", "\"biciclette\"", "\"lavori\"");
+        // i tempi stimati sono un'informazione interna del negozio
+        assertThat(json).doesNotContain("durata", "minuti", "Durata");
 
         assertThatThrownBy(() -> privacy.eliminaAccount(u.getId()))
                 .isInstanceOf(ErroreDominio.class).hasMessageContaining("lavoro ancora aperto");
