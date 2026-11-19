@@ -153,4 +153,49 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat(getCurrentView().getElement().getTextRecursively())
                 .contains("Lavori ricevuti", "Interventi più richiesti");
     }
+
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void ilTitolareDefinisceUnaNuovaAttivitaNelCatalogo() {
+        String nome = "Montaggio portapacchi " + UUID.randomUUID().toString().substring(0, 6);
+        navigate(it.boff.bike.ui.views.CatalogoView.class);
+        test($(Button.class).withText("Nuovo intervento").single()).click();
+        test($(TextField.class).withLabel("Nome").single()).setValue(nome);
+        test($(com.vaadin.flow.component.textfield.IntegerField.class).withLabel("Tempo standard (minuti)").single())
+                .setValue(40);
+        test($(Button.class).withText("Salva").single()).click();
+        assertThat(catalogo.attivi()).anySatisfy(t -> {
+            assertThat(t.getNome()).isEqualTo(nome);
+            assertThat(t.getDurataStandardMin()).isEqualTo(40);
+        });
+    }
+
+    @Test
+    @WithMockUser(username = "cliente@demo.it", roles = "CLIENTE")
+    void ilClienteVedeLeAttivitaDelCatalogoEPuoScrivereTestoLibero() {
+        String attiva = "Montaggio parafanghi " + UUID.randomUUID().toString().substring(0, 6);
+        String disattivata = "Verniciatura " + UUID.randomUUID().toString().substring(0, 6);
+        catalogo.salva(new TipoIntervento(attiva, 25));
+        TipoIntervento vecchia = catalogo.salva(new TipoIntervento(disattivata, 60));
+        vecchia.setAttivo(false);
+        catalogo.salva(vecchia);
+
+        Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Olmo", "Gran Sport " + UUID.randomUUID(),
+                Tipologia.STRADA)).getId();
+        navigate("le-mie-bici/" + bici, BiciView.class);
+        test($(Button.class).withText("Annuncia un lavoro").single()).click();
+
+        @SuppressWarnings("unchecked")
+        CheckboxGroup<TipoIntervento> scelte = $(CheckboxGroup.class).single();
+        List<String> proposte = scelte.getListDataView().getItems().map(TipoIntervento::getNome).toList();
+        assertThat(proposte).contains(attiva).doesNotContain(disattivata);
+
+        // solo testo libero, nessuna voce del catalogo
+        test($(TextArea.class).withLabel("Altro o descrizione del problema").single())
+                .setValue("Montare un supporto per il seggiolino bimbo");
+        test($(Button.class).withText("Invia").single()).click();
+        assertThat(lavori.storicoBiciDelCliente(cliente, bici)).singleElement()
+                .satisfies(l -> assertThat(l.getNoteCliente()).isEqualTo("Montare un supporto per il seggiolino bimbo"));
+    }
 }
