@@ -50,7 +50,8 @@ public class BachecaView extends Div {
 
     public BachecaView(LavoroService lavori, PianificazioneService pianificazione, CalendarioService calendario,
                        NotificheService notifiche, UtenteCorrente utenteCorrente,
-                       it.boff.bike.accesso.PasskeyService passkey) {
+                       it.boff.bike.accesso.PasskeyService passkey,
+                       it.boff.bike.appuntamento.AppuntamentoService appuntamenti) {
         addClassName("boff-pagina");
         LocalDate oggi = calendario.oggi();
         LocalDate lunedi = oggi.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -80,6 +81,7 @@ public class BachecaView extends Div {
         principale.addClassName("boff-colonna");
 
         Div laterale = new Div(
+                appuntamenti(appuntamenti, oggi),
                 elencoLavori("Nuovi annunci", lavori.cerca(EnumSet.of(StatoLavoro.ANNUNCIATO), ""),
                         "Nessun annuncio in attesa."),
                 elencoLavori("Pronte da ritirare", lavori.cerca(EnumSet.of(StatoLavoro.PRONTO), ""),
@@ -96,6 +98,35 @@ public class BachecaView extends Div {
     }
 
     /** Interventi di oggi per persona, con la casella per segnarli come fatti. */
+    /** Richieste di appuntamento da confermare e appuntamenti di oggi. */
+    private Component appuntamenti(it.boff.bike.appuntamento.AppuntamentoService service, LocalDate oggi) {
+        var daConfermare = service.daConfermare();
+        var diOggi = service.tra(oggi, oggi);
+        Div box = new Div(new com.vaadin.flow.component.html.H3("Appuntamenti"));
+        box.addClassName("boff-card");
+        if (!daConfermare.isEmpty()) {
+            com.vaadin.flow.router.RouterLink link = new com.vaadin.flow.router.RouterLink(
+                    daConfermare.size() == 1 ? "1 richiesta da confermare" : daConfermare.size() + " richieste da confermare",
+                    AppuntamentiView.class);
+            link.addClassName("boff-urgente");
+            box.add(new Div(link));
+        }
+        if (diOggi.isEmpty()) {
+            com.vaadin.flow.component.html.Paragraph p = new com.vaadin.flow.component.html.Paragraph("Nessun appuntamento oggi.");
+            p.addClassName("boff-testo-secondario");
+            box.add(p);
+        }
+        for (var a : diOggi) {
+            Span riga = new Span(a.getOraInizio() + " " + a.getCliente().getNomeCompleto() + " · " + a.getTipo().getNome()
+                    + " (" + a.getUtente().getNome() + ")");
+            Div d = new Div(riga);
+            d.addClassName("boff-voce-appuntamento");
+            if (a.getStato() == it.boff.bike.appuntamento.StatoAppuntamento.RICHIESTO) d.addClassName("richiesto");
+            box.add(d);
+        }
+        return box;
+    }
+
     private Component oggiInOfficina(List<Assegnazione> oggi, LavoroService lavori, Disponibilita disp, LocalDate giorno) {
         Div card = new Div(new H3("Oggi in officina"));
         card.addClassName("boff-card");

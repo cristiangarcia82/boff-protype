@@ -37,6 +37,7 @@ public class PrivacyService {
     private final java.time.Clock clock;
     private final it.boff.bike.accesso.PasskeyService passkey;
     private final it.boff.bike.accesso.CodiceAccessoService codici;
+    private final it.boff.bike.appuntamento.AppuntamentoService appuntamenti;
 
     private final UtenteRepository utenti;
     private final BiciclettaRepository biciclette;
@@ -52,7 +53,9 @@ public class PrivacyService {
                           LavoroService lavori, IscrizionePushRepository iscrizioni, TokenPasswordRepository tokens,
                           PasswordEncoder passwordEncoder, ObjectMapper json, it.boff.bike.lavoro.FotoService foto,
                           java.time.Clock clock, it.boff.bike.accesso.PasskeyService passkey,
-                          it.boff.bike.accesso.CodiceAccessoService codici) {
+                          it.boff.bike.accesso.CodiceAccessoService codici,
+                          it.boff.bike.appuntamento.AppuntamentoService appuntamenti) {
+        this.appuntamenti = appuntamenti;
         this.clock = clock;
         this.passkey = passkey;
         this.codici = codici;
@@ -111,6 +114,19 @@ public class PrivacyService {
             elenco.add(m);
         }
         dati.put("lavori", elenco);
+
+        List<Map<String, Object>> app = new ArrayList<>();
+        for (var a : appuntamenti.delCliente(clienteId)) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("tipo", a.getTipo().getNome());
+            m.put("giorno", testo(a.getData()));
+            m.put("ora", testo(a.getOraInizio()));
+            m.put("stato", a.getStato().getEtichetta());
+            m.put("bici", a.getBicicletta() == null ? null : a.getBicicletta().getNome());
+            m.put("note", a.getNoteCliente());
+            app.add(m);
+        }
+        dati.put("appuntamenti", app);
         return json.writerWithDefaultPrettyPrinter().writeValueAsString(dati);
     }
 
@@ -147,6 +163,7 @@ public class PrivacyService {
         iscrizioni.deleteByUtenteId(clienteId);
         tokens.deleteByUtenteId(clienteId);
         codici.eliminaDi(clienteId);
+        appuntamenti.perCancellazioneCliente(clienteId);
         passkey.eliminaTutte(u.getEmail());
         byte[] casuale = new byte[32];
         new SecureRandom().nextBytes(casuale);

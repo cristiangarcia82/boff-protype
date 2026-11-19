@@ -381,4 +381,58 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("boff-etichetta-settimana").all()).hasSize(1);
         test($(Button.class).withText("2").single()).click();
     }
+
+    @Autowired it.boff.bike.appuntamento.AppuntamentoService appuntamentiService;
+
+    @Test
+    @WithMockUser(username = "sara.conti@demo.it", roles = "CLIENTE")
+    void ilClientePrenotaUnAppuntamento() {
+        navigate(it.boff.bike.ui.views.IMieiAppuntamentiView.class);
+        test($(Button.class).withText("Prenota un appuntamento").single()).click();
+        @SuppressWarnings("unchecked")
+        com.vaadin.flow.component.radiobutton.RadioButtonGroup<it.boff.bike.appuntamento.TipoAppuntamento> tipo =
+                $(com.vaadin.flow.component.radiobutton.RadioButtonGroup.class).single();
+        tipo.setValue(appuntamentiService.tipiAttivi().get(1));
+        // primo giorno libero, primo orario, invio
+        List<Button> scelte = $(Button.class).all().stream()
+                .filter(b -> b.getParent().map(x -> x.getElement().getClassList().contains("boff-scelte")).orElse(false))
+                .toList();
+        assertThat(scelte).as("giorni liberi proposti").isNotEmpty();
+        test(scelte.get(0)).click();
+        List<Button> ore = $(Button.class).all().stream()
+                .filter(b -> b.getText().matches("\\d{2}:\\d{2}")).toList();
+        assertThat(ore).as("orari liberi proposti").isNotEmpty();
+        test(ore.get(0)).click();
+        test($(Button.class).withText("Invia la richiesta").single()).click();
+
+        Long sara = utenti.findByEmail("sara.conti@demo.it").orElseThrow().getId();
+        assertThat(appuntamentiService.delCliente(sara)).anySatisfy(a ->
+                assertThat(a.getStato()).isEqualTo(it.boff.bike.appuntamento.StatoAppuntamento.RICHIESTO));
+        assertThat(getCurrentView().getElement().getTextRecursively()).contains("In attesa di conferma");
+    }
+
+    @Test
+    @WithMockUser(username = "collaboratore@demo.it", roles = "STAFF")
+    void ilNegozioConfermaUnaRichiesta() {
+        Long giulia = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        var tipo = appuntamentiService.tipiAttivi().get(3);
+        var liberi = appuntamentiService.orariLiberi(tipo.getId(), java.time.LocalDate.now().plusDays(3),
+                java.time.LocalDate.now().plusDays(20));
+        var giorno = liberi.keySet().iterator().next();
+        var a = appuntamentiService.richiedi(giulia, tipo.getId(), giorno, liberi.get(giorno).get(0), null, null);
+
+        navigate(it.boff.bike.ui.views.AppuntamentiView.class);
+        var voci = $(com.vaadin.flow.component.html.Div.class).withClassName("boff-voce-appuntamento").all();
+        var voce = voci.stream().filter(v -> v.getElement().getTextRecursively().contains("Giulia Verdi")
+                && v.getElement().getClassList().contains("richiesto")).findFirst().orElseThrow();
+        test(voce).click();
+        test($(Button.class).withText("Conferma").single()).click();
+        assertThat(appuntamentiService.dettaglio(a.getId()).getStato())
+                .isEqualTo(it.boff.bike.appuntamento.StatoAppuntamento.CONFERMATO);
+
+        navigate(CalendarioView.class);
+        assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("appuntamento").all())
+                .as("gli appuntamenti compaiono nel calendario").isNotEmpty();
+        appuntamentiService.annulla(a.getId());
+    }
 }

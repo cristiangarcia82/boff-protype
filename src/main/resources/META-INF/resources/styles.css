@@ -429,3 +429,34 @@ html { --boff-colore-lavoro: #b7791f; }
 .boff-titolo { display: inline-flex; align-items: center; gap: var(--lumo-space-s); }
 .boff-logo { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
 .boff-logo-grande { width: 88px; height: 88px; border-radius: 18px; box-shadow: 0 2px 8px var(--lumo-contrast-20pct); }
+
+/* ---- Appuntamenti ---- */
+html { --boff-colore-appuntamento: #6b46c1; }
+.boff-voce-appuntamento {
+    padding: var(--lumo-space-s); border-radius: var(--lumo-border-radius-m); cursor: pointer;
+    border-left: 4px solid var(--boff-colore-appuntamento); margin-bottom: var(--lumo-space-xs);
+    background: color-mix(in srgb, var(--boff-colore-appuntamento) 8%, var(--lumo-base-color));
+}
+.boff-voce-appuntamento.richiesto { border-left-style: dashed; }
+.boff-voce-appuntamento:hover { background: color-mix(in srgb, var(--boff-colore-appuntamento) 16%, var(--lumo-base-color)); }
+.boff-voce-quando { font-weight: 600; display: inline-block; }
+.boff-voce-quando::first-letter { text-transform: uppercase; }
+.boff-slot.appuntamento {
+    border-left-color: var(--boff-colore-appuntamento);
+    background: color-mix(in srgb, var(--boff-colore-appuntamento) 12%, var(--lumo-base-color));
+}
+.boff-slot.appuntamento:hover { background: color-mix(in srgb, var(--boff-colore-appuntamento) 22%, var(--lumo-base-color)); }
+.boff-slot.appuntamento.richiesto { border-left-style: dashed; }
+.boff-slot.appuntamento .boff-slot-etichetta { color: var(--boff-colore-appuntamento); }
+.boff-quadrato.appuntamento { background: var(--boff-colore-appuntamento); }
+.boff-prenota { gap: var(--lumo-space-m); }
+.boff-prenota h3 { margin: 0; }
+.boff-passo { display: block; font-weight: 600; margin: var(--lumo-space-s) 0 var(--lumo-space-xs); }
+.boff-scelte { display: flex; flex-wrap: wrap; gap: var(--lumo-space-xs); }
+.boff-scelte vaadin-button { text-transform: capitalize; font-variant-numeric: tabular-nums; }
+.boff-tipo-nome { font-weight: 600; }
+.boff-invito-appuntamento { border-left: 4px solid var(--boff-colore-appuntamento); }
+.boff-invito-appuntamento a { font-weight: 600; }
+.boff-slot.appuntamento .boff-slot-etichetta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.boff-slot > * { flex-shrink: 0; }

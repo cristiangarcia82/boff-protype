@@ -74,15 +74,23 @@ class Fase7IT {
         if (!calendario.disponibilita(martedi, martedi).chiusura(martedi).isEmpty()) {
             martedi = martedi.plusWeeks(1); // evita le festività
         }
-        pianificazione.sposta(a.getId(), mario, martedi, LocalTime.of(11, 0));
-        Assegnazione spostata = pianificazione.diLavoro(id).get(0);
+        // con l'officina già piena (altri test) l'intervento può essere diviso in più pezzi: si sposta tutto, come nel calendario
+        List<Long> pezzi = pianificazione.diLavoro(id).stream().map(Assegnazione::getId).toList();
+        pianificazione.spostaTutti(pezzi, mario, martedi, LocalTime.of(11, 0));
+        List<Assegnazione> spostate = pianificazione.diLavoro(id);
+        Assegnazione spostata = spostate.get(0);
+        assertThat(spostate).allSatisfy(x -> {
+            assertThat(x.isBloccata()).isTrue();
+            assertThat(x.getData()).isEqualTo(spostata.getData());
+        });
         assertThat(spostata.getData()).isEqualTo(martedi);
         assertThat(spostata.getOraInizio()).isEqualTo(LocalTime.of(11, 0));
-        assertThat(spostata.isBloccata()).isTrue();
+        assertThat(spostate.stream().mapToLong(x -> x.intervallo().minuti()).sum()).isEqualTo((long) catena.getDurataStandardMin());
 
         LocalDate stessoGiorno = martedi;
+        List<Long> ancora = spostate.stream().map(Assegnazione::getId).toList();
         // alle 12:20 l'intervento (20 min) sforerebbe la fine della fascia (12:30)
-        assertThatThrownBy(() -> pianificazione.sposta(spostata.getId(), mario, stessoGiorno, LocalTime.of(12, 20)))
-                .isInstanceOf(ErroreDominio.class).hasMessageContaining("12:20");
+        assertThatThrownBy(() -> pianificazione.spostaTutti(ancora, mario, stessoGiorno, LocalTime.of(12, 20)))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("minuti liberi");
     }
 }

@@ -21,7 +21,7 @@ import it.boff.bike.config.BoffProperties;
 @AnonymousAllowed
 public class PrivacyView extends Div {
 
-    static final String VERSIONE = "versione 3 · novembre 2026";
+    static final String VERSIONE = "versione 4 · novembre 2026";
 
     public PrivacyView(BoffProperties properties) {
         String negozio = properties.nomeNegozio();
@@ -43,6 +43,7 @@ public class PrivacyView extends Div {
                         "Le tue biciclette: marca, modello, tipologia ed eventuali dettagli (taglia, colore, "
                                 + "anno, numero di telaio, note).",
                         "I lavori richiesti e svolti, con le tue note e le foto che scegli di caricare.",
+                        "Gli appuntamenti di consulenza che prenoti (tipo, giorno, ora, eventuale bici e note).",
                         "Se usi l'app: password (conservata solo in forma cifrata) e, se le attivi, "
                                 + "le iscrizioni alle notifiche sui tuoi dispositivi.",
                         "Se entri con Face ID, Touch ID o l'impronta: una chiave pubblica e il nome del dispositivo "

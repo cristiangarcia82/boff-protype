@@ -102,3 +102,11 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 25. Ricalcolo del calendario
     Il ricalcolo automatico diventa un'opzione da attivare.
+
+26. Appuntamenti di consulenza
+    Le attivita' di vendita diventano appuntamenti pianificabili, richiesti
+    dai clienti anche dall'app; orari di officina definiti per ogni
+    collaboratore.
+
+27. Logo
+    Il logo del negozio nell'applicazione.

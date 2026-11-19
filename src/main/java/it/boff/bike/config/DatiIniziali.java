@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,10 +54,12 @@ public class DatiIniziali implements ApplicationRunner {
     private final BiciclettaService biciclette;
     private final LavoroService lavori;
     private final CatalogoService catalogo;
+    private final it.boff.bike.appuntamento.AppuntamentoService appuntamenti;
 
     public DatiIniziali(UtenteRepository utenti, PasswordEncoder passwordEncoder, BoffProperties properties,
                         CalendarioService calendario, BiciclettaService biciclette, LavoroService lavori,
-                        CatalogoService catalogo) {
+                        CatalogoService catalogo, it.boff.bike.appuntamento.AppuntamentoService appuntamenti) {
+        this.appuntamenti = appuntamenti;
         this.calendario = calendario;
         this.biciclette = biciclette;
         this.lavori = lavori;
@@ -97,6 +100,7 @@ public class DatiIniziali implements ApplicationRunner {
         Utente paolo = creaSeAssente("paolo.ferri@demo.it", "Paolo", "Ferri", Ruolo.CLIENTE, false);
         Utente sara = creaSeAssente("sara.conti@demo.it", "Sara", "Conti", Ruolo.CLIENTE, false);
         lavoriDemo(giulia, paolo, sara);
+        appuntamentiDemo(giulia, paolo);
         log.warn("Utenti demo attivi (password '{}'). Non usare boff.demo=true in produzione!", PASSWORD_DEMO);
     }
 
@@ -147,6 +151,20 @@ public class DatiIniziali implements ApplicationRunner {
         Lavoro ebike = lavori.creaAlBanco(haibike.getId(), tipi("Diagnosi e aggiornamento e-bike", "Regolazione freni"), null);
         lavori.impostaDettagli(ebike.getId(), false, calendario.oggi().plusDays(4), null);
         lavori.creaAlBanco(graziella.getId(), tipi("Riparazione foratura", "Lavaggio"), null);
+    }
+
+    /** Un appuntamento da confermare (richiesto dall'app) e uno confermato, nei prossimi giorni. */
+    private void appuntamentiDemo(Utente giulia, Utente paolo) {
+        LocalDate oggi = calendario.oggi();
+        if (!appuntamenti.tra(oggi.minusDays(30), oggi.plusDays(60)).isEmpty()) return;
+        var tipi = appuntamenti.tipiAttivi();
+        if (tipi.size() < 3) return;
+        var liberi = appuntamenti.orariLiberi(tipi.get(0).getId(), oggi.plusDays(1), oggi.plusDays(14));
+        liberi.entrySet().stream().findFirst().ifPresent(e -> appuntamenti.richiedi(paolo.getId(), tipi.get(0).getId(),
+                e.getKey(), e.getValue().get(0), null, "Vorrei passare a una gravel, budget 2.000 €"));
+        var liberi2 = appuntamenti.orariLiberi(tipi.get(2).getId(), oggi.plusDays(2), oggi.plusDays(14));
+        liberi2.entrySet().stream().skip(1).findFirst().ifPresent(e -> appuntamenti.crea(giulia.getId(), tipi.get(2).getId(),
+                null, e.getKey(), e.getValue().get(e.getValue().size() / 2), "Porta le scarpe con le tacchette"));
     }
 
     private List<Long> tipi(String... nomi) {

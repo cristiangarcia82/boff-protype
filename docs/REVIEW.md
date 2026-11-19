@@ -208,3 +208,14 @@ recupero password, cookie, log, configurazione di produzione.
 | Trovato in review (3) | Dopo l'accesso con passkey il "resta collegato" non riconosceva l'utente (nome letto dal tipo sbagliato) e l'accesso falliva: corretto. Il filtro WebAuthn ora cambia anche l'id di sessione e usa "resta collegato" come il login normale. |
 | Personale | Accesso di 12 ore (cookie e sessione), test della scadenza con orologio fisso. |
 | Rischio residuo | Sul Mac condiviso con un unico utente macOS, Touch ID non distingue le persone (vedi D45). Le notifiche push e Face ID su un iPhone reale vanno provate dopo la messa online (servono HTTPS e il dominio vero). |
+
+# Review fase 12 – Calendario, ricalcolo e appuntamenti
+
+| Voce | Esito |
+|---|---|
+| Calendario | Tre visualizzazioni, due settimane, blocco per bici; spostamento di gruppo atomico (prima: errore "Assegnazione non trovata" perché il ricalcolo dopo il primo pezzo cambiava gli id degli altri). |
+| Ricalcolo facoltativo | Test: con il ricalcolo spento un lavoro urgente arrivato dopo non sposta gli altri; un intervento aggiunto trova posto; uno fatto libera lo spazio. |
+| Appuntamenti | Test di servizio: orari liberi solo nella vendita e senza sovrapposizioni, richiesta che tiene l'orario, doppia prenotazione rifiutata, conferma, spostamento dentro/fuori vendita, assenze, limite per cliente, annullamento solo del proprietario, privacy. Test d'interfaccia: prenotazione dal telefono e conferma dal negozio. |
+| Test fragili trovati | Due test davano per scontato un'officina vuota o un intervento in un solo pezzo e fallivano con un ordine di esecuzione diverso: resi indipendenti (verificato in ordine alfabetico e inverso). |
+| Trovato in review (interfaccia) | Pulsante dell'orario scelto illeggibile (testo bianco su fondo trasparente); nome del cliente nascosto nei blocchi brevi della linea del tempo: corretti. |
+| Rischio residuo | Un appuntamento non si trascina nel calendario (si sposta dal dettaglio). Il logo è una ricostruzione vettoriale dall'immagine del profilo: sostituibile con il file originale (`icons/logo.svg` e `icons/logo.png`). |

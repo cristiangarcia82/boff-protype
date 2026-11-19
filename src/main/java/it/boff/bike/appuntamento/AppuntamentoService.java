@@ -1,0 +1,350 @@
+package it.boff.bike.appuntamento;
+
+import it.boff.bike.bicicletta.Bicicletta;
+import it.boff.bike.bicicletta.BiciclettaRepository;
+import it.boff.bike.calendario.CalendarioService;
+import it.boff.bike.calendario.Disponibilita;
+import it.boff.bike.calendario.Intervallo;
+import it.boff.bike.calendario.TipoFascia;
+import it.boff.bike.common.ErroreDominio;
+import it.boff.bike.utente.Ruolo;
+import it.boff.bike.utente.Utente;
+import it.boff.bike.utente.UtenteRepository;
+import jakarta.validation.Valid;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * Appuntamenti di consulenza. Stanno nelle fasce di <b>vendita</b> di una persona (quelle di officina
+ * restano ai lavori sulle bici): il cliente sceglie giorno e ora fra quelli liberi, il negozio conferma.
+ * Chi segue l'appuntamento lo sceglie l'app (la persona libera meno impegnata quel giorno) o il negozio.
+ */
+@Service
+@Transactional
+public class AppuntamentoService {
+
+    /** Granularità degli orari proposti. */
+    static final int PASSO_MIN = 30;
+    /** Preavviso minimo per una richiesta dall'app. */
+    static final Duration PREAVVISO = Duration.ofHours(2);
+    /** Fin dove si può prenotare dall'app. */
+    public static final int GIORNI_PRENOTABILI = 30;
+    /** Appuntamenti futuri aperti per cliente. */
+    static final int MAX_APERTI_PER_CLIENTE = 3;
+    public static final int MAX_NOTE = 1000;
+
+    private final AppuntamentoRepository appuntamenti;
+    private final TipoAppuntamentoRepository tipi;
+    private final UtenteRepository utenti;
+    private final BiciclettaRepository biciclette;
+    private final CalendarioService calendario;
+    private final ApplicationEventPublisher eventi;
+    private final Clock clock;
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public AppuntamentoService(AppuntamentoRepository appuntamenti, TipoAppuntamentoRepository tipi,
+                               UtenteRepository utenti, BiciclettaRepository biciclette, CalendarioService calendario,
+                               ApplicationEventPublisher eventi, Clock clock) {
+        this.appuntamenti = appuntamenti;
+        this.tipi = tipi;
+        this.utenti = utenti;
+        this.biciclette = biciclette;
+        this.calendario = calendario;
+        this.eventi = eventi;
+        this.clock = clock;
+    }
+
+    // ---------------------------------------------------------------- catalogo
+
+    @Transactional(readOnly = true)
+    public List<TipoAppuntamento> tipiAttivi() {
+        return tipi.findByAttivoTrueOrderByOrdineAscNomeAsc();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TipoAppuntamento> tuttiITipi() {
+        return tipi.findAllByOrderByOrdineAscNomeAsc();
+    }
+
+    public TipoAppuntamento salvaTipo(@Valid TipoAppuntamento tipo) {
+        tipo.setNome(tipo.getNome().trim());
+        if (tipo.getId() == null && tipi.existsByNomeIgnoreCase(tipo.getNome())) {
+            throw new ErroreDominio("Esiste già un tipo di appuntamento con questo nome");
+        }
+        return tipi.save(tipo);
+    }
+
+    // ---------------------------------------------------------------- disponibilità
+
+    /** Orari d'inizio liberi per un tipo di appuntamento, giorno per giorno (per chiunque sia libero). */
+    @Transactional(readOnly = true)
+    public Map<LocalDate, List<LocalTime>> orariLiberi(Long tipoId, LocalDate dal, LocalDate al) {
+        TipoAppuntamento tipo = tipo(tipoId);
+        Disponibilita d = calendario.disponibilita(dal, al);
+        List<Appuntamento> occupati = appuntamenti.tra(dal, al, StatoAppuntamento.ATTIVI);
+        LocalDateTime minimo = LocalDateTime.now(clock).plus(PREAVVISO);
+        Map<LocalDate, List<LocalTime>> risultato = new TreeMap<>();
+        for (LocalDate g = dal; !g.isAfter(al); g = g.plusDays(1)) {
+            TreeSet<LocalTime> orari = new TreeSet<>();
+            for (Long p : d.persone()) {
+                orari.addAll(inizi(d, occupati, p, g, tipo.getDurataMin(), null, minimo));
+            }
+            if (!orari.isEmpty()) risultato.put(g, List.copyOf(orari));
+        }
+        return risultato;
+    }
+
+    /** Orari d'inizio liberi per una persona precisa (creazione o spostamento dal negozio). */
+    @Transactional(readOnly = true)
+    public List<LocalTime> orariLiberiDi(Long utenteId, LocalDate giorno, int durataMin, Long esclusoAppuntamento) {
+        Disponibilita d = calendario.disponibilita(giorno, giorno);
+        List<Appuntamento> occupati = appuntamenti.tra(giorno, giorno, StatoAppuntamento.ATTIVI);
+        return inizi(d, occupati, utenteId, giorno, durataMin, esclusoAppuntamento, LocalDateTime.now(clock));
+    }
+
+    private static List<LocalTime> inizi(Disponibilita d, List<Appuntamento> occupati, Long persona, LocalDate g,
+                                         int durata, Long escluso, LocalDateTime minimo) {
+        List<Intervallo> presi = occupati.stream()
+                .filter(a -> a.getUtente().getId().equals(persona) && a.getData().equals(g)
+                        && !a.getId().equals(escluso))
+                .map(Appuntamento::intervallo).toList();
+        List<LocalTime> risultato = new ArrayList<>();
+        for (Intervallo vendita : d.intervalli(persona, g, TipoFascia.VENDITA)) {
+            for (Intervallo libero : vendita.meno(presi)) {
+                LocalTime t = arrotonda(libero.inizio());
+                while (t != null && !t.plusMinutes(durata).isAfter(libero.fine()) && t.plusMinutes(durata).isAfter(t)) {
+                    if (!LocalDateTime.of(g, t).isBefore(minimo)) risultato.add(t);
+                    LocalTime dopo = t.plusMinutes(PASSO_MIN);
+                    t = dopo.isAfter(t) ? dopo : null;
+                }
+            }
+        }
+        return risultato;
+    }
+
+    /** Arrotonda alla mezz'ora successiva (09:10 → 09:30), lasciando invariati gli orari già tondi. */
+    static LocalTime arrotonda(LocalTime t) {
+        int resto = (t.getHour() * 60 + t.getMinute()) % PASSO_MIN;
+        if (resto == 0 && t.getSecond() == 0) return t.withSecond(0).withNano(0);
+        LocalTime r = t.withSecond(0).withNano(0).plusMinutes(PASSO_MIN - resto);
+        return r.isAfter(t) ? r : null;
+    }
+
+    // ---------------------------------------------------------------- richieste e gestione
+
+    /** Il cliente chiede un appuntamento dall'app: lo spazio è tenuto, il negozio conferma. */
+    public Appuntamento richiedi(Long clienteId, Long tipoId, LocalDate giorno, LocalTime ora, Long biciId, String note) {
+        lock.lock();
+        try {
+            Utente cliente = cliente(clienteId);
+            if (!cliente.isAttivo()) throw new ErroreDominio("Account non attivo");
+            LocalDate oggi = calendario.oggi();
+            if (giorno.isAfter(oggi.plusDays(GIORNI_PRENOTABILI))) {
+                throw new ErroreDominio("Si può prenotare al massimo " + GIORNI_PRENOTABILI + " giorni avanti");
+            }
+            if (appuntamenti.apertiDelCliente(clienteId, oggi, StatoAppuntamento.ATTIVI) >= MAX_APERTI_PER_CLIENTE) {
+                throw new ErroreDominio("Hai già " + MAX_APERTI_PER_CLIENTE + " appuntamenti in programma: "
+                        + "annullane uno o chiama il negozio");
+            }
+            TipoAppuntamento tipo = tipo(tipoId);
+            if (!tipo.isAttivo()) throw new ErroreDominio("Questo tipo di appuntamento non è più disponibile");
+            Bicicletta bici = biciDelCliente(clienteId, biciId);
+            Utente persona = personaLibera(giorno, ora, tipo.getDurataMin())
+                    .orElseThrow(() -> new ErroreDominio("Quest'orario non è più libero: scegline un altro"));
+            Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, bici, giorno,
+                    new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), pulisci(note), true, adesso()));
+            eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.RICHIESTO));
+            return a;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /** Il negozio fissa un appuntamento (già confermato). Persona null = la sceglie l'app. */
+    public Appuntamento crea(Long clienteId, Long tipoId, Long utenteId, LocalDate giorno, LocalTime ora, String note) {
+        lock.lock();
+        try {
+            Utente cliente = cliente(clienteId);
+            TipoAppuntamento tipo = tipo(tipoId);
+            if (giorno.isBefore(calendario.oggi())) throw new ErroreDominio("Non si può fissare un appuntamento nel passato");
+            Utente persona = utenteId == null
+                    ? personaLiberaNegozio(giorno, ora, tipo.getDurataMin())
+                        .orElseThrow(() -> new ErroreDominio("Nessuno è libero a quell'ora nelle ore di vendita"))
+                    : personaSeLibera(utenteId, giorno, ora, tipo.getDurataMin(), null);
+            Appuntamento a = appuntamenti.save(new Appuntamento(cliente, tipo, persona, null, giorno,
+                    new Intervallo(ora, ora.plusMinutes(tipo.getDurataMin())), null, false, adesso()));
+            a.setNoteInterne(pulisci(note));
+            eventi.publishEvent(new AppuntamentoCambiato(a.getId(), AppuntamentoCambiato.Cosa.CREATO_DAL_NEGOZIO));
+            return a;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void conferma(Long id) {
+        appuntamento(id).conferma(adesso());
+        eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.CONFERMATO));
+    }
+
+    /** Il negozio sposta un appuntamento (persona, giorno, ora): resta nelle ore di vendita, vale come confermato. */
+    public void sposta(Long id, Long utenteId, LocalDate giorno, LocalTime ora) {
+        lock.lock();
+        try {
+            Appuntamento a = appuntamento(id);
+            if (giorno.isBefore(calendario.oggi())) throw new ErroreDominio("Non si può spostare nel passato");
+            int durata = (int) a.intervallo().minuti();
+            Utente persona = personaSeLibera(utenteId, giorno, ora, durata, id);
+            a.sposta(persona, giorno, new Intervallo(ora, ora.plusMinutes(durata)), adesso());
+            eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.SPOSTATO));
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void annulla(Long id) {
+        appuntamento(id).annulla(adesso());
+        eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.ANNULLATO_DAL_NEGOZIO));
+    }
+
+    public void annullaDelCliente(Long clienteId, Long id) {
+        Appuntamento a = appuntamento(id);
+        if (!a.getCliente().getId().equals(clienteId)) throw new ErroreDominio("Appuntamento non trovato");
+        if (LocalDateTime.of(a.getData(), a.getOraInizio()).isBefore(LocalDateTime.now(clock))) {
+            throw new ErroreDominio("L'appuntamento è già passato");
+        }
+        a.annulla(adesso());
+        eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.ANNULLATO_DAL_CLIENTE));
+    }
+
+    public void segnaSvolto(Long id) {
+        appuntamento(id).segnaSvolto(adesso());
+    }
+
+    public void impostaNoteInterne(Long id, String note) {
+        appuntamento(id).setNoteInterne(pulisci(note));
+    }
+
+    // ---------------------------------------------------------------- letture
+
+    @Transactional(readOnly = true)
+    public List<Appuntamento> tra(LocalDate dal, LocalDate al) {
+        return appuntamenti.tra(dal, al, StatoAppuntamento.ATTIVI);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Appuntamento> daConfermare() {
+        return appuntamenti.daConfermare(calendario.oggi());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Appuntamento> delCliente(Long clienteId) {
+        return appuntamenti.delCliente(clienteId);
+    }
+
+    @Transactional(readOnly = true)
+    public Appuntamento dettaglio(Long id) {
+        Appuntamento a = appuntamento(id);
+        org.hibernate.Hibernate.initialize(a.getCliente());
+        org.hibernate.Hibernate.initialize(a.getTipo());
+        org.hibernate.Hibernate.initialize(a.getUtente());
+        if (a.getBicicletta() != null) org.hibernate.Hibernate.initialize(a.getBicicletta());
+        return a;
+    }
+
+    /** Cancellazione dei dati del cliente: annulla quelli futuri e toglie note e bici da tutti. */
+    public void perCancellazioneCliente(Long clienteId) {
+        OffsetDateTime adesso = adesso();
+        for (Appuntamento a : appuntamenti.delCliente(clienteId)) {
+            if (a.isAttivo()) a.annulla(adesso);
+            a.cancellaNoteCliente();
+        }
+    }
+
+    // ---------------------------------------------------------------- interni
+
+    /** Persona libera per una richiesta dall'app (con preavviso): la meno impegnata quel giorno. */
+    private Optional<Utente> personaLibera(LocalDate giorno, LocalTime ora, int durata) {
+        if (LocalDateTime.of(giorno, ora).isBefore(LocalDateTime.now(clock).plus(PREAVVISO))) return Optional.empty();
+        return personaLiberaNegozio(giorno, ora, durata);
+    }
+
+    private Optional<Utente> personaLiberaNegozio(LocalDate giorno, LocalTime ora, int durata) {
+        Disponibilita d = calendario.disponibilita(giorno, giorno);
+        List<Appuntamento> occupati = appuntamenti.tra(giorno, giorno, StatoAppuntamento.ATTIVI);
+        return d.personale().stream()
+                .filter(p -> entra(d, occupati, p.getId(), giorno, ora, durata, null))
+                .min(Comparator.comparingLong(p -> occupati.stream()
+                        .filter(a -> a.getUtente().getId().equals(p.getId())).count()));
+    }
+
+    private Utente personaSeLibera(Long utenteId, LocalDate giorno, LocalTime ora, int durata, Long escluso) {
+        Utente persona = utenti.findById(utenteId).filter(u -> u.getRuolo() == Ruolo.STAFF && u.isAttivo())
+                .orElseThrow(() -> new ErroreDominio("Persona non trovata"));
+        Disponibilita d = calendario.disponibilita(giorno, giorno);
+        List<Appuntamento> occupati = appuntamenti.tra(giorno, giorno, StatoAppuntamento.ATTIVI);
+        if (!entra(d, occupati, utenteId, giorno, ora, durata, escluso)) {
+            throw new ErroreDominio(persona.getNome() + " non è libero/a alle " + ora
+                    + " nelle ore di vendita per " + durata + " minuti");
+        }
+        return persona;
+    }
+
+    /** true se [ora, ora+durata) sta in una fascia di vendita della persona e non tocca altri appuntamenti. */
+    private static boolean entra(Disponibilita d, List<Appuntamento> occupati, Long persona, LocalDate g,
+                                 LocalTime ora, int durata, Long escluso) {
+        LocalTime fine = ora.plusMinutes(durata);
+        if (!fine.isAfter(ora)) return false;
+        Intervallo voluto = new Intervallo(ora, fine);
+        boolean inVendita = d.intervalli(persona, g, TipoFascia.VENDITA).stream()
+                .anyMatch(v -> !ora.isBefore(v.inizio()) && !fine.isAfter(v.fine()));
+        boolean libero = occupati.stream().noneMatch(a -> a.getUtente().getId().equals(persona) && a.getData().equals(g)
+                && !a.getId().equals(escluso) && a.intervallo().siSovrappone(voluto));
+        return inVendita && libero;
+    }
+
+    private Bicicletta biciDelCliente(Long clienteId, Long biciId) {
+        if (biciId == null) return null;
+        return biciclette.findById(biciId).filter(b -> b.getProprietario().getId().equals(clienteId))
+                .orElseThrow(() -> new ErroreDominio("Bici non trovata"));
+    }
+
+    private Utente cliente(Long id) {
+        return utenti.findById(id).filter(u -> u.getRuolo() == Ruolo.CLIENTE && !u.isEliminato())
+                .orElseThrow(() -> new ErroreDominio("Cliente non trovato"));
+    }
+
+    private TipoAppuntamento tipo(Long id) {
+        return tipi.findById(id).orElseThrow(() -> new ErroreDominio("Tipo di appuntamento non trovato"));
+    }
+
+    private Appuntamento appuntamento(Long id) {
+        return appuntamenti.findById(id).orElseThrow(() -> new ErroreDominio("Appuntamento non trovato"));
+    }
+
+    private OffsetDateTime adesso() {
+        return OffsetDateTime.now(clock);
+    }
+
+    private static String pulisci(String s) {
+        if (s == null || s.isBlank()) return null;
+        String t = s.trim();
+        if (t.length() > MAX_NOTE) throw new ErroreDominio("Note troppo lunghe (massimo " + MAX_NOTE + " caratteri)");
+        return t;
+    }
+}

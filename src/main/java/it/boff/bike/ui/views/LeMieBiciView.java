@@ -59,7 +59,7 @@ public class LeMieBiciView extends Div {
         add(intestazione, new AttivaNotifiche(notifiche, utenteId,
                 "Ti avvisiamo quando la bici è arrivata, quando prevediamo di finirla e quando è pronta."),
                 new it.boff.bike.ui.componenti.ProponiPasskey(passkey, utenteCorrente.get().orElseThrow().getEmail()),
-                elenco);
+                invitoAppuntamento(), elenco);
         aggiorna();
     }
 
@@ -104,5 +104,16 @@ public class LeMieBiciView extends Div {
             Avvisi.ok("Bici aggiunta");
             aggiorna();
         }, null).open();
+    }
+
+    /** Richiamo alla prenotazione delle consulenze. */
+    private static com.vaadin.flow.component.Component invitoAppuntamento() {
+        com.vaadin.flow.router.RouterLink link = new com.vaadin.flow.router.RouterLink("Prenota un appuntamento",
+                IMieiAppuntamentiView.class);
+        com.vaadin.flow.component.html.Span testo = new com.vaadin.flow.component.html.Span(
+                "Ti serve un consiglio su una bici nuova o sulla posizione in sella? ");
+        Div d = new Div(testo, link);
+        d.addClassNames("boff-card", "boff-invito-appuntamento");
+        return d;
     }
 }

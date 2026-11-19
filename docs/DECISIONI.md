@@ -226,3 +226,14 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Accesa**: comportamento precedente (ricalcolo completo dopo ogni modifica e ogni ora).
 - In entrambi i casi gli interventi fissati a mano non si spostano. Il calendario mostra un avviso quando il ricalcolo automatico è spento.
 - ⚠️ Con il ricalcolo spento, un lavoro urgente o con data promessa vicina non scavalca gli altri finché non si preme *Ripianifica* (l'avviso "finisce dopo la data promessa" resta).
+
+## D49 – Appuntamenti di consulenza nelle ore di vendita (richiesta del titolare)
+- Le ore di **vendita** di ogni persona (impostate in *Impostazioni → Orari*, già per persona) diventano prenotabili per **consulenze**: acquisto, e-bike, posizionamento in sella, consegna bici nuova. Le ore di **officina** restano ai lavori: le due pianificazioni non si toccano.
+- **Tipi di appuntamento** (*Impostazioni → Tipi di appuntamento*): nome, descrizione per il cliente, durata, prenotabile sì/no.
+- **Dal cliente** (*menu → Appuntamenti*, invito nella pagina *Le mie bici*): sceglie il tipo, poi un giorno e un orario fra quelli **liberi** (passo di 30 minuti, almeno 2 ore di preavviso, fino a 30 giorni). La richiesta **tiene già l'orario** (nessun doppione) ed è *da confermare*. Facoltativi: bici e note. Massimo 3 appuntamenti futuri per cliente; può annullarli finché non sono passati.
+- **Chi lo segue**: l'app sceglie fra le persone in vendita a quell'ora la meno impegnata quel giorno; il negozio può cambiarla.
+- **Dal negozio**: pagina *Appuntamenti* (da confermare / prossimi 14 giorni), *Nuovo appuntamento* (anche con un cliente nuovo o senza app: nasce già confermato), e nel calendario in viola (bordo tratteggiato = da confermare) in tutte e tre le visualizzazioni. Toccandolo: Conferma, Sposta (solo in orari liberi di vendita), Svolto, Annulla, note interne. In bacheca: richieste da confermare e appuntamenti di oggi.
+- **Avvisi**: al personale per una nuova richiesta o un annullamento del cliente; al cliente per conferma, spostamento, annullamento o appuntamento fissato dal negozio (email di riserva). Clienti senza app: niente avvisi, si chiamano.
+- **Privacy**: gli appuntamenti sono nell'export dei dati; la cancellazione annulla quelli futuri e toglie note e bici. Informativa versione 4.
+- **Alternative scartate**: il cliente propone solo una preferenza e il negozio sceglie l'ora (più telefonate); il cliente sceglie anche la persona (le ore di vendita cambiano di settimana in settimana).
+- ⚠️ Da valutare con l'uso: preavviso minimo, limite di 3, tipi di appuntamento iniziali.

@@ -85,6 +85,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
     private final Div griglia = new Div();
     private final Div avvisi = new Div();
     private Map<String, List<Assegnazione>> assegnazioniPerCella = Map.of();
+    private Map<String, List<it.boff.bike.appuntamento.Appuntamento>> appuntamentiPerCella = Map.of();
+    private final it.boff.bike.appuntamento.AppuntamentoService appuntamenti;
+    private List<Utente> personaleAttivo = List.of();
     private final Span periodo = new Span();
     private LocalDate lunedi;
     private Vista vista = Vista.COMPATTA;
@@ -94,7 +97,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
     /** Linea del tempo: inizio e fine della giornata più lunga della settimana. */
     private java.time.LocalTime inizioScala = java.time.LocalTime.of(8, 0), fineScala = java.time.LocalTime.of(20, 0);
 
-    public CalendarioView(CalendarioService calendario, PianificazioneService pianificazione, LavoroService lavori) {
+    public CalendarioView(CalendarioService calendario, PianificazioneService pianificazione, LavoroService lavori,
+                          it.boff.bike.appuntamento.AppuntamentoService appuntamenti) {
+        this.appuntamenti = appuntamenti;
         this.calendario = calendario;
         this.pianificazione = pianificazione;
         this.lavori = lavori;
@@ -128,8 +133,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
 
         Div intestazione = new Div(new H2("Calendario"), navigazione);
         intestazione.addClassName("boff-intestazione");
-        Div legenda = new Div(voceLegenda("vendita", "Vendita (banco)"), voceLegenda("officina", "Officina"),
-                voceLegenda("lavoro", "Intervento pianificato"), voceLegenda("assenza", "Assente / chiuso"));
+        Div legenda = new Div(voceLegenda("vendita", "Vendita e consulenze"), voceLegenda("officina", "Officina"),
+                voceLegenda("lavoro", "Lavoro in officina"), voceLegenda("appuntamento", "Appuntamento"),
+                voceLegenda("assenza", "Assente / chiuso"));
         Span suggerimento = new Span("Tocca una bici per i dettagli; trascinala su un'altra persona o giorno per spostarla.");
         suggerimento.addClassName("boff-testo-secondario");
         legenda.add(suggerimento);
@@ -213,6 +219,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         Disponibilita d = calendario.disponibilita(lunedi, domenica);
         assegnazioniPerCella = pianificazione.tra(lunedi, domenica).stream()
                 .collect(Collectors.groupingBy(a -> a.getUtente().getId() + "|" + a.getData()));
+        appuntamentiPerCella = appuntamenti.tra(lunedi, domenica).stream()
+                .collect(Collectors.groupingBy(a -> a.getUtente().getId() + "|" + a.getData()));
+        personaleAttivo = d.personale();
         // la domenica si mostra solo se qualcuno lavora in una delle settimane
         boolean domeniche = Stream.iterate(lunedi.plusDays(6), g -> g.plusWeeks(1)).limit(settimane)
                 .anyMatch(g -> d.personale().stream().anyMatch(p -> !d.fasce(p.getId(), g).isEmpty()));
@@ -325,6 +334,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             });
             elencoCella.stream().sorted(java.util.Comparator.comparing(Assegnazione::getOraInizio))
                     .forEach(a -> cella.add(chip(a)));
+            appuntamentiDi(p, g).forEach(a -> cella.add(slotAppuntamento(a)));
             capacita(cella, d, p, g, elencoCella, true);
             return cella;
         }
@@ -346,7 +356,11 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         });
         cella.add(orari);
 
-        raggruppa(elencoCella).forEach(gruppo -> cella.add(slot(gruppo)));
+        record Blocco(java.time.LocalTime inizio, Component c) { }
+        List<Blocco> blocchi = new java.util.ArrayList<>();
+        raggruppa(elencoCella).forEach(gruppo -> blocchi.add(new Blocco(gruppo.get(0).getOraInizio(), slot(gruppo))));
+        appuntamentiDi(p, g).forEach(a -> blocchi.add(new Blocco(a.getOraInizio(), slotAppuntamento(a))));
+        blocchi.stream().sorted(java.util.Comparator.comparing(Blocco::inizio)).forEach(b -> cella.add(b.c()));
         capacita(cella, d, p, g, elencoCella, false);
         return cella;
     }
@@ -416,12 +430,48 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
                     .set("height", Math.max(18, px(fine) - px(inizio) - 2) + "px");
             tela.add(s);
         }
+        for (var a : appuntamentiDi(p, g)) {
+            Component s = slotAppuntamento(a);
+            s.getElement().getClassList().add("posizionato");
+            s.getElement().getStyle().set("top", px(a.getOraInizio()) + "px")
+                    .set("height", Math.max(18, px(a.getOraFine()) - px(a.getOraInizio()) - 2) + "px");
+            tela.add(s);
+        }
         // riga in alto di altezza fissa (allineata al nome della persona): ore libere
         Div testa = new Div();
         testa.addClassName("boff-tela-testa");
         capacita(testa, d, p, g, elenco, false);
         cella.add(testa, tela);
         return cella;
+    }
+
+    private List<it.boff.bike.appuntamento.Appuntamento> appuntamentiDi(Utente p, LocalDate g) {
+        return appuntamentiPerCella.getOrDefault(p.getId() + "|" + g, List.of());
+    }
+
+    /** Un appuntamento di consulenza: cliente e tipo; toccandolo si conferma, sposta o annulla. */
+    private Component slotAppuntamento(it.boff.bike.appuntamento.Appuntamento a) {
+        Div slot = new Div();
+        slot.addClassNames("boff-slot", "appuntamento");
+        boolean richiesto = a.getStato() == it.boff.bike.appuntamento.StatoAppuntamento.RICHIESTO;
+        if (richiesto) slot.addClassName("richiesto");
+        Span chi = new Span(a.getCliente().getNomeCompleto());
+        chi.addClassName("boff-slot-bici");
+        Span quando = new Span(breve(a.getOraInizio()) + "–" + breve(a.getOraFine()));
+        quando.addClassName("boff-slot-orario");
+        Span cosa = new Span(richiesto ? "da confermare" : a.getTipo().getNome());
+        cosa.addClassName("boff-slot-etichetta");
+        Div riga = new Div(quando);
+        riga.addClassName("boff-slot-riga");
+        Div etichetta = new Div(cosa);
+        etichetta.addClassName("boff-slot-riga");
+        slot.add(chi, riga, etichetta);
+        slot.setTitle(a.getTipo().getNome() + " · " + a.getCliente().getNomeCompleto());
+        slot.getElement().setAttribute("role", "button");
+        slot.getElement().setAttribute("tabindex", "0");
+        slot.addClickListener(e -> new AppuntamentoDialog(appuntamenti, personaleAttivo, calendario.oggi(), a.getId(),
+                this::mostra).open());
+        return slot;
     }
 
     /** Vista dettagliata: un blocco per intervento, con orario e bici. */

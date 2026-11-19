@@ -84,6 +84,8 @@ public class MainLayout extends AppLayout {
             impostazioni.setPrefixComponent(VaadinIcon.COG.create());
             impostazioni.addItem(new SideNavItem("Personale", UtentiView.class, VaadinIcon.USERS.create()));
             impostazioni.addItem(new SideNavItem("Catalogo interventi", CatalogoView.class, VaadinIcon.LIST.create()));
+            impostazioni.addItem(new SideNavItem("Tipi di appuntamento", it.boff.bike.ui.views.TipiAppuntamentoView.class,
+                    VaadinIcon.CALENDAR_CLOCK.create()));
             for (VoceMenu voce : MenuStaff.impostazioni()) {
                 impostazioni.addItem(new SideNavItem(voce.etichetta(), voce.vista(), voce.icona().create()));
             }
@@ -123,6 +125,7 @@ public class MainLayout extends AppLayout {
             radice.getElement().setAttribute("aria-label", "Menu utente");
             SubMenu sotto = radice.getSubMenu();
             sotto.addItem("Le mie bici", e -> naviga(LeMieBiciView.class));
+            sotto.addItem("Appuntamenti", e -> naviga(it.boff.bike.ui.views.IMieiAppuntamentiView.class));
             sotto.addItem("Il mio profilo", e -> naviga(ProfiloView.class));
             sotto.addItem("Installa l'app", e -> getUI().ifPresent(ui -> ui.navigate("installa")));
             sotto.addItem("Esci", e -> utenteCorrente.logout());
@@ -167,6 +170,7 @@ public class MainLayout extends AppLayout {
                     new VoceMenu("Bacheca", BachecaView.class, VaadinIcon.DASHBOARD),
                     new VoceMenu("Lavori", LavoriView.class, VaadinIcon.WRENCH),
                     new VoceMenu("Calendario", CalendarioView.class, VaadinIcon.CALENDAR),
+                    new VoceMenu("Appuntamenti", it.boff.bike.ui.views.AppuntamentiView.class, VaadinIcon.CALENDAR_CLOCK),
                     new VoceMenu("Clienti", ClientiView.class, VaadinIcon.USER_CARD),
                     new VoceMenu("Assenze e chiusure", AssenzeView.class, VaadinIcon.CALENDAR_USER));
         }

@@ -81,3 +81,4 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 | 9. Funzionalità opzionali | Approvazione lavori extra, promemoria di manutenzione, tempo effettivo, avviso di officina piena (tutte spente di default) | ✅ completata |
 | 10. Clienti senza app | Clienti con solo nome e telefono, cliente e bici creati da *Nuovo lavoro*, badge "Senza app", promemoria di chiamata, risposte registrate dal negozio | ✅ completata |
 | 11. Accesso senza password | Codice via email, Face ID / Touch ID (passkey), accesso del personale di 12 ore per il Mac condiviso | ✅ completata |
+| 12. Calendario e consulenze | Calendario leggibile (tre visualizzazioni, due settimane), ricalcolo facoltativo, appuntamenti di consulenza nelle ore di vendita, logo | ✅ completata |
