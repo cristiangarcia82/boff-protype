@@ -47,8 +47,8 @@ public class PrivacyView extends Div {
                                 + "le iscrizioni alle notifiche sui tuoi dispositivi.",
                         "Se entri con Face ID, Touch ID o l'impronta: una chiave pubblica e il nome del dispositivo "
                                 + "(es. \"iPhone\"). Il viso e l'impronta restano sul tuo dispositivo: non li riceviamo mai.",
-                        "Se entri con un codice via email: il codice, conservato solo in forma cifrata, "
-                                + "che vale 10 minuti."),
+                        "Se entri con un codice via email: il codice, che vale 10 minuti ed è conservato "
+                                + "solo in forma cifrata."),
                 new Paragraph("Se non usi l'app, ti registriamo noi in negozio con i soli dati necessari "
                         + "(nome, cognome e telefono) e ti avvisiamo per telefono."),
 
