@@ -121,4 +121,86 @@ class PianificazioneServiceIT {
         lavori.segnaRiga(riga, true);
         assertThat(pianificazione.ricalcoliEseguiti() - prima).isEqualTo(1);
     }
+
+    @Test
+    void ilBloccoDiUnaBiciSiSpostaTuttoInsiemeAllaSettimanaDopo() {
+        Long id = lavori.creaAlBanco(bici, List.of(catena.getId()), null).getId();
+        lavori.aggiungiLibera(id, "Controllo raggi", 40);
+        List<Long> ids = pianificazione.diLavoro(id).stream()
+                .sorted(java.util.Comparator.comparing(Assegnazione::getData).thenComparing(Assegnazione::getOraInizio))
+                .map(Assegnazione::getId).toList();
+        long totale = catena.getDurataStandardMin() + 40;
+
+        // un giorno della settimana dopo con uno spazio di officina che contiene tutto il blocco
+        LocalDate da = calendario.oggi().plusDays(7);
+        Disponibilita d = calendario.disponibilita(da, da.plusDays(14));
+        LocalDate giorno = null;
+        Long persona = null;
+        for (int i = 0; i < 14 && giorno == null; i++) {
+            for (Long p : d.persone()) {
+                if (d.officina(p, da.plusDays(i)).stream().anyMatch(x -> x.minuti() >= totale)) {
+                    giorno = da.plusDays(i);
+                    persona = p;
+                    break;
+                }
+            }
+        }
+        assertThat(giorno).as("serve un giorno con ore di officina nei dati demo").isNotNull();
+
+        pianificazione.spostaTutti(ids, persona, giorno, null);
+        List<Assegnazione> dopo = pianificazione.diLavoro(id).stream()
+                .sorted(java.util.Comparator.comparing(Assegnazione::getOraInizio)).toList();
+        Long chi = persona;
+        LocalDate g = giorno;
+        assertThat(dopo).hasSameSizeAs(ids).allSatisfy(a -> {
+            assertThat(a.isBloccata()).isTrue();
+            assertThat(a.getUtente().getId()).isEqualTo(chi);
+            assertThat(a.getData()).isEqualTo(g);
+        });
+        assertThat(dopo.stream().mapToLong(a -> a.intervallo().minuti()).sum()).isEqualTo(totale);
+        for (int i = 1; i < dopo.size(); i++) {
+            assertThat(dopo.get(i).getOraInizio()).as("uno dopo l'altro").isEqualTo(dopo.get(i - 1).getOraFine());
+        }
+    }
+
+    @Test
+    void seUnInterventoNonCiStaNonSiSpostaNiente() {
+        Long id = lavori.creaAlBanco(bici, List.of(catena.getId()), null).getId();
+        lavori.aggiungiLibera(id, "Controllo raggi", 40);
+        List<Assegnazione> prima = pianificazione.diLavoro(id);
+        List<Long> ids = prima.stream().map(Assegnazione::getId).toList();
+        // un giorno in cui la persona non ha officina (domenica: i dati demo non la prevedono)
+        LocalDate domenica = calendario.oggi().plusWeeks(1).with(java.time.DayOfWeek.SUNDAY);
+        Long persona = prima.get(0).getUtente().getId();
+        assertThatThrownBy(() -> pianificazione.spostaTutti(ids, persona, domenica, null))
+                .isInstanceOf(ErroreDominio.class);
+        assertThat(pianificazione.diLavoro(id)).noneMatch(Assegnazione::isBloccata)
+                .noneMatch(a -> a.getData().equals(domenica));
+    }
+
+    @Test
+    void senzaRicalcoloAutomaticoCioCheEInCalendarioNonSiSposta() {
+        Long primo = lavori.creaAlBanco(bici, List.of(catena.getId()), null).getId();
+        List<String> prima = pianificazione.diLavoro(primo).stream()
+                .map(a -> a.getUtente().getId() + "|" + a.getData() + "|" + a.getOraInizio()).toList();
+
+        // un lavoro urgente arrivato dopo: con il ricalcolo automatico passerebbe davanti
+        Long cliente2 = utenti.registraCliente(UtenteServiceIT.registrazione(UtenteServiceIT.email())).getId();
+        Long bici2 = biciclette.aggiungi(cliente2, DatiBicicletta.di("Bianchi", "Oltre", Tipologia.STRADA)).getId();
+        Long urgente = lavori.creaAlBanco(bici2, List.of(catena.getId()), null).getId();
+        lavori.impostaDettagli(urgente, true, null, null);
+
+        assertThat(pianificazione.diLavoro(primo).stream()
+                .map(a -> a.getUtente().getId() + "|" + a.getData() + "|" + a.getOraInizio()).toList())
+                .as("il primo lavoro resta dov'era").isEqualTo(prima);
+        assertThat(minutiInCalendario(urgente)).as("il nuovo va comunque in calendario")
+                .isEqualTo(catena.getDurataStandardMin());
+
+        // un intervento in più trova posto senza spostare il resto; uno fatto libera il suo spazio
+        lavori.aggiungiLibera(primo, "Controllo raggi", 40);
+        assertThat(minutiInCalendario(primo)).isEqualTo(catena.getDurataStandardMin() + 40);
+        Long rigaCatena = lavori.dettaglio(primo).getRighe().get(0).getId();
+        lavori.segnaRiga(rigaCatena, true);
+        assertThat(minutiInCalendario(primo)).isEqualTo(40);
+    }
 }

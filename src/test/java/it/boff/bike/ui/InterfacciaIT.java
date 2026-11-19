@@ -249,9 +249,9 @@ class InterfacciaIT extends SpringBrowserlessTest {
         navigate(it.boff.bike.ui.views.FunzionalitaView.class);
         String testo = getCurrentView().getElement().getTextRecursively();
         assertThat(testo).contains("Approvazione dei lavori extra", "Promemoria di manutenzione",
-                "Tempo effettivo degli interventi", "Avviso di officina piena");
+                "Tempo effettivo degli interventi", "Avviso di officina piena", "Ricalcolo automatico del calendario");
         List<Checkbox> interruttori = $(Checkbox.class).withCaption("Attiva").all();
-        assertThat(interruttori).hasSize(4).allMatch(c -> !c.getValue());
+        assertThat(interruttori).hasSize(5).allMatch(c -> !c.getValue());
         test(interruttori.get(0)).click();
         assertThat(funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.APPROVAZIONE_EXTRA)).isTrue();
     }
@@ -364,5 +364,21 @@ class InterfacciaIT extends SpringBrowserlessTest {
         String html = getCurrentView().getElement().getOuterHTML();
         assertThat(html).contains("action=\"login\"", "name=\"username\"", "value=\"cliente@demo.it\"",
                 "autocomplete=\"one-time-code\"");
+    }
+
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void ilCalendarioHaTreVisualizzazioniEDueSettimane() {
+        navigate(CalendarioView.class);
+        assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("boff-etichetta-settimana").all())
+                .as("due settimane, una sotto l'altra").hasSize(2);
+        test($(Button.class).withText("Linea del tempo").single()).click();
+        assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("boff-tela").all()).isNotEmpty();
+        test($(Button.class).withText("Dettagliata").single()).click();
+        assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("boff-tela").all()).isEmpty();
+        test($(Button.class).withText("Compatta").single()).click();
+        test($(Button.class).withText("1").single()).click();
+        assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("boff-etichetta-settimana").all()).hasSize(1);
+        test($(Button.class).withText("2").single()).click();
     }
 }

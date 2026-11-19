@@ -58,10 +58,13 @@ public class PianificazioneService {
     private final java.util.concurrent.atomic.AtomicLong ricalcoli = new java.util.concurrent.atomic.AtomicLong();
     /** Un ricalcolo alla volta (l'app gira su una sola istanza). */
     private final ReentrantLock lock = new ReentrantLock();
+    private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
 
     public PianificazioneService(AssegnazioneRepository assegnazioni, LavoroService lavori,
                                  CalendarioService calendario, UtenteRepository utenti, EntityManager em,
-                                 BoffProperties properties, Clock clock) {
+                                 BoffProperties properties, Clock clock,
+                                 it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
+        this.funzionalita = funzionalita;
         this.assegnazioni = assegnazioni;
         this.lavori = lavori;
         this.calendario = calendario;
@@ -75,7 +78,25 @@ public class PianificazioneService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void suRichiesta(RichiestaRipianificazione richiesta) {
         log.debug("Ripianificazione: {}", richiesta.motivo());
-        ripianifica();
+        aggiorna();
+    }
+
+    /** true se il titolare ha attivato il ricalcolo completo automatico. */
+    public boolean automatica() {
+        return funzionalita.attiva(it.boff.bike.funzionalita.Funzionalita.RIPIANIFICAZIONE_AUTOMATICA);
+    }
+
+    /**
+     * Aggiorna il calendario dopo una modifica: ricalcolo completo se è attiva la ripianificazione
+     * automatica, altrimenti conserva ciò che c'è e mette solo ciò che manca nei primi spazi liberi.
+     */
+    public EsitoPianificazione aggiorna() {
+        lock.lock();
+        try {
+            return calcola(automatica());
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -84,17 +105,38 @@ public class PianificazioneService {
      */
     @Scheduled(cron = "0 5 * * * *")
     public void ricalcoloPeriodico() {
-        ripianifica();
+        if (automatica()) ripianifica();
     }
 
-    /** Ricalcola il calendario di tutti i lavori in officina. */
+    /** Ricalcola da capo il calendario di tutti i lavori in officina (pulsante "Ripianifica"). */
     public EsitoPianificazione ripianifica() {
         lock.lock();
         try {
-            return calcola();
+            return calcola(true);
         } finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * Ricalcolo che conserva il calendario: si tengono le assegnazioni di interventi ancora da fare;
+     * se un intervento ne ha più del necessario (durata ridotta) si ripianifica solo quello.
+     */
+    private static List<Long> daConservare(List<Assegnazione> daOggi) {
+        Map<Long, List<Assegnazione>> perRiga = new HashMap<>();
+        for (Assegnazione a : daOggi) {
+            RigaLavoro r = a.getRiga();
+            if (r.isCompletata() || !r.isValida()) continue;
+            perRiga.computeIfAbsent(r.getId(), k -> new ArrayList<>()).add(a);
+        }
+        List<Long> conserva = new ArrayList<>();
+        for (List<Assegnazione> gruppo : perRiga.values()) {
+            long minuti = gruppo.stream().mapToLong(a -> a.intervallo().minuti()).sum();
+            if (minuti <= gruppo.get(0).getRiga().getDurataMin()) {
+                gruppo.forEach(a -> conserva.add(a.getId()));
+            }
+        }
+        return conserva;
     }
 
     /** Numero di ricalcoli eseguiti dall'avvio (diagnostica e test). */
@@ -102,7 +144,11 @@ public class PianificazioneService {
         return ricalcoli.get();
     }
 
-    private EsitoPianificazione calcola() {
+    /**
+     * @param completo true: si tengono solo le assegnazioni fissate a mano e si ripianifica il resto;
+     *                 false: si tengono tutte quelle da oggi in poi ancora valide e si pianifica solo ciò che manca
+     */
+    private EsitoPianificazione calcola(boolean completo) {
         ricalcoli.incrementAndGet();
         LocalDateTime adesso = LocalDateTime.now(clock);
         LocalDate oggi = adesso.toLocalDate();
@@ -110,12 +156,18 @@ public class PianificazioneService {
         List<Long> ids = inOfficina.stream().map(Lavoro::getId).toList();
         List<Long> idsQuery = ids.isEmpty() ? List.of(-1L) : ids;
 
-        assegnazioni.eliminaDaRicalcolare(idsQuery, oggi);
+        if (completo) {
+            assegnazioni.eliminaDaRicalcolare(idsQuery, oggi);
+        } else {
+            List<Long> conserva = daConservare(assegnazioni.daOggi(oggi, idsQuery));
+            assegnazioni.eliminaTranne(idsQuery, oggi, conserva.isEmpty() ? List.of(-1L) : conserva);
+        }
         em.flush();
         em.clear();
         inOfficina = lavori.conRighe(StatoLavoro.IN_OFFICINA);
 
-        List<Assegnazione> bloccate = assegnazioni.bloccateDa(oggi, idsQuery);
+        // restano al loro posto: con il ricalcolo completo le fissate a mano, altrimenti tutto ciò che è valido
+        List<Assegnazione> bloccate = completo ? assegnazioni.bloccateDa(oggi, idsQuery) : assegnazioni.daOggi(oggi, idsQuery);
         Map<Long, Integer> minutiBloccatiPerRiga = new HashMap<>();
         Map<Long, LocalDateTime> fineBloccatePerLavoro = new HashMap<>();
         List<Occupato> occupati = new ArrayList<>();
@@ -176,45 +228,65 @@ public class PianificazioneService {
      * stare tutto in uno spazio libero di officina che inizia a quell'ora.
      */
     public void sposta(Long assegnazioneId, Long utenteId, LocalDate giorno, LocalTime ora) {
+        spostaTutti(List.of(assegnazioneId), utenteId, giorno, ora);
+    }
+
+    /**
+     * Sposta insieme più interventi (es. il blocco di una bici nel calendario), nell'ordine dato:
+     * con un orario uno dopo l'altro da quell'ora, senza ciascuno nel primo spazio libero.
+     * Tutto o niente (una sola transazione) e un solo ricalcolo alla fine: durante il ricalcolo
+     * le assegnazioni non fissate cambiano id, per questo lo spostamento non si fa una alla volta.
+     */
+    public void spostaTutti(List<Long> assegnazioniIds, Long utenteId, LocalDate giorno, LocalTime ora) {
         lock.lock();
         try {
-            Assegnazione a = assegnazioni.findById(assegnazioneId)
-                    .orElseThrow(() -> new ErroreDominio("Assegnazione non trovata: ricarica la pagina"));
             LocalDateTime adesso = LocalDateTime.now(clock);
             if (giorno.isBefore(adesso.toLocalDate())) {
                 throw new ErroreDominio("Non si può pianificare nel passato");
             }
-            long durata = a.intervallo().minuti();
+            List<Assegnazione> daSpostare = assegnazioniIds.stream()
+                    .map(id -> assegnazioni.findById(id)
+                            .orElseThrow(() -> new ErroreDominio("Assegnazione non trovata: ricarica la pagina")))
+                    .toList();
+            java.util.Set<Long> ids = new java.util.HashSet<>(assegnazioniIds);
             Disponibilita d = calendario.disponibilita(giorno, giorno);
-            List<Intervallo> occupati = assegnazioni.bloccateDiPersona(utenteId, giorno).stream()
-                    .filter(x -> !x.getId().equals(assegnazioneId))
-                    .map(Assegnazione::intervallo).toList();
-            LocalTime minimo = giorno.equals(adesso.toLocalDate()) ? Pianificatore.arrotonda(adesso.toLocalTime()) : LocalTime.MIN;
-            Intervallo destinazione = null;
-            for (Intervallo fascia : d.officina(utenteId, giorno)) {
-                if (minimo == null || !fascia.fine().isAfter(minimo)) continue;
-                Intervallo utile = fascia.inizio().isBefore(minimo) ? new Intervallo(minimo, fascia.fine()) : fascia;
-                for (Intervallo libero : utile.meno(occupati)) {
-                    if (ora == null && libero.minuti() >= durata) {
-                        destinazione = new Intervallo(libero.inizio(), libero.inizio().plusMinutes(durata));
-                    } else if (ora != null && !ora.isBefore(libero.inizio())
-                            && !ora.plusMinutes(durata).isAfter(libero.fine()) && ora.plusMinutes(durata).isAfter(ora)) {
-                        destinazione = new Intervallo(ora, ora.plusMinutes(durata));
+            Utente persona = utenti.findById(utenteId).orElseThrow();
+            LocalTime prossima = ora;
+            for (Assegnazione a : daSpostare) {
+                long durata = a.intervallo().minuti();
+                // occupano spazio gli interventi fissati, tranne quelli del gruppo non ancora collocati
+                int posizione = assegnazioniIds.indexOf(a.getId());
+                List<Intervallo> occupati = assegnazioni.bloccateDiPersona(utenteId, giorno).stream()
+                        .filter(x -> !ids.contains(x.getId()) || assegnazioniIds.indexOf(x.getId()) < posizione)
+                        .map(Assegnazione::intervallo).toList();
+                LocalTime minimo = giorno.equals(adesso.toLocalDate()) ? Pianificatore.arrotonda(adesso.toLocalTime()) : LocalTime.MIN;
+                Intervallo destinazione = null;
+                for (Intervallo fascia : d.officina(utenteId, giorno)) {
+                    if (minimo == null || !fascia.fine().isAfter(minimo)) continue;
+                    Intervallo utile = fascia.inizio().isBefore(minimo) ? new Intervallo(minimo, fascia.fine()) : fascia;
+                    for (Intervallo libero : utile.meno(occupati)) {
+                        if (prossima == null && libero.minuti() >= durata) {
+                            destinazione = new Intervallo(libero.inizio(), libero.inizio().plusMinutes(durata));
+                        } else if (prossima != null && !prossima.isBefore(libero.inizio())
+                                && !prossima.plusMinutes(durata).isAfter(libero.fine())
+                                && prossima.plusMinutes(durata).isAfter(prossima)) {
+                            destinazione = new Intervallo(prossima, prossima.plusMinutes(durata));
+                        }
+                        if (destinazione != null) break;
                     }
                     if (destinazione != null) break;
                 }
-                if (destinazione != null) break;
+                if (destinazione == null) {
+                    throw new ErroreDominio(prossima == null
+                            ? "Non c'è uno spazio libero di officina abbastanza lungo quel giorno"
+                            : "Alle " + prossima + " non ci sono " + durata + " minuti liberi di officina per quella persona");
+                }
+                a.sposta(persona, giorno, destinazione);
+                a.setBloccata(true);
+                em.flush();
+                if (prossima != null) prossima = destinazione.fine();
             }
-            if (destinazione == null) {
-                throw new ErroreDominio(ora == null
-                        ? "Non c'è uno spazio libero di officina abbastanza lungo quel giorno"
-                        : "Alle " + ora + " non ci sono " + durata + " minuti liberi di officina per quella persona");
-            }
-            Utente persona = utenti.findById(utenteId).orElseThrow();
-            a.sposta(persona, giorno, destinazione);
-            a.setBloccata(true);
-            em.flush();
-            calcola();
+            calcola(automatica());
         } finally {
             lock.unlock();
         }
@@ -224,7 +296,7 @@ public class PianificazioneService {
     public void sblocca(Long assegnazioneId) {
         assegnazioni.findById(assegnazioneId).ifPresent(a -> a.setBloccata(false));
         em.flush();
-        ripianifica();
+        aggiorna();
     }
 
     /** Fissa un'assegnazione dove si trova. */

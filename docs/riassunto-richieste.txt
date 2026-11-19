@@ -91,3 +91,14 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 22. Guide in PDF
     Aggiornare le due guide con clienti senza app, privacy in negozio e
     accesso con codice e Face ID / Touch ID.
+
+23. Prova sul Mac
+    Comandi per scaricare il codice sul Mac e provarlo (aggiunto ./mvnw).
+
+24. Calendario piu' leggibile
+    Un blocco per bici con i dettagli al tocco; possibilita' di scegliere
+    la visualizzazione per una demo; due settimane per trascinare i lavori
+    alla settimana dopo.
+
+25. Ricalcolo del calendario
+    Il ricalcolo automatico diventa un'opzione da attivare.

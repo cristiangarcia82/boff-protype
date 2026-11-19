@@ -92,7 +92,7 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Perché**: con 2 persone e qualche decina di bici a settimana un ottimizzatore (es. Timefold) non dà benefici visibili ma rende i risultati meno prevedibili. Resta un'evoluzione possibile.
 - **Regole di dettaglio**: gli interventi della stessa bici sono in sequenza (mai due persone in parallelo sulla stessa bici); un intervento lungo si spezza su più fasce/giorni (pezzi non inferiori a 15 minuti); si pianifica dal quarto d'ora successivo ad "adesso" e mai prima dell'arrivo della bici; orizzonte di 90 giorni.
 
-## D21 – Il calendario si ricalcola da solo
+## D21 – Il calendario si ricalcola da solo (superata da D48: ora è facoltativo)
 - **Quando**: dopo ogni modifica che lo influenza (check-in, interventi aggiunti/rimossi/fatti, durate, urgenza, data promessa, orari, assenze, chiusure), ogni ora (il tempo passa e ciò che non è stato fatto slitta in avanti) e con il pulsante **Ripianifica**.
 - **Gli spostamenti manuali vincono**: un intervento trascinato (o spostato con un tocco su telefono) viene **fissato** (lucchetto) e il ricalcolo non lo tocca; il resto dello stesso lavoro viene messo **dopo** la parte fissata. "Sblocca" lo restituisce al calcolo automatico.
 - **Effetto collaterale accettato**: gli interventi non fissati possono cambiare orario quando arriva un lavoro più urgente. È il comportamento voluto (il piano è sempre aggiornato); per "congelare" qualcosa basta fissarlo.
@@ -206,3 +206,23 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Mac condiviso, da sapere**: se titolare e collaboratore usano lo **stesso utente di macOS**, le passkey di entrambi stanno nello stesso portachiavi e Touch ID non distingue chi appoggia il dito: chiunque sia registrato su quel Mac può scegliere l'una o l'altra. Per una separazione vera, creare due utenti di macOS (passaggio rapido tra utenti). In alternativa: "Esci" a fine turno.
 - Account disattivati o bloccati non entrano né con il codice né con la passkey. La cancellazione dei dati elimina anche passkey e codici.
 - **Alternative scartate**: login con Google/Apple (account sviluppatore a pagamento, fornitori in più), codici via SMS (costo per messaggio, meno sicuri).
+
+## D46 – Calendario: tre visualizzazioni da confrontare
+- Richiesta del titolare: il calendario era poco leggibile (un blocco per ogni intervento, nomi tagliati, orari di vendita e officina in evidenza quanto i lavori).
+- Il selettore *Visualizzazione* propone tre modi, per una demo e per scegliere il migliore con chi lo usa:
+  - **Compatta** (predefinita): un blocco per bici (interventi consecutivi dello stesso lavoro uniti), con nome e orario; orari di vendita/officina come piccole etichette; "Libero 3 h 30" su una riga. Toccando il blocco: cliente e telefono, interventi con orari, urgenza, note, *Sposta*, *Fissa/Sblocca*, *Apri lavoro*.
+  - **Dettagliata**: com'era prima, un blocco per intervento.
+  - **Linea del tempo**: blocchi alti quanto la durata, sulle ore della giornata, con le fasce come sfondo e un righello orario.
+- La scelta resta nella sessione e si può passare nell'indirizzo (`/calendario?vista=tempo&settimane=1`).
+- ⚠️ Dopo la demo conviene tenerne una o due e togliere le altre.
+
+## D47 – Due settimane una sotto l'altra
+- Per trascinare un lavoro alla settimana dopo, il calendario mostra **due settimane** (scelta *Settimane: 1 / 2*); le frecce avanzano di una.
+- Trascinare un blocco sposta **tutti** i suoi interventi in un'unica operazione (tutto o niente, un solo ricalcolo): uno dopo l'altro dall'orario scelto o nel primo spazio libero.
+
+## D48 – Ricalcolo automatico facoltativo (richiesta del titolare)
+- Nuova voce in *Impostazioni → Funzionalità*: **Ricalcolo automatico del calendario**, **spenta** di default.
+- **Spenta**: ciò che è in calendario resta dov'è. Dopo una modifica si pianifica solo ciò che manca (lavori nuovi, interventi aggiunti) nei primi spazi liberi; interventi fatti, rifiutati o tolti liberano il loro spazio; un intervento accorciato viene ricollocato. Niente ricalcolo all'ora né all'apertura del calendario. Il pulsante **Ripianifica** riorganizza tutto da capo.
+- **Accesa**: comportamento precedente (ricalcolo completo dopo ogni modifica e ogni ora).
+- In entrambi i casi gli interventi fissati a mano non si spostano. Il calendario mostra un avviso quando il ricalcolo automatico è spento.
+- ⚠️ Con il ricalcolo spento, un lavoro urgente o con data promessa vicina non scavalca gli altri finché non si preme *Ripianifica* (l'avviso "finisce dopo la data promessa" resta).

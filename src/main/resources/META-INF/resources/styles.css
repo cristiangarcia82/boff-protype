@@ -355,3 +355,72 @@ html { --boff-colore-lavoro: #b7791f; }
   border-radius: var(--lumo-border-radius-m); background: var(--lumo-primary-color); color: var(--lumo-primary-contrast-color);
   min-height: var(--lumo-size-m);
 }
+
+/* ---- Calendario: scelta della visualizzazione ---- */
+.boff-scelta-vista { display: flex; align-items: center; gap: var(--lumo-space-xs); flex-wrap: wrap; margin: var(--lumo-space-xs) 0; }
+.boff-scelta-vista .boff-testo-secondario { margin-right: var(--lumo-space-xs); font-size: var(--lumo-font-size-s); }
+
+/* Compatta: orari leggeri, un blocco per bici */
+.boff-orari-giorno { display: flex; flex-wrap: wrap; gap: 4px; }
+.boff-orario-mini {
+    font-size: var(--lumo-font-size-xxs); line-height: 1.6; padding: 0 6px 0 4px; border-radius: 999px;
+    color: var(--lumo-secondary-text-color); background: var(--lumo-contrast-5pct);
+    display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums;
+}
+.boff-orario-mini::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--lumo-contrast-30pct); }
+.boff-orario-mini.vendita::before { background: var(--boff-colore-vendita); }
+.boff-orario-mini.officina::before { background: var(--boff-colore-officina); }
+.boff-orario-mini.assenza::before { background: var(--boff-colore-assenza); }
+.boff-orario-mini.assenza { text-decoration: line-through; }
+.boff-slot {
+    background: color-mix(in srgb, var(--boff-colore-lavoro) 14%, var(--lumo-base-color));
+    border-left: 4px solid var(--boff-colore-lavoro);
+    border-radius: var(--lumo-border-radius-s);
+    padding: 4px 6px; cursor: pointer; min-width: 0;
+    display: flex; flex-direction: column; gap: 1px;
+}
+.boff-slot:hover { background: color-mix(in srgb, var(--boff-colore-lavoro) 24%, var(--lumo-base-color)); }
+.boff-slot:focus-visible { outline: 2px solid var(--lumo-primary-color); }
+.boff-slot.urgente {
+    border-left-color: var(--lumo-error-color);
+    background: color-mix(in srgb, var(--lumo-error-color) 12%, var(--lumo-base-color));
+}
+.boff-slot-bici {
+    font-size: var(--lumo-font-size-s); font-weight: 600; line-height: 1.25; color: var(--lumo-body-text-color);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+}
+.boff-slot-riga { display: flex; align-items: center; gap: 4px; font-size: var(--lumo-font-size-xs); color: var(--lumo-secondary-text-color); }
+.boff-slot-orario { font-variant-numeric: tabular-nums; }
+.boff-slot .lucchetto { width: 11px; height: 11px; }
+.boff-slot-etichetta { color: var(--lumo-error-text-color); font-weight: 600; }
+.boff-dettaglio-quando { font-weight: 600; margin-top: 0; }
+.boff-dettaglio-interventi { padding-left: 1.1em; margin: var(--lumo-space-s) 0; }
+.boff-dettaglio-interventi .boff-slot-orario { font-weight: 600; }
+
+/* Linea del tempo: altezza proporzionale alla durata */
+.boff-nome-testo { display: block; height: 24px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boff-righello { position: relative; margin-top: 4px; }
+.boff-righello > span {
+    position: absolute; right: 2px; transform: translateY(-50%);
+    font-size: var(--lumo-font-size-xxs); color: var(--lumo-secondary-text-color); font-variant-numeric: tabular-nums;
+}
+.boff-cella.tempo { gap: 4px; min-height: 0; }
+.boff-tela-testa { height: 24px; display: flex; align-items: center; }
+.boff-tela-testa .boff-capacita { margin: 0; }
+.boff-tela {
+    position: relative;
+    background: repeating-linear-gradient(to bottom, var(--lumo-contrast-10pct) 0 1px, transparent 1px var(--boff-px-ora));
+}
+.boff-banda { position: absolute; left: 0; right: 0; border-radius: 3px; }
+.boff-banda.officina { background: color-mix(in srgb, var(--boff-colore-officina) 10%, transparent); }
+.boff-banda.vendita {
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--boff-colore-vendita) 12%, transparent) 0 6px, transparent 6px 12px);
+}
+.boff-banda.assenza { background: color-mix(in srgb, var(--boff-colore-assenza) 30%, transparent); }
+.boff-banda > span { position: absolute; top: 2px; left: 4px; font-size: var(--lumo-font-size-xxs); color: var(--lumo-secondary-text-color); }
+.boff-slot.posizionato { position: absolute; left: 3px; right: 3px; overflow: hidden; box-shadow: 0 1px 2px var(--lumo-contrast-20pct); }
+.boff-slot.posizionato .boff-slot-bici { -webkit-line-clamp: 3; }
+.boff-scelta-separata { margin-left: var(--lumo-space-m); }
+.boff-etichetta-settimana { font-size: var(--lumo-font-size-xs); font-weight: 600; color: var(--lumo-secondary-text-color); text-transform: uppercase; letter-spacing: .03em; display: flex; align-items: flex-end; }
+.boff-griglia-settimana > .seconda { border-top: 3px solid var(--lumo-contrast-20pct); }
+.boff-testa-giorno.passato { color: var(--lumo-tertiary-text-color); }

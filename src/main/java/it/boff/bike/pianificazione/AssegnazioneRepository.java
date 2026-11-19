@@ -44,6 +44,23 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
             """)
     int eliminaDaRicalcolare(Collection<Long> lavori, LocalDate oggi);
 
+    /** Assegnazioni da oggi in poi dei lavori indicati (ricalcolo che conserva il calendario). */
+    @Query("""
+            select a from Assegnazione a join fetch a.riga r join fetch r.lavoro l
+            where a.data >= :oggi and l.id in :lavori
+            """)
+    List<Assegnazione> daOggi(LocalDate oggi, Collection<Long> lavori);
+
+    /** Come {@link #eliminaDaRicalcolare}, ma conserva le assegnazioni indicate. */
+    @Modifying
+    @Query("""
+            delete from Assegnazione a where a.id in (
+              select x.id from Assegnazione x join x.riga r join r.lavoro l
+              where (l.id not in :lavori and x.data >= :oggi)
+                 or (l.id in :lavori and x.id not in :conserva))
+            """)
+    int eliminaTranne(Collection<Long> lavori, LocalDate oggi, Collection<Long> conserva);
+
     @Query("select a from Assegnazione a where a.utente.id = :utenteId and a.data = :data and a.bloccata = true")
     List<Assegnazione> bloccateDiPersona(Long utenteId, LocalDate data);
 }

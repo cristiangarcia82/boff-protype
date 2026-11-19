@@ -5,7 +5,12 @@ public enum Funzionalita {
     APPROVAZIONE_EXTRA("funzione.approvazione-extra"),
     PROMEMORIA_MANUTENZIONE("funzione.promemoria"),
     TEMPO_EFFETTIVO("funzione.tempo-effettivo"),
-    AVVISO_CARICO("funzione.avviso-carico");
+    AVVISO_CARICO("funzione.avviso-carico"),
+    /**
+     * Ricalcolo completo del calendario dopo ogni modifica e ogni ora. Spento: ciò che è già in
+     * calendario resta dov'è e i lavori nuovi vanno nei primi spazi liberi (si riorganizza con "Ripianifica").
+     */
+    RIPIANIFICAZIONE_AUTOMATICA("funzione.ripianificazione-automatica");
 
     private final String chiave;
 

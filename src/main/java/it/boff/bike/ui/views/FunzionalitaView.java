@@ -52,6 +52,11 @@ public class FunzionalitaView extends Div {
                 scheda(Funzionalita.TEMPO_EFFETTIVO, "Tempo effettivo degli interventi",
                         "Quando un intervento è fatto puoi indicare quanto ci hai messo davvero. Nelle Statistiche "
                                 + "compare il confronto con il tempo standard, per correggere il catalogo.", null),
+                scheda(Funzionalita.RIPIANIFICAZIONE_AUTOMATICA, "Ricalcolo automatico del calendario",
+                        "Accesa: dopo ogni modifica e ogni ora il calendario si riorganizza da solo (urgenze, date "
+                                + "promesse, lavori non finiti spostati in avanti). Spenta: ciò che è in calendario resta "
+                                + "dov'è, i lavori nuovi vanno nei primi spazi liberi e riorganizzi tu con \"Ripianifica\". "
+                                + "Gli interventi fissati a mano non si spostano mai.", null),
                 scheda(Funzionalita.AVVISO_CARICO, "Avviso di officina piena",
                         "Se nei prossimi 7 giorni l'officina è occupata oltre la soglia, i clienti che annunciano un "
                                 + "lavoro vedono: \"i tempi di consegna potrebbero essere più lunghi del solito\". "
