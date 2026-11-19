@@ -283,16 +283,8 @@ class InterfacciaIT extends SpringBrowserlessTest {
         Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
         Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Orbea", "Orca " + UUID.randomUUID(),
                 Tipologia.STRADA)).getId();
-        // officina piena: un lavoro enorme su un'altra bici
-        Long altra = biciclette.aggiungi(cliente, DatiBicicletta.di("Trek", "Madone " + UUID.randomUUID(),
-                Tipologia.STRADA)).getId();
-        TipoIntervento lungo = catalogo.salva(new TipoIntervento("Ricostruzione " + System.nanoTime(), 1440));
-        Long pieno = lavori.creaAlBanco(altra, List.of(lungo.getId()), null).getId();
-        // dimensionato sulla capacità reale della settimana (dipende da giorno e ora del test)
-        for (long m = 1440; m <= pianificazione.carico(7).capacita() + 1440; m += 1440) {
-            lavori.aggiungiDaCatalogo(pieno, lungo.getId());
-        }
-        try {
+        // officina piena: un lavoro enorme per ogni persona in officina
+        try (var pieno = new it.boff.bike.OfficinaPiena(cliente, biciclette, lavori, catalogo, pianificazione)) {
             navigate("le-mie-bici/" + bici, BiciView.class);
             assertThat(getCurrentView().getElement().getTextRecursively()).doesNotContain("molto impegnata");
 
@@ -302,10 +294,6 @@ class InterfacciaIT extends SpringBrowserlessTest {
             String pagina = getCurrentView().getElement().getTextRecursively();
             assertThat(pagina).contains("l'officina è molto impegnata");
             assertThat(pagina).doesNotContain("%");
-        } finally {
-            lavori.annulla(pieno);
-            lungo.setAttivo(false);
-            catalogo.salva(lungo);
         }
     }
 
