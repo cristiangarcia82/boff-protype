@@ -29,7 +29,7 @@ Caddy (incluso) ottiene e rinnova da solo il certificato gratuito Let's Encrypt.
    **Cambia subito la password** dal profilo.
 4. Da *Impostazioni*:
    - **Personale** → crea l'account del collaboratore;
-   - **Orari** → imposta le fasce di vendita e officina di entrambi;
+   - **Orari** → imposta le ore di lavoro di entrambi (i turni di vendita si aggiungono poi dal calendario);
    - **Catalogo interventi** → adatta i tempi standard ai vostri.
 5. Da *Assenze e chiusure* aggiungi il patrono e le ferie del negozio.
 6. **Completa l'informativa privacy** (`src/main/java/it/boff/bike/ui/views/PrivacyView.java`): ragione sociale, indirizzo, P. IVA, contatti, fornitori di hosting ed email. Meglio farla rileggere a un consulente.
