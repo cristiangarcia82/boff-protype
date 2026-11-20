@@ -94,7 +94,8 @@ public class Utente {
     }
 
     public String getNomeCompleto() {
-        return nome + " " + cognome;
+        // il cognome può essere vuoto (es. un soprannome come "Cucciolo")
+        return (nome + " " + (cognome == null ? "" : cognome)).trim();
     }
 
     public String getTelefono() { return telefono; }

@@ -94,7 +94,13 @@ public class DatiIniziali implements ApplicationRunner {
 
     private void creaUtentiDemo() {
         Utente mario = creaSeAssente("titolare@demo.it", "Mario", "Rossi", Ruolo.STAFF, true);
-        Utente luca = creaSeAssente("collaboratore@demo.it", "Luca", "Bianchi", Ruolo.STAFF, false);
+        Utente luca = creaSeAssente("collaboratore@demo.it", "Cucciolo", "", Ruolo.STAFF, false);
+        // database demo creati prima: il collaboratore si chiamava "Luca Bianchi"
+        if (luca.getNome().equals("Luca") && "Bianchi".equals(luca.getCognome())) {
+            luca.setNome("Cucciolo");
+            luca.setCognome("");
+            luca = utenti.save(luca);
+        }
         orariDemo(mario, luca);
         Utente giulia = creaSeAssente("cliente@demo.it", "Giulia", "Verdi", Ruolo.CLIENTE, false);
         Utente paolo = creaSeAssente("paolo.ferri@demo.it", "Paolo", "Ferri", Ruolo.CLIENTE, false);

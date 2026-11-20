@@ -53,7 +53,7 @@ class AppuntamentiIT {
     @Autowired it.boff.bike.pianificazione.PianificazioneService pianificazione;
     @Autowired it.boff.bike.catalogo.CatalogoService catalogo;
 
-    /** Un giorno (mar–ven nei dati demo) in cui Luca e Mario sono liberi negli orari usati dai test. */
+    /** Un giorno (mar–ven nei dati demo) in cui Cucciolo e Mario sono liberi negli orari usati dai test. */
     LocalDate giornoLibero(int scarto) {
         LocalDate g = calendario.oggi().plusDays(2 + scarto);
         for (int i = 0; i < 60; i++, g = g.plusDays(1)) {
@@ -99,7 +99,7 @@ class AppuntamentiIT {
 
     @Test
     void sempreNellOrarioDiLavoro() {
-        // lunedì mattina nessuno lavora (orario demo: Luca solo il pomeriggio, Mario mai)
+        // lunedì mattina nessuno lavora (orario demo: Cucciolo solo il pomeriggio, Mario mai)
         LocalDate lunedi = calendario.oggi().with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY)).plusWeeks(1);
         assertThatThrownBy(() -> appuntamenti.crea(cliente, consulenza.getId(), luca, lunedi, LocalTime.of(10, 0), null))
                 .isInstanceOf(ErroreDominio.class).hasMessageContaining("non è libero");
@@ -224,7 +224,7 @@ class AppuntamentiIT {
         long riusciti = 0;
         for (var f : esiti) if (f.get(30, java.util.concurrent.TimeUnit.SECONDS)) riusciti++;
         pool.shutdown();
-        assertThat(riusciti).as("un solo appuntamento con Luca alle 10").isEqualTo(1);
+        assertThat(riusciti).as("un solo appuntamento con Cucciolo alle 10").isEqualTo(1);
         assertThat(appuntamenti.tra(g, g)).filteredOn(a -> a.getUtente().getId().equals(luca)
                 && a.getOraInizio().equals(LocalTime.of(10, 0))).hasSize(1);
     }

@@ -136,7 +136,7 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat($(H2.class).first().getText()).isEqualTo("Calendario");
         assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("boff-nome-persona").all())
                 .extracting(d -> d.getElement().getTextRecursively())
-                .contains("Mario Rossi", "Luca Bianchi");
+                .contains("Mario Rossi", "Cucciolo");
     }
 
     @Test
