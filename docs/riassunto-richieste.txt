@@ -117,3 +117,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 29. Review finale
     Review del codice al termine, senza domande.
+
+30. Guide PDF aggiornate
+    Guida per il negozio e guida per i clienti aggiornate con le ultime
+    novità (calendario, appuntamenti, turni di vendita, logo, Cucciolo).
