@@ -73,6 +73,26 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
 
     static final String CHIAVE_VISTA = CalendarioView.class.getName() + ".vista";
     static final String CHIAVE_SETTIMANE = CalendarioView.class.getName() + ".settimane";
+    static final String CHIAVE_NOME = CalendarioView.class.getName() + ".nome";
+
+    /** Cosa scrivere sui blocchi dei lavori: il nome della bici o quello del cliente. */
+    public enum NomeBlocco {
+        BICI("bici", "Bici"), CLIENTE("cliente", "Cliente");
+
+        final String parametro;
+        final String etichetta;
+
+        NomeBlocco(String parametro, String etichetta) {
+            this.parametro = parametro;
+            this.etichetta = etichetta;
+        }
+
+        static java.util.Optional<NomeBlocco> da(String parametro) {
+            return java.util.Arrays.stream(values()).filter(v -> v.parametro.equalsIgnoreCase(parametro)).findFirst();
+        }
+    }
+
+    private NomeBlocco nomeBlocco = NomeBlocco.BICI;
     /** Linea del tempo: pixel per ora. */
     static final int PX_ORA = 44;
 
@@ -111,6 +131,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         Object n = com.vaadin.flow.server.VaadinSession.getCurrent() == null ? null
                 : com.vaadin.flow.server.VaadinSession.getCurrent().getAttribute(CHIAVE_SETTIMANE);
         if (n instanceof Integer i) settimane = i;
+        Object nome = com.vaadin.flow.server.VaadinSession.getCurrent() == null ? null
+                : com.vaadin.flow.server.VaadinSession.getCurrent().getAttribute(CHIAVE_NOME);
+        if (nome instanceof NomeBlocco nb) nomeBlocco = nb;
 
         Button prec = new Button(VaadinIcon.ANGLE_LEFT.create(), e -> sposta(-1));
         prec.setAriaLabel("Settimana precedente");
@@ -162,6 +185,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         parametri.getSingleParameter("vista").flatMap(Vista::da).ifPresent(v -> {
             if (v != vista) cambiaVista(v);
         });
+        parametri.getSingleParameter("nome").flatMap(NomeBlocco::da).ifPresent(v -> {
+            if (v != nomeBlocco) cambiaNome(v);
+        });
         // ?data=AAAA-MM-GG (es. "Vedi nel calendario" dalla scheda del lavoro): apre la settimana di quel giorno
         parametri.getSingleParameter("data").ifPresent(x -> {
             try {
@@ -183,6 +209,21 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         }
         aggiornaSceltaVista();
         mostra();
+    }
+
+    private void cambiaNome(NomeBlocco nuovo) {
+        nomeBlocco = nuovo;
+        if (com.vaadin.flow.server.VaadinSession.getCurrent() != null) {
+            com.vaadin.flow.server.VaadinSession.getCurrent().setAttribute(CHIAVE_NOME, nuovo);
+        }
+        aggiornaSceltaVista();
+        mostra();
+    }
+
+    /** Il nome da scrivere sul blocco di un lavoro, secondo la scelta "Mostra". */
+    private String nomeSulBlocco(it.boff.bike.lavoro.Lavoro lavoro) {
+        return nomeBlocco == NomeBlocco.CLIENTE ? lavoro.getBicicletta().getProprietario().getNomeCompleto()
+                : lavoro.getBicicletta().getNome();
     }
 
     private void cambiaSettimane(int n) {
@@ -215,6 +256,17 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             if (n != settimane) b.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             b.getElement().setAttribute("aria-pressed", String.valueOf(n == settimane));
             b.setAriaLabel(n == 1 ? "Una settimana" : "Due settimane");
+            sceltaVista.add(b);
+        }
+        Span mostra = new Span("Mostra:");
+        mostra.addClassNames("boff-testo-secondario", "boff-scelta-separata");
+        sceltaVista.add(mostra);
+        for (NomeBlocco v : NomeBlocco.values()) {
+            Button b = new Button(v.etichetta, e -> cambiaNome(v));
+            b.addThemeVariants(ButtonVariant.LUMO_SMALL, v == nomeBlocco ? ButtonVariant.LUMO_PRIMARY : ButtonVariant.LUMO_CONTRAST);
+            if (v != nomeBlocco) b.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            b.getElement().setAttribute("aria-pressed", String.valueOf(v == nomeBlocco));
+            b.setTooltipText(v == NomeBlocco.BICI ? "Sui lavori il nome della bici" : "Sui lavori il nome del cliente");
             sceltaVista.add(b);
         }
     }
@@ -595,8 +647,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             lucchetto.addClassName("lucchetto");
             chip.add(lucchetto);
         }
-        chip.add(orario, new Span(" " + lavoro.getBicicletta().getNome()));
-        chip.setTitle(a.getRiga().getDescrizione() + " — " + lavoro.getBicicletta().getProprietario().getNomeCompleto()
+        chip.add(orario, new Span(" " + nomeSulBlocco(lavoro)));
+        chip.setTitle(a.getRiga().getDescrizione() + " — " + lavoro.getBicicletta().getNome() + " · "
+                + lavoro.getBicicletta().getProprietario().getNomeCompleto()
                 + (a.isBloccata() ? " (fissato a mano)" : ""));
         DragSource<Div> sorgente = DragSource.create(chip);
         sorgente.setDragData(List.of(a.getId()));
@@ -653,7 +706,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         slot.addClassNames("boff-slot");
         if (lavoro.isUrgente()) slot.addClassName("urgente");
 
-        Span bici = new Span(lavoro.getBicicletta().getNome());
+        Span bici = new Span(nomeSulBlocco(lavoro));
         bici.addClassName("boff-slot-bici");
         Span quando = new Span(breve(primo.getOraInizio()) + "–" + breve(ultimo.getOraFine()));
         quando.addClassName("boff-slot-orario");

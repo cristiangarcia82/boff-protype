@@ -159,3 +159,10 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 40. Schermate della guida con i dati nuovi
     Rifare le schermate della guida del negozio con i nomi nuovi
     (Mattia Bettagno, Diego "Cucciolo" Castelli) e lo storico di novembre.
+
+41. Calendario: nome della bici o del cliente
+    Possibilità di scegliere se sui blocchi del calendario compare il nome
+    della bici o del cliente a cui appartiene.
+
+42. Autenticazione a due fattori (proposte)
+    Proporre soluzioni per un secondo fattore di accesso, almeno per il titolare.

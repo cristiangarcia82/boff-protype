@@ -480,6 +480,31 @@ class InterfacciaIT extends SpringBrowserlessTest {
         lavori.annulla(lavoro);
     }
 
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void ilCalendarioMostraIlNomeDellaBiciODelCliente() {
+        Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long mario = utenti.findByEmail("titolare@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Cinelli", "Vigorelli", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+        java.time.LocalDate g = java.time.LocalDate.now().plusDays(3);
+        for (int i = 0; i < 30; i++, g = g.plusDays(1)) {
+            try {
+                pianificazione.fissaLavoro(lavoro, mario, g, null);
+                break;
+            } catch (it.boff.bike.common.ErroreDominio e) {
+                // giorno senza posto
+            }
+        }
+        java.util.function.Supplier<List<String>> blocchi = () -> $(com.vaadin.flow.component.html.Div.class)
+                .withClassName("boff-slot").all().stream().map(d -> d.getElement().getTextRecursively()).toList();
+        navigate("calendario?nome=bici&data=" + g, CalendarioView.class);
+        assertThat(blocchi.get()).anyMatch(t -> t.contains("Cinelli Vigorelli"));
+        navigate("calendario?nome=cliente&data=" + g, CalendarioView.class);
+        assertThat(blocchi.get()).noneMatch(t -> t.contains("Cinelli Vigorelli")).anyMatch(t -> t.contains("Giulia Verdi"));
+        lavori.annulla(lavoro);
+    }
+
     private static java.util.stream.Stream<com.vaadin.flow.component.Component> discendenti(com.vaadin.flow.component.Component c) {
         return java.util.stream.Stream.concat(java.util.stream.Stream.of(c), c.getChildren().flatMap(InterfacciaIT::discendenti));
     }
