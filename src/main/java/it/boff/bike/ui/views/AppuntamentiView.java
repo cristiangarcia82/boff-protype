@@ -219,8 +219,8 @@ public class AppuntamentiView extends Div {
         return AppuntamentoDialog.capitale(data);
     }
 
-    private static String fa(OffsetDateTime t) {
-        Duration d = Duration.between(t, OffsetDateTime.now());
+    private String fa(OffsetDateTime t) {
+        Duration d = Duration.between(t.toInstant(), calendario.adesso().atZone(Formati.zona()).toInstant());
         if (d.toMinutes() < 60) return "pochi minuti fa";
         if (d.toHours() < 24) return d.toHours() == 1 ? "un'ora fa" : d.toHours() + " ore fa";
         long giorni = d.toDays();

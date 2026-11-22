@@ -28,6 +28,13 @@ Con `BOFF_DEMO=true` vengono creati utenti, orari, bici e lavori di prova (passw
 | `collaboratore@demo.it` | Collaboratore, Diego "Cucciolo" Castelli |
 | `cliente@demo.it`, `paolo.ferri@demo.it`, `sara.conti@demo.it` | Clienti |
 
+Per una demo in un giorno lavorativo (es. di domenica) si può far partire l'orologio da un momento preciso,
+solo insieme a `BOFF_DEMO=true`:
+
+```bash
+BOFF_DEMO=true ./mvnw spring-boot:run -Dspring-boot.run.arguments=--boff.orologio-demo=2026-11-24T10:30
+```
+
 Dopo una build di produzione (`./mvnw -Pproduction package`) esegui `./mvnw clean` prima di tornare
 in sviluppo, altrimenti restano in `target/` file del frontend non aggiornati.
 

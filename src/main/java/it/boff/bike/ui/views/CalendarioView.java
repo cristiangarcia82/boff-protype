@@ -265,7 +265,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             LocalDate inizio = lunedi.plusWeeks(s);
             List<LocalDate> settimana = giorni.stream()
                     .filter(g -> !g.isBefore(inizio) && g.isBefore(inizio.plusWeeks(1))).toList();
-            Div etichetta = new Div(new Span(s == 0 ? "Questa settimana" : "Settimana dopo"));
+            Div etichetta = new Div(new Span(nomeSettimana(inizio, oggi)));
             etichetta.addClassName("boff-etichetta-settimana");
             if (s > 0) etichetta.addClassName("seconda");
             if (settimane == 1) etichetta.setText("");
@@ -611,6 +611,17 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         return t.getMinute() == 0 ? String.valueOf(t.getHour()) : t.getHour() + ":" + String.format("%02d", t.getMinute());
     }
 
+    /** "Questa settimana", "Settimana scorsa", "Settimana prossima" rispetto a oggi; altrimenti le date. */
+    static String nomeSettimana(LocalDate lunediSettimana, LocalDate oggi) {
+        long distanza = java.time.temporal.ChronoUnit.WEEKS.between(
+                oggi.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)), lunediSettimana);
+        if (distanza == 0) return "Questa settimana";
+        if (distanza == -1) return "Settimana scorsa";
+        if (distanza == 1) return "Settimana prossima";
+        return lunediSettimana.getDayOfMonth() + "–" + lunediSettimana.plusDays(6).getDayOfMonth() + " "
+                + MESE.format(lunediSettimana.plusDays(6));
+    }
+
     /** Interventi consecutivi dello stesso lavoro nella stessa cella = un solo blocco. */
     static List<List<Assegnazione>> raggruppa(List<Assegnazione> elenco) {
         List<Assegnazione> ordinati = elenco.stream()
@@ -661,7 +672,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         // a posteriori: interventi fatti (grigio con spunta) o rimasti indietro (orario passato, non fatti)
         boolean fatto = gruppo.stream().allMatch(a -> a.getRiga().isCompletata());
         boolean passato = java.time.LocalDateTime.of(ultimo.getData(), ultimo.getOraFine())
-                .isBefore(java.time.LocalDateTime.now(Formati.zona()));
+                .isBefore(calendario.adesso());
         if (fatto) {
             slot.addClassName("fatto");
             var spunta = VaadinIcon.CHECK.create();

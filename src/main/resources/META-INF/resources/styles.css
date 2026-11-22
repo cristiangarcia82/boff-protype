@@ -523,3 +523,5 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-slot.fatto .spunta { width: 12px; height: 12px; color: var(--lumo-success-color); }
 .boff-slot.passato { border-left-style: dotted; }
 .boff-quadrato.fatto { background: var(--lumo-contrast-30pct); }
+.boff-slot-orario { white-space: nowrap; }
+.boff-slot-riga { flex-wrap: wrap; }

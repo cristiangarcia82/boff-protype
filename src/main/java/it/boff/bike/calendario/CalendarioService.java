@@ -56,6 +56,11 @@ public class CalendarioService {
         this.clock = clock;
     }
 
+    /** Adesso, nel fuso del negozio (stesso orologio di {@link #oggi()}). */
+    public java.time.LocalDateTime adesso() {
+        return java.time.LocalDateTime.now(clock);
+    }
+
     public LocalDate oggi() {
         return LocalDate.now(clock);
     }

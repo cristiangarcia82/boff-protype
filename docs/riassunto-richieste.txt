@@ -155,3 +155,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 39. Interventi di una bici non arrivata
     Con la bici non ancora in negozio gli interventi non si possono spuntare
     (regola confermata dal titolare): ora la scheda spiega perché.
+
+40. Schermate della guida con i dati nuovi
+    Rifare le schermate della guida del negozio con i nomi nuovi
+    (Mattia Bettagno, Diego "Cucciolo" Castelli) e lo storico di novembre.
