@@ -292,7 +292,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             }
             for (Utente p : d.personale()) {
                 Span nomeTesto = new Span(p.getNomeCompleto());
-                nomeTesto.addClassName("boff-nome-testo");
+                // nella linea del tempo il nome sta su una riga (allineata al righello), altrove va a capo
+                nomeTesto.addClassName(vista == Vista.TEMPO ? "boff-nome-testo" : "boff-nome-a-capo");
+                nomeTesto.getElement().setAttribute("title", p.getNomeCompleto());
                 Div nome = new Div(nomeTesto);
                 nome.addClassName("boff-nome-persona");
                 if (vista == Vista.TEMPO) nome.add(righello());

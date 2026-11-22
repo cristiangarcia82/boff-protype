@@ -44,6 +44,9 @@ import static java.time.DayOfWeek.WEDNESDAY;
 public class DatiIniziali implements ApplicationRunner {
 
     static final String PASSWORD_DEMO = "demo1234";
+    /** Il personale del negozio nei dati demo. */
+    static final String TITOLARE_NOME = "Mattia", TITOLARE_COGNOME = "Bettagno";
+    static final String COLLABORATORE_NOME = "Diego \"Cucciolo\"", COLLABORATORE_COGNOME = "Castelli";
 
     private static final Logger log = LoggerFactory.getLogger(DatiIniziali.class);
 
@@ -92,15 +95,19 @@ public class DatiIniziali implements ApplicationRunner {
         log.info("Creato l'account del titolare {}", Utente.normalizzaEmail(t.email()));
     }
 
+    private Utente rinomina(Utente u, String nome, String cognome) {
+        if (nome.equals(u.getNome()) && cognome.equals(u.getCognome())) return u;
+        u.setNome(nome);
+        u.setCognome(cognome);
+        return utenti.save(u);
+    }
+
     private void creaUtentiDemo() {
-        Utente mario = creaSeAssente("titolare@demo.it", "Mario", "Rossi", Ruolo.STAFF, true);
-        Utente luca = creaSeAssente("collaboratore@demo.it", "Cucciolo", "", Ruolo.STAFF, false);
-        // database demo creati prima: il collaboratore si chiamava "Luca Bianchi"
-        if (luca.getNome().equals("Luca") && "Bianchi".equals(luca.getCognome())) {
-            luca.setNome("Cucciolo");
-            luca.setCognome("");
-            luca = utenti.save(luca);
-        }
+        Utente mario = creaSeAssente("titolare@demo.it", TITOLARE_NOME, TITOLARE_COGNOME, Ruolo.STAFF, true);
+        Utente luca = creaSeAssente("collaboratore@demo.it", COLLABORATORE_NOME, COLLABORATORE_COGNOME, Ruolo.STAFF, false);
+        // database demo creati prima: titolare "Mario Rossi", collaboratore "Luca Bianchi" o "Cucciolo"
+        mario = rinomina(mario, TITOLARE_NOME, TITOLARE_COGNOME);
+        luca = rinomina(luca, COLLABORATORE_NOME, COLLABORATORE_COGNOME);
         orariDemo(mario, luca);
         Utente giulia = creaSeAssente("cliente@demo.it", "Giulia", "Verdi", Ruolo.CLIENTE, false);
         Utente paolo = creaSeAssente("paolo.ferri@demo.it", "Paolo", "Ferri", Ruolo.CLIENTE, false);

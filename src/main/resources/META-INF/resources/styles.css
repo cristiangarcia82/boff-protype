@@ -495,3 +495,4 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-scelta-nota { font-size: var(--lumo-font-size-xs); opacity: .8; }
 .boff-pianificazione .boff-azioni { margin-top: var(--lumo-space-s); align-items: center; }
 .boff-dettaglio-appuntamento .boff-scelte + .boff-scelte { margin-top: var(--lumo-space-s); }
+.boff-nome-a-capo { display: block; overflow-wrap: anywhere; line-height: 1.3; }

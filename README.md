@@ -24,8 +24,8 @@ Con `BOFF_DEMO=true` vengono creati utenti, orari, bici e lavori di prova (passw
 
 | Email | Ruolo |
 |---|---|
-| `titolare@demo.it` | Titolare (vede anche *Impostazioni*) |
-| `collaboratore@demo.it` | Collaboratore (Cucciolo) |
+| `titolare@demo.it` | Titolare, Mattia Bettagno (vede anche *Impostazioni*) |
+| `collaboratore@demo.it` | Collaboratore, Diego "Cucciolo" Castelli |
 | `cliente@demo.it`, `paolo.ferri@demo.it`, `sara.conti@demo.it` | Clienti |
 
 Dopo una build di produzione (`./mvnw -Pproduction package`) esegui `./mvnw clean` prima di tornare

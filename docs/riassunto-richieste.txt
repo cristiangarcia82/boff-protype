@@ -131,3 +131,6 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 33. Pianificazione degli interventi più intuitiva
     La gestione della pianificazione degli interventi era poco intuitiva.
+
+34. Personale nei dati demo
+    Titolare: Mattia Bettagno. Collaboratore: Diego "Cucciolo" Castelli.
