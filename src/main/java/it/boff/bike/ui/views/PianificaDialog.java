@@ -33,6 +33,8 @@ public class PianificaDialog extends Dialog {
 
     private final PianificazioneService pianificazione;
     private final List<Assegnazione> pezzi;
+    /** Non null: si fissa tutto il lavoro (anche annunciato, anche senza interventi in calendario). */
+    private final Lavoro interoLavoro;
     private final long durata;
     private final LocalDate oggi;
     private final Runnable fatto;
@@ -42,14 +44,32 @@ public class PianificaDialog extends Dialog {
     private final Paragraph suggerimento = new Paragraph();
     private Utente persona;
     private LocalDate giorno;
+    private final boolean annunciato;
+    private final Utente cliente;
 
+    /** Sposta solo gli interventi indicati (es. un blocco del calendario). */
     public PianificaDialog(PianificazioneService pianificazione, Lavoro lavoro, List<Assegnazione> pezzi,
                            List<Utente> personale, LocalDate oggi, Runnable fatto) {
+        this(pianificazione, lavoro, pezzi, personale, oggi, fatto, false);
+    }
+
+    /** Fissa tutto il lavoro: gli interventi da oggi in poi, o tutti quelli da fare se non è ancora in calendario. */
+    public static PianificaDialog perIlLavoro(PianificazioneService pianificazione, Lavoro lavoro, List<Assegnazione> pezziDaOggi,
+                                              List<Utente> personale, LocalDate oggi, Runnable fatto) {
+        return new PianificaDialog(pianificazione, lavoro, pezziDaOggi, personale, oggi, fatto, true);
+    }
+
+    private PianificaDialog(PianificazioneService pianificazione, Lavoro lavoro, List<Assegnazione> pezzi,
+                            List<Utente> personale, LocalDate oggi, Runnable fatto, boolean intero) {
         this.pianificazione = pianificazione;
         this.pezzi = pezzi;
-        this.durata = pezzi.stream().mapToLong(a -> a.intervallo().minuti()).sum();
+        this.interoLavoro = intero ? lavoro : null;
+        this.durata = !pezzi.isEmpty() ? pezzi.stream().mapToLong(a -> a.intervallo().minuti()).sum()
+                : lavoro.getRighe().stream().filter(r -> !r.isCompletata() && r.isValida()).mapToLong(r -> r.getDurataMin()).sum();
         this.oggi = oggi;
         this.fatto = fatto;
+        this.annunciato = lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO;
+        this.cliente = lavoro.getBicicletta().getProprietario();
         setHeaderTitle("Quando lo facciamo?");
         setWidth("min(640px, 100vw)");
         addClassName("boff-pianifica");
@@ -58,6 +78,12 @@ public class PianificaDialog extends Dialog {
                 + " · " + Durate.formatta(durata) + " di lavoro");
         cosa.addClassName("boff-dettaglio-quando");
         add(cosa);
+        if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) {
+            Paragraph arrivo = new Paragraph("La bici non è ancora in negozio: il cliente riceverà giorno e ora in cui portarla"
+                    + (lavoro.getBicicletta().getProprietario().usaApp() ? "." : " (non usa l'app: glielo dirai tu per telefono)."));
+            arrivo.addClassName("boff-testo-secondario");
+            add(arrivo);
+        }
         if (lavoro.getDataPromessa() != null) {
             Paragraph promessa = new Paragraph("Promessa al cliente per " + Formati.giorno(lavoro.getDataPromessa()) + ".");
             promessa.addClassName("boff-urgente");
@@ -150,8 +176,12 @@ public class PianificaDialog extends Dialog {
 
     private void salva(LocalTime ora) {
         try {
-            pianificazione.spostaTutti(pezzi.stream().map(Assegnazione::getId).toList(), persona.getId(), giorno, ora);
-            Avvisi.ok("Fissato: " + persona.getNome() + ", " + Formati.giorno(giorno) + (ora == null ? "" : " alle " + ora));
+            if (interoLavoro != null) pianificazione.fissaLavoro(interoLavoro.getId(), persona.getId(), giorno, ora);
+            else pianificazione.spostaTutti(pezzi.stream().map(Assegnazione::getId).toList(), persona.getId(), giorno, ora);
+            Avvisi.ok("Fissato: " + persona.getNome() + ", " + Formati.giorno(giorno) + (ora == null ? "" : " alle " + ora)
+                    + (annunciato ? (cliente.usaApp() ? ". Il cliente riceve giorno e ora in cui portare la bici"
+                    : ". Il cliente non usa l'app: chiamalo per dirgli quando portare la bici"
+                    + (cliente.getTelefono() == null ? "" : " (" + cliente.getTelefono() + ")")) : ""));
             close();
             fatto.run();
         } catch (ErroreDominio ex) {

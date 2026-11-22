@@ -290,4 +290,51 @@ class AppuntamentiIT {
             lavori.annulla(lavoro);
         }
     }
+
+    @Test
+    void unLavoroAnnunciatoSiFissaPrimaCheArriviLaBici() {
+        LocalDate g = giornoLibero(11);
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Pinarello", "Dogma", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.annuncia(cliente, bici, List.of(catalogo.attivi().get(0).getId()), "Cambio che salta").getId();
+        assertThat(pianificazione.diLavoro(lavoro)).as("senza bici non va in calendario da solo").isEmpty();
+
+        pianificazione.fissaLavoro(lavoro, luca, g, LocalTime.of(9, 0));
+        var pezzi = pianificazione.diLavoro(lavoro);
+        assertThat(pezzi).isNotEmpty().allMatch(it.boff.bike.pianificazione.Assegnazione::isBloccata)
+                .allMatch(a -> a.getData().equals(g) && a.getUtente().getId().equals(luca));
+        var l = lavori.dettaglio(lavoro);
+        assertThat(l.getStato()).isEqualTo(it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO);
+        assertThat(l.getArrivoPrevisto()).isEqualTo(g.atTime(9, 0));
+        assertThat(l.getFinePrevista()).isEqualTo(g);
+        assertThat(it.boff.bike.notifiche.NotificheLavori.messaggioArrivo(l).testo()).contains("entro le 9:00");
+
+        // il ricalcolo completo non lo toglie, e gli appuntamenti non ci si sovrappongono
+        pianificazione.ripianifica();
+        assertThat(pianificazione.diLavoro(lavoro)).hasSameSizeAs(pezzi);
+        assertThat(appuntamenti.orariLiberiDi(luca, g, 45, null)).doesNotContain(LocalTime.of(9, 0));
+
+        // arriva la bici: il lavoro resta dov'era
+        lavori.checkIn(lavoro);
+        pianificazione.aggiorna();
+        var dopo = lavori.dettaglio(lavoro);
+        assertThat(dopo.getArrivoPrevisto()).isNull();
+        assertThat(pianificazione.diLavoro(lavoro).get(0).getOraInizio()).isEqualTo(LocalTime.of(9, 0));
+        assertThatThrownBy(() -> pianificazione.togliDalCalendario(lavoro)).isInstanceOf(ErroreDominio.class);
+        lavori.annulla(lavoro);
+    }
+
+    @Test
+    void unAnnunciatoFissatoSiPuoTogliereDalCalendario() {
+        LocalDate g = giornoLibero(13);
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Colnago", "C64", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.annuncia(cliente, bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+        pianificazione.fissaLavoro(lavoro, mario, g, null);
+        assertThat(lavori.dettaglio(lavoro).getArrivoPrevisto()).isNotNull();
+        pianificazione.togliDalCalendario(lavoro);
+        assertThat(pianificazione.diLavoro(lavoro)).isEmpty();
+        var l = lavori.dettaglio(lavoro);
+        assertThat(l.getArrivoPrevisto()).isNull();
+        assertThat(l.getFinePrevista()).isNull();
+        lavori.annulla(lavoro);
+    }
 }

@@ -148,21 +148,49 @@ class LavoroPannello extends Div {
     private Component pianificazione(Lavoro l) {
         Div card = new Div(new H4("Quando si fa"));
         card.addClassNames("boff-card", "boff-pianificazione");
-        if (l.getStato() == StatoLavoro.ANNUNCIATO) {
-            Paragraph p = new Paragraph("Va in calendario quando la bici arriva in negozio: premi "
-                    + "\"Bici arrivata in negozio\" e il sistema trova il primo spazio libero (poi puoi cambiarlo).");
-            p.addClassName("boff-testo-secondario");
+        boolean annunciato = l.getStato() == StatoLavoro.ANNUNCIATO;
+        java.time.LocalDate oggiAdesso = oggi.get();
+        var tutti = pianificazione.diLavoro(l.getId());
+        var pezzi = tutti.stream().filter(a -> !a.getData().isBefore(oggiAdesso)).toList();
+        Runnable dopo = () -> {
+            mostra(lavoroId);
+            dopoModifica.run();
+        };
+        Button scegli = new Button(pezzi.isEmpty() && annunciato ? "Fissa giorno e ora" : "Scegli giorno e ora",
+                VaadinIcon.CALENDAR_CLOCK.create(), e -> PianificaDialog.perIlLavoro(pianificazione, l, pezzi,
+                        personale.get(), oggiAdesso, dopo).open());
+        scegli.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        if (pezzi.isEmpty()) {
+            Paragraph p;
+            if (annunciato && !tutti.isEmpty()) {
+                var giorno = tutti.get(0).getData();
+                p = new Paragraph("Era fissato per " + Formati.giorno(giorno) + " ma la bici non è arrivata: scegli un'altra data.");
+                p.addClassName("boff-avviso");
+            } else if (annunciato) {
+                p = new Paragraph("La bici non è ancora in negozio. Puoi già fissare quando fare il lavoro: il cliente "
+                        + "riceve il giorno e l'ora in cui portarla e la data in cui sarà pronta. Altrimenti va in "
+                        + "calendario da sola quando premi \"Bici arrivata in negozio\".");
+                p.addClassName("boff-testo-secondario");
+            } else {
+                p = new Paragraph(l.minutiDaFare() == 0
+                        ? "Tutti gli interventi sono fatti: segna la bici come pronta."
+                        : "Non c'è spazio nelle ore di lavoro dei prossimi 90 giorni. Controlla gli orari in Impostazioni → Orari, o scegli tu giorno e ora.");
+                p.addClassName(l.minutiDaFare() == 0 ? "boff-testo-secondario" : "boff-avviso");
+            }
             card.add(p);
+            if (annunciato || l.minutiDaFare() > 0) {
+                Div comandi = new Div(scegli);
+                comandi.addClassName("boff-azioni");
+                card.add(comandi);
+            }
             return card;
         }
-        var pezzi = pianificazione.diLavoro(l.getId());
-        if (pezzi.isEmpty()) {
-            Paragraph p = new Paragraph(l.minutiDaFare() == 0
-                    ? "Tutti gli interventi sono fatti: segna la bici come pronta."
-                    : "Non c'è spazio nelle ore di lavoro dei prossimi 90 giorni. Controlla gli orari in Impostazioni → Orari.");
-            p.addClassName(l.minutiDaFare() == 0 ? "boff-testo-secondario" : "boff-avviso");
-            card.add(p);
-            return card;
+        if (annunciato && l.getArrivoPrevisto() != null) {
+            Paragraph arrivo = new Paragraph("Il cliente porta la bici " + Formati.giorno(l.getArrivoPrevisto().toLocalDate())
+                    + " entro le " + l.getArrivoPrevisto().toLocalTime()
+                    + (l.getFinePrevista() != null ? " · pronta prevista " + Formati.giorno(l.getFinePrevista()) : ""));
+            arrivo.addClassName("boff-info");
+            card.add(arrivo);
         }
         boolean fissato = pezzi.stream().allMatch(it.boff.bike.pianificazione.Assegnazione::isBloccata);
         boolean qualcunoFissato = pezzi.stream().anyMatch(it.boff.bike.pianificazione.Assegnazione::isBloccata);
@@ -185,7 +213,8 @@ class LavoroPannello extends Div {
                             + " · " + a.getUtente().getNome() + " · " + a.getRiga().getDescrizione())));
             card.add(elenco);
         }
-        Span chi = new Span(fissato ? "Fissato a mano: resta lì anche se il calendario cambia."
+        Span chi = new Span(annunciato ? "Fissato prima dell'arrivo della bici: resta lì finché non lo sposti."
+                : fissato ? "Fissato a mano: resta lì anche se il calendario cambia."
                 : qualcunoFissato ? "In parte fissato a mano." : "Deciso dal sistema: può spostarsi se il calendario cambia.");
         chi.addClassName("boff-testo-secondario");
         Div stato = new Div(fissato ? VaadinIcon.LOCK.create() : VaadinIcon.MAGIC.create(), chi);
@@ -194,14 +223,13 @@ class LavoroPannello extends Div {
 
         Div comandi = new Div();
         comandi.addClassName("boff-azioni");
-        Button scegli = new Button("Scegli giorno e ora", VaadinIcon.CALENDAR_CLOCK.create(), e ->
-                new PianificaDialog(pianificazione, l, pezzi, personale.get(), oggi.get(), () -> {
-                    mostra(lavoroId);
-                    dopoModifica.run();
-                }).open());
-        scegli.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         comandi.add(scegli);
-        if (qualcunoFissato) {
+        if (annunciato) {
+            Button togli = new Button("Togli dal calendario", e -> esegui(() -> pianificazione.togliDalCalendario(l.getId()),
+                    l.getBicicletta().getProprietario().usaApp() ? "Tolto dal calendario" : "Tolto dal calendario: avvisa il cliente per telefono"));
+            togli.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
+            comandi.add(togli);
+        } else if (qualcunoFissato) {
             Button libera = new Button("Lascia decidere al sistema", VaadinIcon.UNLOCK.create(), e -> esegui(() ->
                     pezzi.stream().filter(it.boff.bike.pianificazione.Assegnazione::isBloccata)
                             .forEach(a -> pianificazione.sblocca(a.getId())), "Ora lo pianifica il sistema"));

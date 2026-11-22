@@ -273,3 +273,20 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
   - **Vedi nel calendario** apre la settimana giusta.
 - **Calendario**: il dettaglio di un blocco usa la stessa finestra, al posto dei campi persona/data/ora. "Sblocca" diventa "Lascia decidere al sistema".
 - **Testi**: i messaggi di errore parlano di "ore di lavoro" invece di "officina".
+
+## D53 – Lavori annunciati fissati prima che arrivi la bici (richiesta del titolare)
+- **Perché**: dare al cliente una data per portare la bici, invece di "quando ti è comodo".
+- **Come**:
+  - nella scheda di un lavoro *Annunciato* c'è **Fissa giorno e ora**, con la stessa finestra "Quando lo facciamo?";
+  - si creano gli interventi in calendario, fissati;
+  - il cliente riceve una notifica (o un'email, se non ha le notifiche) con giorno e ora entro cui portare la bici (l'inizio del primo intervento) e la data in cui sarà pronta. L'app lo mostra nella sua bici e nell'elenco *Le mie bici*;
+  - se il cliente non usa l'app, l'avviso ricorda di telefonargli.
+- **Regole**:
+  - i lavori annunciati non fissati restano fuori dal calendario: entrano da soli al check-in, come prima;
+  - quelli fissati occupano il loro posto: il calcolo automatico e gli appuntamenti ci girano attorno, e il ricalcolo completo non li tocca;
+  - all'arrivo della bici (check-in) restano dove sono;
+  - *Togli dal calendario* li rimuove (solo per gli annunciati). "Lascia decidere al sistema" non c'è, perché li toglierebbe;
+  - se il giorno fissato passa senza che la bici arrivi, la scheda lo segnala e chiede un'altra data.
+- **Nel calendario** si riconoscono subito: bordo tratteggiato, sfondo a righe, etichetta "bici non arrivata", voce in legenda. Nel dettaglio compare quando il cliente porta la bici.
+- **Nell'elenco Lavori**, scheda Annunciati, la colonna *Arrivo bici* mostra il giorno e l'ora fissati.
+- **Dati**: colonna `lavoro.arrivo_previsto` (V16), calcolata dal ricalcolo come per la data prevista.

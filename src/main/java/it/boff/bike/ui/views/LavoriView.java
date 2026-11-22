@@ -65,6 +65,7 @@ public class LavoriView extends Div implements BeforeEnterObserver {
     }
 
     private final LavoroService service;
+    private Grid.Column<Lavoro> colonnaArrivo;
     private final Grid<Lavoro> griglia = new Grid<>();
     private final Tabs schede = new Tabs();
     private final TextField cerca = new TextField();
@@ -123,6 +124,10 @@ public class LavoriView extends Div implements BeforeEnterObserver {
         griglia.addColumn(l -> Durate.formatta(l.minutiDaFare())).setHeader("Da fare").setAutoWidth(true);
         griglia.addColumn(l -> l.getDataPromessa() != null ? Formati.giorno(l.getDataPromessa()) + " (promessa)"
                 : Formati.giorno(l.getFinePrevista())).setHeader("Consegna").setAutoWidth(true);
+        // per gli annunciati: se e quando il cliente porta la bici (lavoro già fissato in calendario)
+        colonnaArrivo = griglia.addColumn(l -> l.getArrivoPrevisto() == null ? ""
+                : "porta la bici " + Formati.giorno(l.getArrivoPrevisto().toLocalDate()) + " " + l.getArrivoPrevisto().toLocalTime())
+                .setHeader("Arrivo bici").setAutoWidth(true);
         griglia.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         griglia.setHeight("min(70vh, 640px)");
         griglia.asSingleSelect().addValueChangeListener(e -> {
@@ -176,6 +181,7 @@ public class LavoriView extends Div implements BeforeEnterObserver {
 
     private void aggiornaElenco() {
         Set<StatoLavoro> stati = filtroPerScheda.get(schede.getSelectedTab());
+        if (colonnaArrivo != null) colonnaArrivo.setVisible(stati.contains(StatoLavoro.ANNUNCIATO));
         List<Lavoro> elenco = service.cerca(stati, cerca.getValue());
         griglia.setItems(elenco);
         if (selezionato != null) {

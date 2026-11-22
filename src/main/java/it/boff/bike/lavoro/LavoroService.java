@@ -304,6 +304,19 @@ public class LavoroService {
         }
     }
 
+    /**
+     * Lavori annunciati (bici non ancora in negozio): data prevista di fine e quando il cliente deve
+     * portare la bici, secondo gli interventi fissati a mano. Senza interventi fissati restano senza date.
+     */
+    public void applicaPrevisioniAnnunciati(Map<Long, LocalDate> finePerLavoro, Map<Long, java.time.LocalDateTime> arrivoPerLavoro) {
+        for (Lavoro l : lavori.conRighe(java.util.EnumSet.of(StatoLavoro.ANNUNCIATO))) {
+            LocalDate fine = finePerLavoro.get(l.getId());
+            java.time.LocalDateTime arrivo = arrivoPerLavoro.get(l.getId());
+            if (fine != null) l.segnaPianificato(fine); else l.togliPianificazione();
+            l.impostaArrivoPrevisto(fine == null ? null : arrivo);
+        }
+    }
+
     @Transactional(readOnly = true)
     public long conta(Collection<StatoLavoro> stati) {
         return lavori.countByStatoIn(stati);

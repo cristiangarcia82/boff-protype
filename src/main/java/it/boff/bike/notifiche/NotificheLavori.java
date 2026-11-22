@@ -19,7 +19,8 @@ import java.util.Locale;
  * Traduce i cambi di stato dei lavori in notifiche. Gira dopo il commit e in un thread
  * separato: un servizio push lento non rallenta mai l'interfaccia.
  * <ul>
- *   <li>al cliente: bici arrivata in negozio, data prevista (prima pianificazione), bici pronta;</li>
+ *   <li>al cliente: quando portare la bici (lavoro annunciato fissato dal negozio), bici arrivata in negozio,
+ *       data prevista (prima pianificazione), bici pronta;</li>
  *   <li>al personale: nuovo lavoro annunciato da un cliente.</li>
  * </ul>
  */
@@ -28,6 +29,7 @@ public class NotificheLavori {
 
     private static final Logger log = LoggerFactory.getLogger(NotificheLavori.class);
     private static final DateTimeFormatter GIORNO = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ITALY);
+    private static final DateTimeFormatter ORA = DateTimeFormatter.ofPattern("H:mm", Locale.ITALY);
 
     private final NotificheService notifiche;
     private final LavoroService lavori;
@@ -74,6 +76,27 @@ public class NotificheLavori {
         }
     }
 
+    /** Lavoro annunciato messo in calendario dal negozio: al cliente, quando portare la bici (email di riserva). */
+    @Async
+    @TransactionalEventListener(fallbackExecution = true)
+    public void suFissatoPrimaDellArrivo(it.boff.bike.pianificazione.LavoroAnnunciatoFissato evento) {
+        try {
+            Messaggio m = messaggioArrivo(lavori.dettaglio(evento.lavoroId()));
+            if (m != null) notifiche.notifica(m.destinatario(), m.titolo(), m.testo(), m.emailDiRiserva());
+        } catch (RuntimeException e) {
+            log.warn("Data di consegna della bici per il lavoro {} non notificata: {}", evento.lavoroId(), e.getMessage());
+        }
+    }
+
+    /** Pacchetto per i test. */
+    public static Messaggio messaggioArrivo(Lavoro l) {
+        if (l.getStato() != StatoLavoro.ANNUNCIATO || l.getArrivoPrevisto() == null) return null;
+        String testo = "Ti aspettiamo con la tua " + l.getBicicletta().getNome() + " " + GIORNO.format(l.getArrivoPrevisto())
+                + " entro le " + ORA.format(l.getArrivoPrevisto()) + "."
+                + (l.getFinePrevista() == null ? "" : " Sarà pronta indicativamente " + GIORNO.format(l.getFinePrevista()) + ".");
+        return new Messaggio(l.getBicicletta().getProprietario().getId(), false, "Quando portarci la bici", testo, true);
+    }
+
     /** Risposta del cliente: avviso al personale. */
     @Async
     @TransactionalEventListener(fallbackExecution = true)
@@ -92,7 +115,7 @@ public class NotificheLavori {
         }
     }
 
-    record Messaggio(Long destinatario, boolean alPersonale, String titolo, String testo, boolean emailDiRiserva) {
+    public record Messaggio(Long destinatario, boolean alPersonale, String titolo, String testo, boolean emailDiRiserva) {
     }
 
     /** Quale messaggio inviare per un evento (null = nessuno). Pacchetto per i test. */

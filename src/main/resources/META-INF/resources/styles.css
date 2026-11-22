@@ -503,3 +503,15 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-kpi-link:hover, .boff-kpi-link:focus-visible { box-shadow: 0 0 0 2px var(--lumo-primary-color-50pct); transform: translateY(-1px); }
 .boff-kpi-link .vai { margin-top: auto; padding-top: var(--lumo-space-xs); font-size: var(--lumo-font-size-xs); color: var(--lumo-primary-text-color); }
 .boff-kpi-link:hover, .boff-kpi-link:hover * { text-decoration: none; }
+/* Lavoro fissato prima che arrivi la bici: bordo tratteggiato, sfondo a righe, etichetta */
+.boff-slot.in-arrivo, .boff-quadrato.in-arrivo {
+    border: 2px dashed var(--boff-colore-lavoro); border-left-width: 4px;
+    background: repeating-linear-gradient(-45deg,
+        color-mix(in srgb, var(--boff-colore-lavoro) 8%, var(--lumo-base-color)) 0 6px,
+        var(--lumo-base-color) 6px 12px);
+}
+.boff-quadrato.in-arrivo { border-width: 2px; box-sizing: border-box; }
+.boff-slot.in-arrivo:hover { background: color-mix(in srgb, var(--boff-colore-lavoro) 18%, var(--lumo-base-color)); }
+.boff-slot.in-arrivo .boff-slot-etichetta { color: var(--lumo-body-text-color); font-weight: 600;
+    background: var(--lumo-contrast-10pct); border-radius: 4px; padding: 0 4px; }
+.boff-slot.in-arrivo .boff-slot-etichetta { font-size: var(--lumo-font-size-xxs); display: inline-block; margin-top: 2px; }

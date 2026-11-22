@@ -189,6 +189,8 @@ public class BachecaView extends Div {
             Span bici = new Span(l.getBicicletta().getNome());
             bici.addClassName("boff-bici-nome-piccolo");
             Span dettaglio = new Span(l.getBicicletta().getProprietario().getNomeCompleto()
+                    + (l.getArrivoPrevisto() != null ? " · porta la bici " + Formati.giorno(l.getArrivoPrevisto().toLocalDate())
+                    + " " + l.getArrivoPrevisto().toLocalTime() : "")
                     + (l.getFinePrevista() != null ? " · prevista " + Formati.giorno(l.getFinePrevista()) : ""));
             dettaglio.addClassName("boff-testo-secondario");
             link.add(bici, dettaglio);

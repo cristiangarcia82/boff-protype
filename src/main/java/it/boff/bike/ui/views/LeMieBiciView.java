@@ -84,6 +84,14 @@ public class LeMieBiciView extends Div {
                 ok.getElement().getThemeList().add("badge");
                 ok.getElement().getThemeList().add("primary");
                 badge = ok;
+            } else if (l != null && l.getArrivoPrevisto() != null) {
+                // lavoro già fissato dal negozio: quando portare la bici
+                com.vaadin.flow.component.html.Span porta = new com.vaadin.flow.component.html.Span("Portala "
+                        + it.boff.bike.ui.componenti.Formati.giorno(l.getArrivoPrevisto().toLocalDate()) + " entro le "
+                        + l.getArrivoPrevisto().toLocalTime());
+                porta.getElement().getThemeList().add("badge");
+                porta.getElement().getThemeList().add("primary");
+                badge = porta;
             } else if (l != null) {
                 badge = new BadgeStato(l.getStato());
             }

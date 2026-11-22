@@ -162,7 +162,11 @@ public class BiciView extends Div implements BeforeEnterObserver {
 
     private static String messaggioPer(Lavoro l) {
         return switch (l.getStato()) {
-            case ANNUNCIATO -> "Abbiamo ricevuto la tua richiesta. Porta la bici in negozio quando ti è comodo.";
+            case ANNUNCIATO -> l.getArrivoPrevisto() != null
+                    ? "Ti aspettiamo con la bici " + Formati.giorno(l.getArrivoPrevisto().toLocalDate()) + " entro le "
+                    + l.getArrivoPrevisto().toLocalTime() + "."
+                    + (l.getFinePrevista() != null ? " Sarà pronta indicativamente " + Formati.giorno(l.getFinePrevista()) + "." : "")
+                    : "Abbiamo ricevuto la tua richiesta. Porta la bici in negozio quando ti è comodo.";
             case IN_NEGOZIO -> "La bici è in negozio: a breve ti diremo quando sarà pronta.";
             case PIANIFICATO, IN_LAVORAZIONE -> l.getFinePrevista() != null
                     ? "Pronta prevista per " + Formati.giorno(l.getFinePrevista()) + "."

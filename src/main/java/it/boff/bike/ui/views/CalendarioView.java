@@ -134,7 +134,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         Div intestazione = new Div(new H2("Calendario"), navigazione);
         intestazione.addClassName("boff-intestazione");
         Div legenda = new Div(voceLegenda("officina", "Orario di lavoro"), voceLegenda("vendita", "Turno di vendita (+)"),
-                voceLegenda("lavoro", "Lavoro in officina"), voceLegenda("appuntamento", "Appuntamento"),
+                voceLegenda("lavoro", "Lavoro in officina"), voceLegenda("in-arrivo", "Bici non ancora arrivata"), voceLegenda("appuntamento", "Appuntamento"),
                 voceLegenda("assenza", "Assente / chiuso"));
         Span suggerimento = new Span("Tocca una bici per i dettagli; trascinala su un'altra persona o giorno per spostarla.");
         suggerimento.addClassName("boff-testo-secondario");
@@ -656,8 +656,17 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             u.addClassName("boff-slot-etichetta");
             riga.add(u);
         }
-        slot.add(bici, riga);
-        slot.setTitle(lavoro.getBicicletta().getNome() + " · " + lavoro.getBicicletta().getProprietario().getNomeCompleto());
+        if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) {
+            // fissato prima che arrivi la bici
+            slot.addClassName("in-arrivo");
+            Span a = new Span("bici non arrivata");
+            a.addClassName("boff-slot-etichetta");
+            slot.add(bici, riga, new Div(a));
+        } else {
+            slot.add(bici, riga);
+        }
+        slot.setTitle(lavoro.getBicicletta().getNome() + " · " + lavoro.getBicicletta().getProprietario().getNomeCompleto()
+                + (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO ? " · bici non ancora in negozio" : ""));
 
         DragSource<Div> sorgente = DragSource.create(slot);
         sorgente.setDragData(gruppo.stream().map(Assegnazione::getId).toList());
@@ -694,6 +703,13 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             cliente.add(new Span(" "), senzaApp);
         }
         dialog.add(quando, cliente);
+        if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) {
+            Paragraph arrivo = new Paragraph("La bici non è ancora in negozio"
+                    + (lavoro.getArrivoPrevisto() == null ? "." : ": il cliente la porta " + Formati.giorno(lavoro.getArrivoPrevisto().toLocalDate())
+                    + " entro le " + lavoro.getArrivoPrevisto().toLocalTime() + "."));
+            arrivo.addClassName("boff-avviso");
+            dialog.add(arrivo);
+        }
 
         com.vaadin.flow.component.html.UnorderedList interventi = new com.vaadin.flow.component.html.UnorderedList();
         interventi.addClassName("boff-dettaglio-interventi");
@@ -760,7 +776,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         chiudi.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         chiudi.setAriaLabel("Chiudi");
         dialog.getHeader().add(chiudi);
-        dialog.getFooter().add(blocco, apri, cambia);
+        // un lavoro annunciato esiste in calendario solo perché fissato: niente "lascia decidere al sistema"
+        if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) dialog.getFooter().add(apri, cambia);
+        else dialog.getFooter().add(blocco, apri, cambia);
         dialog.open();
     }
 

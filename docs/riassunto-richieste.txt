@@ -137,3 +137,8 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 35. Contatori della bacheca cliccabili
     Cliccando un contatore si apre l'elenco corrispondente (es. le bici in officina).
+
+36. Pianificare i lavori annunciati prima dell'arrivo della bici
+    Poter fissare in calendario un lavoro annunciato, per dare al cliente
+    una data in cui portare la bici. Nel calendario devono essere facili da
+    riconoscere i lavori pianificati con la bici non ancora in officina.

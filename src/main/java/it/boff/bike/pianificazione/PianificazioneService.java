@@ -60,12 +60,15 @@ public class PianificazioneService {
     private final ReentrantLock lock = new ReentrantLock();
     private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
     private final it.boff.bike.appuntamento.AppuntamentoRepository appuntamenti;
+    private final org.springframework.context.ApplicationEventPublisher eventi;
 
     public PianificazioneService(AssegnazioneRepository assegnazioni, LavoroService lavori,
                                  CalendarioService calendario, UtenteRepository utenti, EntityManager em,
                                  BoffProperties properties, Clock clock,
                                  it.boff.bike.funzionalita.FunzionalitaService funzionalita,
-                                 it.boff.bike.appuntamento.AppuntamentoRepository appuntamenti) {
+                                 it.boff.bike.appuntamento.AppuntamentoRepository appuntamenti,
+                                 org.springframework.context.ApplicationEventPublisher eventi) {
+        this.eventi = eventi;
         this.appuntamenti = appuntamenti;
         this.funzionalita = funzionalita;
         this.assegnazioni = assegnazioni;
@@ -169,7 +172,11 @@ public class PianificazioneService {
         LocalDate oggi = adesso.toLocalDate();
         List<Lavoro> inOfficina = lavori.conRighe(StatoLavoro.IN_OFFICINA);
         List<Long> ids = inOfficina.stream().map(Lavoro::getId).toList();
-        List<Long> idsQuery = ids.isEmpty() ? List.of(-1L) : ids;
+        // lavori annunciati già fissati a mano (la bici deve ancora arrivare): i loro interventi restano e occupano
+        List<Long> annunciatiFissati = assegnazioni.lavoriAnnunciatiFissati(oggi);
+        List<Long> tenuti = new ArrayList<>(ids);
+        tenuti.addAll(annunciatiFissati);
+        List<Long> idsQuery = tenuti.isEmpty() ? List.of(-1L) : tenuti;
 
         Disponibilita disponibilita = calendario.disponibilita(oggi, oggi.plusDays(Pianificatore.GIORNI_ORIZZONTE));
         // gli appuntamenti di consulenza hanno la precedenza: il loro tempo non va all'officina
@@ -227,6 +234,17 @@ public class PianificazioneService {
         Map<Long, LocalDate> fine = new HashMap<>(r.finePerLavoro());
         lavori.applicaPianificazione(ids, fine);
 
+        // annunciati: fine prevista e quando portare la bici, dai soli interventi fissati
+        Map<Long, LocalDate> fineAnnunciati = new HashMap<>();
+        Map<Long, LocalDateTime> arrivoAnnunciati = new HashMap<>();
+        for (Assegnazione a : bloccate) {
+            Long lavoroId = a.getRiga().getLavoro().getId();
+            if (!annunciatiFissati.contains(lavoroId)) continue;
+            fineAnnunciati.put(lavoroId, fineBloccatePerLavoro.get(lavoroId).toLocalDate());
+            arrivoAnnunciati.merge(lavoroId, LocalDateTime.of(a.getData(), a.getOraInizio()), (x, y) -> x.isBefore(y) ? x : y);
+        }
+        lavori.applicaPrevisioniAnnunciati(fineAnnunciati, arrivoAnnunciati);
+
         List<Long> inRitardo = inOfficina.stream()
                 .filter(l -> l.getDataPromessa() != null && fine.containsKey(l.getId())
                         && fine.get(l.getId()).isAfter(l.getDataPromessa()))
@@ -248,6 +266,41 @@ public class PianificazioneService {
      */
     public void sposta(Long assegnazioneId, Long utenteId, LocalDate giorno, LocalTime ora) {
         spostaTutti(List.of(assegnazioneId), utenteId, giorno, ora);
+    }
+
+    /**
+     * Mette tutto il lavoro con una persona, in un giorno e (se indicata) da un'ora, e lo fissa.
+     * Vale anche per un lavoro ancora annunciato: se non ha interventi in calendario li crea ora,
+     * così il negozio può dire al cliente quando portare la bici.
+     */
+    public void fissaLavoro(Long lavoroId, Long utenteId, LocalDate giorno, LocalTime ora) {
+        lock.lock();
+        try {
+            Lavoro l = lavori.dettaglio(lavoroId);
+            if (!l.getStato().isAperto() || l.getStato() == StatoLavoro.PRONTO) {
+                throw new ErroreDominio("Il lavoro è " + l.getStato().getEtichetta().toLowerCase() + ": non si pianifica");
+            }
+            LocalDate oggi = LocalDate.now(clock);
+            List<Assegnazione> pezzi = assegnazioni.diLavoro(lavoroId).stream().filter(a -> !a.getData().isBefore(oggi)).toList();
+            if (pezzi.isEmpty()) {
+                // ancora nessun intervento in calendario: uno per intervento da fare (la posizione la decide spostaTutti)
+                assegnazioni.deleteAll(assegnazioni.diLavoro(lavoroId));
+                Utente persona = utenti.findById(utenteId).orElseThrow();
+                List<Assegnazione> nuovi = new ArrayList<>();
+                for (RigaLavoro r : l.getRighe()) {
+                    if (r.isCompletata() || !r.isValida() || r.getDurataMin() <= 0) continue;
+                    if (r.getDurataMin() >= 24 * 60) throw new ErroreDominio("Intervento troppo lungo per un solo giorno: " + r.getDescrizione());
+                    nuovi.add(assegnazioni.save(new Assegnazione(r, persona, giorno,
+                            new Intervallo(LocalTime.MIN, LocalTime.MIN.plusMinutes(r.getDurataMin())))));
+                }
+                if (nuovi.isEmpty()) throw new ErroreDominio("Non ci sono interventi da fare");
+                em.flush();
+                pezzi = nuovi;
+            }
+            spostaTutti(pezzi.stream().map(Assegnazione::getId).toList(), utenteId, giorno, ora);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -309,6 +362,25 @@ public class PianificazioneService {
                 em.flush();
                 if (prossima != null) prossima = destinazione.fine();
             }
+            calcola(automatica());
+            // lavori ancora annunciati: il cliente va avvisato di quando portare la bici
+            daSpostare.stream().map(a -> a.getRiga().getLavoro().getId()).distinct()
+                    .filter(id -> lavori.dettaglio(id).getStato() == StatoLavoro.ANNUNCIATO)
+                    .forEach(id -> eventi.publishEvent(new LavoroAnnunciatoFissato(id)));
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /** Lavoro annunciato fissato prima dell'arrivo: lo toglie dal calendario (la bici non verrà quel giorno). */
+    public void togliDalCalendario(Long lavoroId) {
+        lock.lock();
+        try {
+            if (lavori.dettaglio(lavoroId).getStato() != StatoLavoro.ANNUNCIATO) {
+                throw new ErroreDominio("Solo un lavoro annunciato si toglie dal calendario: gli altri si spostano");
+            }
+            assegnazioni.deleteAll(assegnazioni.diLavoro(lavoroId));
+            em.flush();
             calcola(automatica());
         } finally {
             lock.unlock();

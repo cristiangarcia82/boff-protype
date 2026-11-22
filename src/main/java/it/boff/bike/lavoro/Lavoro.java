@@ -63,6 +63,10 @@ public class Lavoro {
     @Column(name = "fine_prevista")
     private LocalDate finePrevista;
 
+    /** Lavoro annunciato già in calendario: quando il cliente deve portare la bici (null altrimenti). */
+    @Column(name = "arrivo_previsto")
+    private java.time.LocalDateTime arrivoPrevisto;
+
     @Column(name = "annunciato_il", nullable = false)
     private OffsetDateTime annunciatoIl;
 
@@ -133,6 +137,12 @@ public class Lavoro {
         richiedi(Set.of(StatoLavoro.ANNUNCIATO), "fare il check-in");
         stato = StatoLavoro.IN_NEGOZIO;
         checkinIl = adesso;
+        arrivoPrevisto = null;
+    }
+
+    /** Solo per i lavori annunciati: giorno e ora in cui il cliente deve portare la bici (null = non fissato). */
+    void impostaArrivoPrevisto(java.time.LocalDateTime quando) {
+        arrivoPrevisto = stato == StatoLavoro.ANNUNCIATO ? quando : null;
     }
 
     void segnaPianificato(LocalDate fine) {
@@ -209,6 +219,7 @@ public class Lavoro {
     public String getNoteInterne() { return noteInterne; }
     public LocalDate getDataPromessa() { return dataPromessa; }
     public LocalDate getFinePrevista() { return finePrevista; }
+    public java.time.LocalDateTime getArrivoPrevisto() { return arrivoPrevisto; }
     public OffsetDateTime getAnnunciatoIl() { return annunciatoIl; }
     public OffsetDateTime getCheckinIl() { return checkinIl; }
     public OffsetDateTime getProntoIl() { return prontoIl; }

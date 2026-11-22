@@ -67,4 +67,11 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
 
     @Query("select a from Assegnazione a where a.utente.id = :utenteId and a.data = :data and a.bloccata = true")
     List<Assegnazione> bloccateDiPersona(Long utenteId, LocalDate data);
+
+    /** Lavori ancora annunciati (bici non arrivata) con interventi fissati da oggi in poi. */
+    @Query("""
+            select distinct l.id from Assegnazione a join a.riga r join r.lavoro l
+            where l.stato = it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO and a.data >= :oggi
+            """)
+    List<Long> lavoriAnnunciatiFissati(LocalDate oggi);
 }
