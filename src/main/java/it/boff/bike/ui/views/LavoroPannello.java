@@ -116,6 +116,12 @@ class LavoroPannello extends Div {
         // --- interventi ---
         Div interventi = new Div(new H4("Interventi"));
         interventi.addClassName("boff-card");
+        if (l.getStato() == StatoLavoro.ANNUNCIATO) {
+            Paragraph attesa = new Paragraph("La bici non è ancora in negozio: gli interventi si potranno segnare come "
+                    + "fatti dopo \"Bici arrivata in negozio\".");
+            attesa.addClassName("boff-testo-secondario");
+            interventi.add(attesa);
+        }
         for (RigaLavoro r : l.getRighe()) {
             interventi.add(riga(l, r));
         }
@@ -306,6 +312,9 @@ class LavoroPannello extends Div {
         Checkbox fatto = new Checkbox(r.isCompletata());
         fatto.setAriaLabel("Fatto");
         fatto.setEnabled(StatoLavoro.IN_OFFICINA.contains(l.getStato()) && r.isValida());
+        // casella spenta: si dice perché (senza bici in negozio gli interventi non si fanno)
+        if (l.getStato() == StatoLavoro.ANNUNCIATO) fatto.setTooltipText("Si spunta quando la bici è in negozio");
+        else if (!r.isValida()) fatto.setTooltipText("In attesa della risposta del cliente");
         fatto.addValueChangeListener(e -> {
             if (e.isFromClient()) esegui(() -> service.segnaRiga(r.getId(), e.getValue()),
                     e.getValue() ? "Intervento fatto" : "Intervento da rifare");

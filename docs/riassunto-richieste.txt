@@ -151,3 +151,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 38. Arrivo della bici dal calendario
     Nel dettaglio di un lavoro con "bici non arrivata" serve il pulsante per
     segnalare che la bici è stata consegnata in negozio.
+
+39. Interventi di una bici non arrivata
+    Con la bici non ancora in negozio gli interventi non si possono spuntare
+    (regola confermata dal titolare): ora la scheda spiega perché.
