@@ -57,6 +57,13 @@ public class LavoriView extends Div implements BeforeEnterObserver {
         FILTRI.put("Archivio", StatoLavoro.CHIUSI);
     }
 
+    /** Valori di {@code ?scheda=} (es. dai contatori della bacheca), nell'ordine delle schede. */
+    static final List<String> CHIAVI_SCHEDE = List.of("officina", "annunciati", "pronti", "aperti", "archivio");
+
+    static com.vaadin.flow.router.QueryParameters scheda(String chiave) {
+        return com.vaadin.flow.router.QueryParameters.of("scheda", chiave);
+    }
+
     private final LavoroService service;
     private final Grid<Lavoro> griglia = new Grid<>();
     private final Tabs schede = new Tabs();
@@ -135,6 +142,10 @@ public class LavoriView extends Div implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        event.getLocation().getQueryParameters().getSingleParameter("scheda").map(CHIAVI_SCHEDE::indexOf)
+                .filter(i -> i >= 0 && i < schede.getTabCount()).ifPresent(i -> {
+                    if (schede.getSelectedIndex() != i) schede.setSelectedIndex(i);
+                });
         event.getRouteParameters().getLong("id").ifPresent(id -> {
             Lavoro l;
             try {

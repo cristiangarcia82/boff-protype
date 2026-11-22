@@ -496,3 +496,10 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-pianificazione .boff-azioni { margin-top: var(--lumo-space-s); align-items: center; }
 .boff-dettaglio-appuntamento .boff-scelte + .boff-scelte { margin-top: var(--lumo-space-s); }
 .boff-nome-a-capo { display: block; overflow-wrap: anywhere; line-height: 1.3; }
+
+/* Contatori della bacheca cliccabili */
+.boff-kpi-link { display: flex; flex-direction: column; color: inherit; text-decoration: none; cursor: pointer;
+    transition: box-shadow .15s, transform .15s; }
+.boff-kpi-link:hover, .boff-kpi-link:focus-visible { box-shadow: 0 0 0 2px var(--lumo-primary-color-50pct); transform: translateY(-1px); }
+.boff-kpi-link .vai { margin-top: auto; padding-top: var(--lumo-space-xs); font-size: var(--lumo-font-size-xs); color: var(--lumo-primary-text-color); }
+.boff-kpi-link:hover, .boff-kpi-link:hover * { text-decoration: none; }

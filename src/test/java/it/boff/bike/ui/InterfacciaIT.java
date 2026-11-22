@@ -438,6 +438,21 @@ class InterfacciaIT extends SpringBrowserlessTest {
         appuntamentiService.annulla(a.getId());
     }
 
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void iContatoriDellaBachecaApronoLElenco() {
+        navigate(BachecaView.class);
+        var contatori = $(com.vaadin.flow.router.RouterLink.class).withClassName("boff-kpi-link").all();
+        assertThat(contatori).hasSize(4);
+        assertThat(contatori.get(0).getHref()).isEqualTo("lavori?scheda=officina");
+        assertThat(contatori.get(1).getHref()).isEqualTo("lavori?scheda=pronti");
+        assertThat(contatori.get(2).getHref()).isEqualTo("lavori?scheda=annunciati");
+        assertThat(contatori.get(3).getHref()).isEqualTo("calendario");
+
+        navigate("lavori?scheda=pronti", LavoriView.class);
+        assertThat($(com.vaadin.flow.component.tabs.Tabs.class).single().getSelectedTab().getLabel()).isEqualTo("Pronti");
+    }
+
     private static java.util.stream.Stream<com.vaadin.flow.component.Component> discendenti(com.vaadin.flow.component.Component c) {
         return java.util.stream.Stream.concat(java.util.stream.Stream.of(c), c.getChildren().flatMap(InterfacciaIT::discendenti));
     }

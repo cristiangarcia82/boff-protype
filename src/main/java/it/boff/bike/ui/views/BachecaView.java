@@ -67,11 +67,15 @@ public class BachecaView extends Div {
         String carico = capacita == 0 ? "–" : Math.round(100.0 * assegnati / capacita) + "%";
 
         Div kpi = new Div(
-                indicatore(String.valueOf(lavori.conta(StatoLavoro.IN_OFFICINA)), "Bici in officina"),
-                indicatore(String.valueOf(lavori.conta(EnumSet.of(StatoLavoro.PRONTO))), "Pronte da ritirare"),
-                indicatore(String.valueOf(lavori.conta(EnumSet.of(StatoLavoro.ANNUNCIATO))), "Annunci in attesa della bici"),
+                indicatore(String.valueOf(lavori.conta(StatoLavoro.IN_OFFICINA)), "Bici in officina",
+                        LavoriView.class, LavoriView.scheda("officina")),
+                indicatore(String.valueOf(lavori.conta(EnumSet.of(StatoLavoro.PRONTO))), "Pronte da ritirare",
+                        LavoriView.class, LavoriView.scheda("pronti")),
+                indicatore(String.valueOf(lavori.conta(EnumSet.of(StatoLavoro.ANNUNCIATO))), "Annunci in attesa della bici",
+                        LavoriView.class, LavoriView.scheda("annunciati")),
                 indicatore(carico, "Officina occupata da oggi a fine settimana ("
-                        + Durate.formatta(assegnati) + " su " + Durate.formatta(capacita) + ")"));
+                        + Durate.formatta(assegnati) + " su " + Durate.formatta(capacita) + ")",
+                        CalendarioView.class, com.vaadin.flow.router.QueryParameters.empty()));
         kpi.addClassName("boff-kpi");
 
         Div principale = new Div(
@@ -192,19 +196,31 @@ public class BachecaView extends Div {
             card.add(link);
         });
         if (elenco.size() > 8) {
-            card.add(new RouterLink("Vedi tutti (" + elenco.size() + ")", LavoriView.class));
+            RouterLink tutti = new RouterLink("Vedi tutti (" + elenco.size() + ")", LavoriView.class);
+            tutti.setQueryParameters(LavoriView.scheda(switch (titolo) {
+                case "Nuovi annunci" -> "annunciati";
+                case "Pronte da ritirare" -> "pronti";
+                default -> "officina";
+            }));
+            card.add(tutti);
         }
         return card;
     }
 
-    private static Div indicatore(String valore, String etichetta) {
+    /** Contatore cliccabile: porta alla pagina con l'elenco corrispondente. */
+    private static RouterLink indicatore(String valore, String etichetta,
+                                         Class<? extends com.vaadin.flow.component.Component> pagina,
+                                         com.vaadin.flow.router.QueryParameters parametri) {
         Span v = new Span(valore);
         v.addClassName("valore");
         Span e = new Span(etichetta);
         e.addClassName("etichetta");
-        Div card = new Div(v, e);
-        card.addClassName("boff-card");
-        card.getStyle().set("display", "flex").set("flex-direction", "column");
+        Span vai = new Span(pagina == CalendarioView.class ? "Apri il calendario →" : "Apri l'elenco →");
+        vai.addClassName("vai");
+        RouterLink card = new RouterLink(pagina);
+        card.setQueryParameters(parametri);
+        card.add(v, e, vai);
+        card.addClassNames("boff-card", "boff-kpi-link");
         return card;
     }
 }

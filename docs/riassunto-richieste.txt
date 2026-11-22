@@ -134,3 +134,6 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 34. Personale nei dati demo
     Titolare: Mattia Bettagno. Collaboratore: Diego "Cucciolo" Castelli.
+
+35. Contatori della bacheca cliccabili
+    Cliccando un contatore si apre l'elenco corrispondente (es. le bici in officina).
