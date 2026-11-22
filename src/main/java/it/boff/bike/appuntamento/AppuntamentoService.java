@@ -277,6 +277,13 @@ public class AppuntamentoService {
         return appuntamenti.tra(dal, al, StatoAppuntamento.ATTIVI);
     }
 
+    /** Per il calendario: attivi e anche svolti (si rivedono a posteriori), non gli annullati. */
+    @Transactional(readOnly = true)
+    public List<Appuntamento> perCalendario(LocalDate dal, LocalDate al) {
+        return appuntamenti.tra(dal, al, java.util.EnumSet.of(StatoAppuntamento.RICHIESTO, StatoAppuntamento.CONFERMATO,
+                StatoAppuntamento.SVOLTO));
+    }
+
     @Transactional(readOnly = true)
     public List<Appuntamento> daConfermare() {
         // anche quelle rimaste senza risposta negli ultimi 14 giorni: vanno rifiutate o spostate, non perse

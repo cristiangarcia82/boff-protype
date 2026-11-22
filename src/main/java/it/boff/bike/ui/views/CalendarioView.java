@@ -134,7 +134,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         Div intestazione = new Div(new H2("Calendario"), navigazione);
         intestazione.addClassName("boff-intestazione");
         Div legenda = new Div(voceLegenda("officina", "Orario di lavoro"), voceLegenda("vendita", "Turno di vendita (+)"),
-                voceLegenda("lavoro", "Lavoro in officina"), voceLegenda("in-arrivo", "Bici non ancora arrivata"), voceLegenda("appuntamento", "Appuntamento"),
+                voceLegenda("lavoro", "Lavoro in officina"), voceLegenda("in-arrivo", "Bici non ancora arrivata"), voceLegenda("fatto", "Fatto"), voceLegenda("appuntamento", "Appuntamento"),
                 voceLegenda("assenza", "Assente / chiuso"));
         Span suggerimento = new Span("Tocca una bici per i dettagli; trascinala su un'altra persona o giorno per spostarla.");
         suggerimento.addClassName("boff-testo-secondario");
@@ -231,7 +231,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         Disponibilita d = calendario.disponibilita(lunedi, domenica);
         assegnazioniPerCella = pianificazione.tra(lunedi, domenica).stream()
                 .collect(Collectors.groupingBy(a -> a.getUtente().getId() + "|" + a.getData()));
-        appuntamentiPerCella = appuntamenti.tra(lunedi, domenica).stream()
+        appuntamentiPerCella = appuntamenti.perCalendario(lunedi, domenica).stream()
                 .collect(Collectors.groupingBy(a -> a.getUtente().getId() + "|" + a.getData()));
         personaleAttivo = d.personale();
         // la domenica si mostra solo se qualcuno lavora in una delle settimane
@@ -485,7 +485,9 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         chi.addClassName("boff-slot-bici");
         Span quando = new Span(breve(a.getOraInizio()) + "–" + breve(a.getOraFine()));
         quando.addClassName("boff-slot-orario");
-        Span cosa = new Span(richiesto ? "da confermare" : a.getTipo().getNome());
+        boolean svolto = a.getStato() == it.boff.bike.appuntamento.StatoAppuntamento.SVOLTO;
+        if (svolto) slot.addClassName("fatto");
+        Span cosa = new Span(richiesto ? "da confermare" : svolto ? "svolto · " + a.getTipo().getNome() : a.getTipo().getNome());
         cosa.addClassName("boff-slot-etichetta");
         Div riga = new Div(quando);
         riga.addClassName("boff-slot-riga");
@@ -655,6 +657,23 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             Span u = new Span("urgente");
             u.addClassName("boff-slot-etichetta");
             riga.add(u);
+        }
+        // a posteriori: interventi fatti (grigio con spunta) o rimasti indietro (orario passato, non fatti)
+        boolean fatto = gruppo.stream().allMatch(a -> a.getRiga().isCompletata());
+        boolean passato = java.time.LocalDateTime.of(ultimo.getData(), ultimo.getOraFine())
+                .isBefore(java.time.LocalDateTime.now(Formati.zona()));
+        if (fatto) {
+            slot.addClassName("fatto");
+            var spunta = VaadinIcon.CHECK.create();
+            spunta.addClassName("spunta");
+            riga.addComponentAsFirst(spunta);
+        } else if (passato && lavoro.getStato() != it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) {
+            slot.addClassName("passato");
+        }
+        if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.RITIRATO) {
+            Span r = new Span("ritirata");
+            r.addClassName("boff-slot-etichetta");
+            riga.add(r);
         }
         if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) {
             // fissato prima che arrivi la bici

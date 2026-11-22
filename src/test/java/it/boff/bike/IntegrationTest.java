@@ -18,6 +18,7 @@ import java.lang.annotation.Target;
         "boff.titolare.email=Titolare@Negozio.IT",
         "boff.titolare.password=segreta123",
         "boff.demo=true",
+        "boff.demo-storico=false",
         "spring.docker.compose.enabled=false"
 })
 @Import(TestcontainersConfiguration.class)

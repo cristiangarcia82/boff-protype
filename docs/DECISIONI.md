@@ -290,3 +290,17 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Nel calendario** si riconoscono subito: bordo tratteggiato, sfondo a righe, etichetta "bici non arrivata", voce in legenda. Nel dettaglio compare quando il cliente porta la bici.
 - **Nell'elenco Lavori**, scheda Annunciati, la colonna *Arrivo bici* mostra il giorno e l'ora fissati.
 - **Dati**: colonna `lavoro.arrivo_previsto` (V16), calcolata dal ricalcolo come per la data prevista.
+
+## D54 – Il calendario passato resta, per il debriefing; dati demo di tutto il mese (richiesta del titolare)
+- **Passato intatto**: il ricalcolo (automatico o *Ripianifica*) non cancella più gli interventi dei giorni passati, nemmeno quelli dei lavori ancora aperti. Si lavora solo da oggi in avanti. Così a fine settimana si rivede com'è andata.
+- **A colpo d'occhio**:
+  - interventi fatti in grigio con la spunta ("ritirata" se la bici è già stata ritirata);
+  - interventi rimasti indietro con il bordo puntinato;
+  - le consulenze svolte restano in calendario (grigie, "svolto");
+  - nuova voce "Fatto" in legenda.
+- **Dati demo** (`StoricoDemo`, solo con `BOFF_DEMO=true`), per tutto il mese corrente, 3-4 bici al giorno:
+  - 22 clienti con circa 30 bici;
+  - i giorni passati hanno lavori svolti e ritirati (gli ultimi pronti, da ritirare), con tempi reali per le statistiche;
+  - i giorni futuri hanno lavori fissati: in negozio nei prossimi due giorni, annunciati con la bici non ancora arrivata più avanti;
+  - si creano una volta sola, anche su un database demo già esistente;
+  - nei test sono spenti (`boff.demo-storico=false`).

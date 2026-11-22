@@ -142,3 +142,8 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
     Poter fissare in calendario un lavoro annunciato, per dare al cliente
     una data in cui portare la bici. Nel calendario devono essere facili da
     riconoscere i lavori pianificati con la bici non ancora in officina.
+
+37. Dati del passato e calendario per il debriefing
+    Bici del passato (alcune elaborate e ritirate) per vedere il calendario;
+    gli interventi devono restare nel calendario per il debriefing. Dati per
+    tutto il mese di novembre, 3-4 bici al giorno.

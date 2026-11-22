@@ -515,3 +515,11 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-slot.in-arrivo .boff-slot-etichetta { color: var(--lumo-body-text-color); font-weight: 600;
     background: var(--lumo-contrast-10pct); border-radius: 4px; padding: 0 4px; }
 .boff-slot.in-arrivo .boff-slot-etichetta { font-size: var(--lumo-font-size-xxs); display: inline-block; margin-top: 2px; }
+
+/* A posteriori: interventi e appuntamenti svolti in grigio con la spunta */
+.boff-slot.fatto { border-left-color: var(--lumo-contrast-40pct); background: var(--lumo-contrast-5pct); }
+.boff-slot.fatto .boff-slot-bici { color: var(--lumo-secondary-text-color); }
+.boff-slot.fatto .boff-slot-etichetta { color: var(--lumo-secondary-text-color); font-weight: 500; }
+.boff-slot.fatto .spunta { width: 12px; height: 12px; color: var(--lumo-success-color); }
+.boff-slot.passato { border-left-style: dotted; }
+.boff-quadrato.fatto { background: var(--lumo-contrast-30pct); }

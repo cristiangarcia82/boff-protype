@@ -58,10 +58,16 @@ public class DatiIniziali implements ApplicationRunner {
     private final LavoroService lavori;
     private final CatalogoService catalogo;
     private final it.boff.bike.appuntamento.AppuntamentoService appuntamenti;
+    private final StoricoDemo storico;
+    /** Lavori di tutto il mese (passati e futuri) nei dati demo; spento nei test, che vogliono il calendario libero. */
+    @org.springframework.beans.factory.annotation.Value("${boff.demo-storico:true}")
+    private boolean storicoDemo;
 
     public DatiIniziali(UtenteRepository utenti, PasswordEncoder passwordEncoder, BoffProperties properties,
                         CalendarioService calendario, BiciclettaService biciclette, LavoroService lavori,
-                        CatalogoService catalogo, it.boff.bike.appuntamento.AppuntamentoService appuntamenti) {
+                        CatalogoService catalogo, it.boff.bike.appuntamento.AppuntamentoService appuntamenti,
+                        StoricoDemo storico) {
+        this.storico = storico;
         this.appuntamenti = appuntamenti;
         this.calendario = calendario;
         this.biciclette = biciclette;
@@ -115,6 +121,7 @@ public class DatiIniziali implements ApplicationRunner {
         lavoriDemo(giulia, paolo, sara);
         turniDemo(mario, luca);
         appuntamentiDemo(giulia, paolo);
+        if (storicoDemo) storico.crea(List.of(mario, luca), properties.fusoOrario());
         log.warn("Utenti demo attivi (password '{}'). Non usare boff.demo=true in produzione!", PASSWORD_DEMO);
     }
 

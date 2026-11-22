@@ -34,13 +34,16 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
             """)
     List<Assegnazione> bloccateDa(LocalDate oggi, Collection<Long> lavori);
 
-    /** Toglie dal calendario tutto ciò che va ricalcolato (mantiene le future bloccate dei lavori in officina). */
+    /**
+     * Toglie dal calendario tutto ciò che va ricalcolato (mantiene le future bloccate dei lavori in officina).
+     * Il passato non si tocca mai: resta com'era, per rivedere a posteriori come è andata la settimana.
+     */
     @Modifying
     @Query("""
             delete from Assegnazione a where a.id in (
               select x.id from Assegnazione x join x.riga r join r.lavoro l
-              where (l.id not in :lavori and x.data >= :oggi)
-                 or (l.id in :lavori and (x.bloccata = false or x.data < :oggi or r.completata = true)))
+              where x.data >= :oggi
+                and (l.id not in :lavori or x.bloccata = false or r.completata = true))
             """)
     int eliminaDaRicalcolare(Collection<Long> lavori, LocalDate oggi);
 
@@ -56,8 +59,7 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
     @Query("""
             delete from Assegnazione a where a.id in (
               select x.id from Assegnazione x join x.riga r join r.lavoro l
-              where (l.id not in :lavori and x.data >= :oggi)
-                 or (l.id in :lavori and x.id not in :conserva))
+              where x.data >= :oggi and (l.id not in :lavori or x.id not in :conserva))
             """)
     int eliminaTranne(Collection<Long> lavori, LocalDate oggi, Collection<Long> conserva);
 

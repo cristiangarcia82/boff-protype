@@ -337,4 +337,19 @@ class AppuntamentiIT {
         assertThat(l.getFinePrevista()).isNull();
         lavori.annulla(lavoro);
     }
+
+    @Test
+    void ilRicalcoloNonCancellaIlPassato() {
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Bottecchia", "8avenue", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+        Long riga = lavori.dettaglio(lavoro).getRighe().get(0).getId();
+        LocalDate ieri = calendario.oggi().minusDays(1);
+        jdbc.update("INSERT INTO assegnazione (riga_lavoro_id, utente_id, data, ora_inizio, ora_fine, bloccata) VALUES (?, ?, ?, '09:00', '09:30', FALSE)",
+                riga, mario, ieri);
+        pianificazione.ripianifica();
+        pianificazione.aggiorna();
+        assertThat(pianificazione.diLavoro(lavoro)).as("ciò che era in calendario ieri resta, per rivederlo")
+                .anyMatch(a -> a.getData().equals(ieri));
+        lavori.annulla(lavoro);
+    }
 }
