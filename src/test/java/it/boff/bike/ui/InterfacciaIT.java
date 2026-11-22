@@ -453,6 +453,33 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat($(com.vaadin.flow.component.tabs.Tabs.class).single().getSelectedTab().getLabel()).isEqualTo("Pronti");
     }
 
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void dalCalendarioSiRegistraLArrivoDellaBici() {
+        Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long mario = utenti.findByEmail("titolare@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Look", "765", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.annuncia(cliente, bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+        // il primo giorno utile delle prossime settimane
+        java.time.LocalDate g = java.time.LocalDate.now().plusDays(3);
+        for (int i = 0; i < 30; i++, g = g.plusDays(1)) {
+            try {
+                pianificazione.fissaLavoro(lavoro, mario, g, null);
+                break;
+            } catch (it.boff.bike.common.ErroreDominio e) {
+                // giorno senza posto: si prova il successivo
+            }
+        }
+        navigate("calendario?data=" + g, CalendarioView.class);
+        var blocco = $(com.vaadin.flow.component.html.Div.class).withClassName("in-arrivo").all().stream()
+                .filter(d -> d.getElement().getTextRecursively().contains("Look 765")).findFirst().orElseThrow();
+        test(blocco).click();
+        test($(Button.class).withText("Bici arrivata in negozio").single()).click();
+        assertThat(lavori.dettaglio(lavoro).getStato()).isNotEqualTo(it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO);
+        assertThat(pianificazione.diLavoro(lavoro)).as("resta dov'era").allMatch(a -> a.isBloccata());
+        lavori.annulla(lavoro);
+    }
+
     private static java.util.stream.Stream<com.vaadin.flow.component.Component> discendenti(com.vaadin.flow.component.Component c) {
         return java.util.stream.Stream.concat(java.util.stream.Stream.of(c), c.getChildren().flatMap(InterfacciaIT::discendenti));
     }

@@ -147,3 +147,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
     Bici del passato (alcune elaborate e ritirate) per vedere il calendario;
     gli interventi devono restare nel calendario per il debriefing. Dati per
     tutto il mese di novembre, 3-4 bici al giorno.
+
+38. Arrivo della bici dal calendario
+    Nel dettaglio di un lavoro con "bici non arrivata" serve il pulsante per
+    segnalare che la bici è stata consegnata in negozio.

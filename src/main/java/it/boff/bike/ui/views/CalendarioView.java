@@ -796,7 +796,22 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         chiudi.setAriaLabel("Chiudi");
         dialog.getHeader().add(chiudi);
         // un lavoro annunciato esiste in calendario solo perché fissato: niente "lascia decidere al sistema"
-        if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) dialog.getFooter().add(apri, cambia);
+        if (lavoro.getStato() == it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) {
+            // la bici arriva al banco: check-in direttamente da qui, il lavoro resta dov'è
+            Button arrivata = new Button("Bici arrivata in negozio", VaadinIcon.SIGN_IN.create(), e -> {
+                try {
+                    lavori.checkIn(lavoro.getId());
+                    Avvisi.ok("Check-in registrato: " + lavoro.getBicicletta().getNome() + " è in negozio");
+                    dialog.close();
+                    mostra();
+                } catch (ErroreDominio ex) {
+                    Avvisi.errore(ex.getMessage());
+                }
+            });
+            arrivata.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+            cambia.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            dialog.getFooter().add(apri, cambia, arrivata);
+        }
         else dialog.getFooter().add(blocco, apri, cambia);
         dialog.open();
     }
