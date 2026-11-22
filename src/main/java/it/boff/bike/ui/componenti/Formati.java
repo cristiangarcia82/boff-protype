@@ -17,7 +17,7 @@ public class Formati {
     private static final DateTimeFormatter GIORNO = DateTimeFormatter.ofPattern("EEE d MMM", IT);
     private static final DateTimeFormatter GIORNO_ANNO = DateTimeFormatter.ofPattern("d MMM yyyy", IT);
     private static final DateTimeFormatter GIORNO_ORA = DateTimeFormatter.ofPattern("d MMM, HH:mm", IT);
-    private static volatile ZoneId zona = ZoneId.of("Europe/Rome");
+    private static volatile ZoneId zona = ZoneId.of("Europe/Zurich");
 
     public Formati(BoffProperties properties) {
         zona = properties.fusoOrario();

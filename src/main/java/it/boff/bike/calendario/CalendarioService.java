@@ -161,7 +161,7 @@ public class CalendarioService {
         ripianificazione.richiedi("chiusura eliminata");
     }
 
-    /** Chiusure inserite a mano e festività nazionali tra due date, in ordine. */
+    /** Chiusure inserite a mano e festività cantonali tra due date, in ordine. */
     @Transactional(readOnly = true)
     public List<GiornoChiuso> giorniChiusi(LocalDate dal, LocalDate al) {
         List<GiornoChiuso> risultato = new ArrayList<>();
@@ -227,7 +227,7 @@ public class CalendarioService {
         ripianificazione.richiedi("turno di vendita eliminato");
     }
 
-    /** Giorno chiuso: {@code chiusuraId} è null per le festività nazionali (non eliminabili). */
+    /** Giorno chiuso: {@code chiusuraId} è null per le festività cantonali (non eliminabili). */
     public record GiornoChiuso(LocalDate data, String descrizione, Long chiusuraId) {
     }
 

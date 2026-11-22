@@ -41,7 +41,7 @@ public class PromemoriaService {
     }
 
     /** Ogni giorno alle 10:12 (ora del negozio), un orario adatto a ricevere un messaggio. */
-    @Scheduled(cron = "0 12 10 * * *", zone = "${boff.fuso-orario:Europe/Rome}")
+    @Scheduled(cron = "0 12 10 * * *", zone = "${boff.fuso-orario:Europe/Zurich}")
     public void giornaliero() {
         if (funzionalita.attiva(Funzionalita.PROMEMORIA_MANUTENZIONE)) {
             int inviati = invia();

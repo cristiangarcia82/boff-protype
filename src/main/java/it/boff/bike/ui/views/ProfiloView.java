@@ -131,7 +131,7 @@ public class ProfiloView extends Div {
         spiegazione.addClassName("boff-testo-secondario");
         scheda.add(spiegazione);
         java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.ITALIAN)
-                .withZone(java.time.ZoneId.of("Europe/Rome"));
+                .withZone(java.time.ZoneId.of("Europe/Zurich"));
         for (var p : elenco) {
             String quando = (p.creata() == null ? "" : "attivato il " + f.format(p.creata()))
                     + (p.ultimoUso() == null ? "" : " · ultimo accesso " + f.format(p.ultimoUso()));

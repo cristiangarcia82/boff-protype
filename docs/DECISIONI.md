@@ -76,7 +76,7 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Perché**: copre il 95% dei casi con pochissimo inserimento dati. Una persona che il martedì fa solo vendita ha semplicemente solo fasce Vendita quel giorno.
 - **Non gestito (backlog)**: assenze di mezza giornata e orari diversi per stagione (es. estate). Oggi si cambia l'orario tipo quando serve.
 
-## D18 – Festività nazionali chiuse in automatico ⚠️
+## D18 – Festività chiuse in automatico ⚠️ (aggiornata da D51: Canton Grigioni)
 - **Decisione**: Capodanno, Epifania, Pasqua e Pasquetta, 25 aprile, 1° maggio, 2 giugno, Ferragosto, Ognissanti, Immacolata, Natale e Santo Stefano sono giorni di chiusura senza doverli inserire. Il patrono va aggiunto a mano.
 - **Se il negozio apre nei festivi**: impostare `BOFF_FESTIVI_CHIUSI=false` e inserire a mano solo le chiusure reali.
 
@@ -246,3 +246,10 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Turni di vendita**: il titolare (o il collaboratore) li aggiunge dal calendario con il "+" di ogni cella (persona, giorno, dalle–alle, nota). Devono stare nell'orario di lavoro e non sovrapporsi; in quel tempo niente officina né appuntamenti. Si tolgono toccandoli. Ne compare uno di esempio nei dati demo (sabato pomeriggio).
 - "Libero" nel calendario = ore di lavoro meno turni di vendita, lavori e appuntamenti.
 - ⚠️ Il tipo di fascia "Vendita" resta nel modello solo per compatibilità; l'interfaccia non lo usa più.
+
+## D51 – Festività del Canton Grigioni al posto di quelle italiane (richiesta del titolare)
+- **Contesto**: il negozio è nei Grigioni; la D18 prevedeva le festività nazionali italiane.
+- **Decisione**: chiusi in automatico i giorni festivi cantonali: Capodanno, Venerdì Santo, Lunedì di Pasqua, Ascensione, Lunedì di Pentecoste, Festa nazionale (1° agosto), Natale e Santo Stefano. Le date mobili si calcolano dalla Pasqua.
+- **Non inclusi**: Epifania, 25 aprile, 1° maggio, 2 giugno, Ferragosto, Ognissanti, Immacolata (italiane). Nei Grigioni le feste religiose come Epifania, San Giuseppe, Corpus Domini, Assunta, Ognissanti e Immacolata valgono solo in alcuni comuni (cattolici): se il vostro comune le osserva, aggiungetele da *Assenze e chiusure*. Lo stesso per il 2 gennaio, se chiudete.
+- **Fuso orario**: default `Europe/Zurich` (stesse ore e stesso cambio dell'ora di `Europe/Rome`, ma corretto per la sede).
+- **Fonte**: elenco dei giorni festivi del Cantone (gr.ch) e legge sui giorni di riposo pubblici (CSC 520.100); da ricontrollare col comune.

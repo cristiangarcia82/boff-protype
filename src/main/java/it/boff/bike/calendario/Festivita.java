@@ -3,23 +3,24 @@ package it.boff.bike.calendario;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.MonthDay;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 
-/** Festività nazionali italiane (incluse Pasqua e Pasquetta, calcolate per ogni anno). */
+/**
+ * Giorni festivi del Canton Grigioni (legge cantonale sui giorni di riposo pubblici): Capodanno, Venerdì Santo,
+ * Lunedì di Pasqua, Ascensione, Lunedì di Pentecoste, Festa nazionale, Natale e Santo Stefano.
+ * Le date mobili si calcolano dalla Pasqua di ogni anno. Le feste che valgono solo in alcuni comuni
+ * (es. Epifania, San Giuseppe, Corpus Domini, Assunta, Ognissanti, Immacolata nei comuni cattolici)
+ * si aggiungono a mano come chiusure.
+ */
 public final class Festivita {
 
-    private static final Map<MonthDay, String> FISSE = Map.ofEntries(
-            Map.entry(MonthDay.of(Month.JANUARY, 1), "Capodanno"),
-            Map.entry(MonthDay.of(Month.JANUARY, 6), "Epifania"),
-            Map.entry(MonthDay.of(Month.APRIL, 25), "Festa della Liberazione"),
-            Map.entry(MonthDay.of(Month.MAY, 1), "Festa del Lavoro"),
-            Map.entry(MonthDay.of(Month.JUNE, 2), "Festa della Repubblica"),
-            Map.entry(MonthDay.of(Month.AUGUST, 15), "Ferragosto"),
-            Map.entry(MonthDay.of(Month.NOVEMBER, 1), "Ognissanti"),
-            Map.entry(MonthDay.of(Month.DECEMBER, 8), "Immacolata"),
-            Map.entry(MonthDay.of(Month.DECEMBER, 25), "Natale"),
-            Map.entry(MonthDay.of(Month.DECEMBER, 26), "Santo Stefano"));
+    private static final Map<MonthDay, String> FISSE = Map.of(
+            MonthDay.of(Month.JANUARY, 1), "Capodanno",
+            MonthDay.of(Month.AUGUST, 1), "Festa nazionale",
+            MonthDay.of(Month.DECEMBER, 25), "Natale",
+            MonthDay.of(Month.DECEMBER, 26), "Santo Stefano");
 
     private Festivita() {
     }
@@ -27,9 +28,11 @@ public final class Festivita {
     public static Optional<String> nome(LocalDate giorno) {
         String fissa = FISSE.get(MonthDay.from(giorno));
         if (fissa != null) return Optional.of(fissa);
-        LocalDate pasqua = pasqua(giorno.getYear());
-        if (giorno.equals(pasqua)) return Optional.of("Pasqua");
-        if (giorno.equals(pasqua.plusDays(1))) return Optional.of("Lunedì dell'Angelo");
+        long dallaPasqua = ChronoUnit.DAYS.between(pasqua(giorno.getYear()), giorno);
+        if (dallaPasqua == -2) return Optional.of("Venerdì Santo");
+        if (dallaPasqua == 1) return Optional.of("Lunedì di Pasqua");
+        if (dallaPasqua == 39) return Optional.of("Ascensione");
+        if (dallaPasqua == 50) return Optional.of("Lunedì di Pentecoste");
         return Optional.empty();
     }
 

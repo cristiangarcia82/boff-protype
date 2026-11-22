@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 
-/** Giorno di chiusura del negozio (oltre alle festività nazionali). */
+/** Giorno di chiusura del negozio (oltre alle festività cantonali). */
 @Entity
 @Table(name = "chiusura")
 public class Chiusura {

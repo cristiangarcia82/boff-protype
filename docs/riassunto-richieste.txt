@@ -121,3 +121,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 30. Guide PDF aggiornate
     Guida per il negozio e guida per i clienti aggiornate con le ultime
     novità (calendario, appuntamenti, turni di vendita, logo, Cucciolo).
+
+31. Festività del Canton Grigioni
+    Il negozio è nei Grigioni: giorni festivi cantonali al posto di quelli
+    italiani (le feste del comune si aggiungono a mano come chiusure).

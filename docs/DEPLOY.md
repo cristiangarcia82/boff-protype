@@ -31,7 +31,7 @@ Caddy (incluso) ottiene e rinnova da solo il certificato gratuito Let's Encrypt.
    - **Personale** → crea l'account del collaboratore;
    - **Orari** → imposta le ore di lavoro di entrambi (i turni di vendita si aggiungono poi dal calendario);
    - **Catalogo interventi** → adatta i tempi standard ai vostri.
-5. Da *Assenze e chiusure* aggiungi il patrono e le ferie del negozio.
+5. Da *Assenze e chiusure* aggiungi le feste del comune (quelle cantonali ci sono già) e le ferie del negozio.
 6. **Completa l'informativa privacy** (`src/main/java/it/boff/bike/ui/views/PrivacyView.java`): ragione sociale, indirizzo, P. IVA, contatti, fornitori di hosting ed email. Meglio farla rileggere a un consulente.
 7. Installa l'app su Mac e telefono (pagina `/installa`) e attiva le notifiche dalla bacheca.
 
@@ -65,7 +65,7 @@ Le modifiche al database vengono applicate in automatico all'avvio (Flyway).
 | `BOFF_NOME_NEGOZIO`, `BOFF_EMAIL_MITTENTE` | no | nome e mittente nelle email |
 | `BOFF_FESTIVI_CHIUSI` | no | `false` se aprite nei festivi (default `true`) |
 | `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | consigliate | server SMTP |
-| `BOFF_FUSO_ORARIO` | no | default `Europe/Rome` |
+| `BOFF_FUSO_ORARIO` | no | default `Europe/Zurich` |
 
 ## Controlli
 

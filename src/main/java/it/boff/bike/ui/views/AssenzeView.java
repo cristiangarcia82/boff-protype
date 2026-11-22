@@ -97,7 +97,7 @@ public class AssenzeView extends Div {
         // --- chiusure ---
         DatePicker giorno = CampoData.crea("Giorno");
         TextField motivoChiusura = new TextField("Motivo");
-        motivoChiusura.setPlaceholder("es. Santo patrono, inventario");
+        motivoChiusura.setPlaceholder("es. Immacolata, inventario");
         Button aggiungiChiusura = new Button("Aggiungi chiusura", VaadinIcon.PLUS.create(), e -> {
             try {
                 calendario.aggiungiChiusura(giorno.getValue(), motivoChiusura.getValue());
@@ -113,7 +113,7 @@ public class AssenzeView extends Div {
         moduloChiusura.addClassName("boff-modulo-riga");
         elencoChiusure.addClassName("boff-colonna");
         Div schedaChiusure = new Div(new H3("Chiusure del negozio"),
-                testo("Le festività nazionali sono già incluse. Aggiungi le altre chiusure (patrono, ferie del negozio…)."),
+                testo("I giorni festivi del Canton Grigioni sono già inclusi. Aggiungi le altre chiusure (feste del comune, ferie del negozio…)."),
                 moduloChiusura, elencoChiusure);
         schedaChiusure.addClassName("boff-card");
 
