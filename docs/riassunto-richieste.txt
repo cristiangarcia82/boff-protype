@@ -125,3 +125,9 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 31. Festività del Canton Grigioni
     Il negozio è nei Grigioni: giorni festivi cantonali al posto di quelli
     italiani (le feste del comune si aggiungono a mano come chiusure).
+
+32. Pagina appuntamenti più facile
+    Rendere più facile da usare la gestione delle richieste di appuntamento.
+
+33. Pianificazione degli interventi più intuitiva
+    La gestione della pianificazione degli interventi era poco intuitiva.

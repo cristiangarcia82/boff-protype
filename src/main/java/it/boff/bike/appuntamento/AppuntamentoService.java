@@ -218,7 +218,9 @@ public class AppuntamentoService {
     }
 
     public void conferma(Long id) {
-        appuntamento(id).conferma(adesso());
+        Appuntamento a = appuntamento(id);
+        if (iniziato(a)) throw new ErroreDominio("L'orario è già passato: proponi un altro orario o rifiuta la richiesta");
+        a.conferma(adesso());
         eventi.publishEvent(new AppuntamentoCambiato(id, AppuntamentoCambiato.Cosa.CONFERMATO));
     }
 
@@ -254,7 +256,14 @@ public class AppuntamentoService {
     }
 
     public void segnaSvolto(Long id) {
-        appuntamento(id).segnaSvolto(adesso());
+        Appuntamento a = appuntamento(id);
+        if (!iniziato(a)) throw new ErroreDominio("L'appuntamento non è ancora iniziato");
+        a.segnaSvolto(adesso());
+    }
+
+    /** True se l'appuntamento è già cominciato (o passato), nel fuso del negozio. */
+    public boolean iniziato(Appuntamento a) {
+        return !LocalDateTime.of(a.getData(), a.getOraInizio()).isAfter(LocalDateTime.now(clock));
     }
 
     public void impostaNoteInterne(Long id, String note) {
@@ -270,7 +279,18 @@ public class AppuntamentoService {
 
     @Transactional(readOnly = true)
     public List<Appuntamento> daConfermare() {
-        return appuntamenti.daConfermare(calendario.oggi());
+        // anche quelle rimaste senza risposta negli ultimi 14 giorni: vanno rifiutate o spostate, non perse
+        return appuntamenti.daConfermare(calendario.oggi().minusDays(14));
+    }
+
+    /** Confermati degli ultimi 14 giorni già finiti e non ancora segnati come svolti. */
+    @Transactional(readOnly = true)
+    public List<Appuntamento> daChiudere() {
+        LocalDate oggi = calendario.oggi();
+        LocalDateTime adesso = LocalDateTime.now(clock);
+        return appuntamenti.tra(oggi.minusDays(14), oggi, java.util.EnumSet.of(StatoAppuntamento.CONFERMATO)).stream()
+                .filter(a -> !LocalDateTime.of(a.getData(), a.getOraFine()).isAfter(adesso))
+                .toList();
     }
 
     @Transactional(readOnly = true)

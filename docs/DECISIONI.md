@@ -253,3 +253,23 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
 - **Non inclusi**: Epifania, 25 aprile, 1° maggio, 2 giugno, Ferragosto, Ognissanti, Immacolata (italiane). Nei Grigioni le feste religiose come Epifania, San Giuseppe, Corpus Domini, Assunta, Ognissanti e Immacolata valgono solo in alcuni comuni (cattolici): se il vostro comune le osserva, aggiungetele da *Assenze e chiusure*. Lo stesso per il 2 gennaio, se chiudete.
 - **Fuso orario**: default `Europe/Zurich` (stesse ore e stesso cambio dell'ora di `Europe/Rome`, ma corretto per la sede).
 - **Fonte**: elenco dei giorni festivi del Cantone (gr.ch) e legge sui giorni di riposo pubblici (CSC 520.100); da ricontrollare col comune.
+
+## D52 – Pagina Appuntamenti e pianificazione degli interventi più semplici (richiesta del titolare)
+- **Appuntamenti**:
+  - ogni richiesta mostra cliente, telefono, tipo, persona, bici e note, con i pulsanti **Conferma**, **Cambia orario** e **Rifiuta** direttamente sulla scheda;
+  - l'agenda dei prossimi 14 giorni è divisa per giorno (Oggi, Domani…) e c'è un filtro per persona;
+  - gli appuntamenti già passati e confermati finiscono in **Da chiudere**, con il pulsante Svolto;
+  - le richieste rimaste senza risposta restano in elenco per 14 giorni, invece di sparire;
+  - rifiutare o annullare chiede conferma. Per i clienti senza app ricorda di telefonare.
+- **Regole nuove**:
+  - non si conferma una richiesta il cui orario è già passato: va spostata o rifiutata;
+  - non si segna svolto un appuntamento non ancora iniziato.
+- **Cambia orario**: invece di data e ora da compilare, si tocca un giorno tra quelli con posto nei prossimi 14 giorni, poi l'ora.
+- **Interventi**:
+  - nella scheda del lavoro il riquadro **Quando si fa** sta subito sotto l'intestazione e dice chi, che giorno, a che ora e se l'ha deciso il sistema o è fissato a mano;
+  - **Scegli giorno e ora** apre "Quando lo facciamo?". Si scelgono chi, il giorno (con le ore libere di ciascun giorno) e l'ora da cui il lavoro sta tutto di seguito. Se non c'è un orario così, si mette il lavoro negli spazi liberi del giorno;
+  - il lavoro resta fissato lì;
+  - **Lascia decidere al sistema** toglie il blocco;
+  - **Vedi nel calendario** apre la settimana giusta.
+- **Calendario**: il dettaglio di un blocco usa la stessa finestra, al posto dei campi persona/data/ora. "Sblocca" diventa "Lascia decidere al sistema".
+- **Testi**: i messaggi di errore parlano di "ore di lavoro" invece di "officina".

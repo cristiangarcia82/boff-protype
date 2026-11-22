@@ -67,9 +67,11 @@ public class LavoriView extends Div implements BeforeEnterObserver {
 
     public LavoriView(LavoroService service, CatalogoService catalogo, UtenteService utenti,
                       BiciclettaService biciclette, PianificazioneService pianificazione, FotoService foto,
-                      it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
+                      it.boff.bike.funzionalita.FunzionalitaService funzionalita,
+                      it.boff.bike.calendario.CalendarioService calendario) {
         this.service = service;
-        this.pannello = new LavoroPannello(service, catalogo, pianificazione, foto, funzionalita, this::aggiornaElenco);
+        this.pannello = new LavoroPannello(service, catalogo, pianificazione, foto, funzionalita, this::aggiornaElenco,
+                () -> utenti.personale().stream().filter(it.boff.bike.utente.Utente::isAttivo).toList(), calendario::oggi);
         addClassName("boff-pagina");
 
         Button nuovo = new Button("Nuovo lavoro", VaadinIcon.PLUS.create(), e ->

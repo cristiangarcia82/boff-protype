@@ -301,8 +301,8 @@ public class PianificazioneService {
                 }
                 if (destinazione == null) {
                     throw new ErroreDominio(prossima == null
-                            ? "Non c'è uno spazio libero di officina abbastanza lungo quel giorno"
-                            : "Alle " + prossima + " non ci sono " + durata + " minuti liberi di officina per quella persona");
+                            ? "Quel giorno non c'è uno spazio libero abbastanza lungo nelle ore di lavoro"
+                            : "Alle " + prossima + " non ci sono " + durata + " minuti liberi nelle ore di lavoro di quella persona");
                 }
                 a.sposta(persona, giorno, destinazione);
                 a.setBloccata(true);
@@ -330,6 +330,52 @@ public class PianificazioneService {
     @Transactional(readOnly = true)
     public List<Assegnazione> tra(LocalDate dal, LocalDate al) {
         return assegnazioni.tra(dal, al);
+    }
+
+    /** Tempo libero di una persona in un giorno e gli orari da cui un lavoro intero ci sta di seguito. */
+    public record GiornoLibero(LocalDate giorno, long minutiLiberi, List<LocalTime> inizi) {
+    }
+
+    /**
+     * Per scegliere a mano quando fare un lavoro: giorno per giorno, nelle ore di lavoro della persona,
+     * il tempo non occupato da altri interventi (tolti quelli da spostare) né da appuntamenti, e gli orari (ogni 15 minuti)
+     * da cui {@code durataMin} minuti stanno tutti di seguito. Oggi conta solo da adesso in poi.
+     */
+    @Transactional(readOnly = true)
+    public List<GiornoLibero> spaziLiberi(java.util.Collection<Long> daSpostare, Long utenteId, LocalDate dal, int giorni, long durataMin) {
+        LocalDate al = dal.plusDays(giorni - 1L);
+        Disponibilita d = calendario.disponibilita(dal, al);
+        LocalDateTime adesso = LocalDateTime.now(clock);
+        Map<LocalDate, List<Intervallo>> occupati = new HashMap<>();
+        assegnazioni.tra(dal, al).stream()
+                .filter(a -> a.getUtente().getId().equals(utenteId) && !daSpostare.contains(a.getId()))
+                .forEach(a -> occupati.computeIfAbsent(a.getData(), k -> new ArrayList<>()).add(a.intervallo()));
+        appuntamenti.tra(dal, al, it.boff.bike.appuntamento.StatoAppuntamento.ATTIVI).stream()
+                .filter(a -> a.getUtente().getId().equals(utenteId))
+                .forEach(a -> occupati.computeIfAbsent(a.getData(), k -> new ArrayList<>()).add(a.intervallo()));
+        List<GiornoLibero> risultato = new ArrayList<>();
+        for (LocalDate g = dal; !g.isAfter(al); g = g.plusDays(1)) {
+            if (g.isBefore(adesso.toLocalDate())) continue;
+            LocalTime minimo = g.equals(adesso.toLocalDate()) ? Pianificatore.arrotonda(adesso.toLocalTime()) : LocalTime.MIN;
+            if (minimo == null) continue;
+            long liberi = 0;
+            List<LocalTime> inizi = new ArrayList<>();
+            for (Intervallo fascia : d.officina(utenteId, g)) {
+                if (!fascia.fine().isAfter(minimo)) continue;
+                Intervallo utile = fascia.inizio().isBefore(minimo) ? new Intervallo(minimo, fascia.fine()) : fascia;
+                for (Intervallo libero : utile.meno(occupati.getOrDefault(g, List.of()))) {
+                    liberi += libero.minuti();
+                    LocalTime t = Pianificatore.arrotonda(libero.inizio());
+                    while (t != null && !t.plusMinutes(durataMin).isAfter(libero.fine()) && t.plusMinutes(durataMin).isAfter(t)) {
+                        inizi.add(t);
+                        LocalTime dopo = t.plusMinutes(15);
+                        t = dopo.isAfter(t) ? dopo : null;
+                    }
+                }
+            }
+            risultato.add(new GiornoLibero(g, liberi, inizi));
+        }
+        return risultato;
     }
 
     @Transactional(readOnly = true)

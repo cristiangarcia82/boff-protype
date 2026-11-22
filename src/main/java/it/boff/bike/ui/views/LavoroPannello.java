@@ -46,10 +46,15 @@ class LavoroPannello extends Div {
     private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
     private final Runnable dopoModifica;
     private Long lavoroId;
+    private final java.util.function.Supplier<java.util.List<Utente>> personale;
+    private final java.util.function.Supplier<java.time.LocalDate> oggi;
 
     LavoroPannello(LavoroService service, CatalogoService catalogo, PianificazioneService pianificazione,
                    FotoService foto, it.boff.bike.funzionalita.FunzionalitaService funzionalita,
-                   Runnable dopoModifica) {
+                   Runnable dopoModifica, java.util.function.Supplier<java.util.List<Utente>> personale,
+                   java.util.function.Supplier<java.time.LocalDate> oggi) {
+        this.personale = personale;
+        this.oggi = oggi;
         this.foto = foto;
         this.funzionalita = funzionalita;
         this.pianificazione = pianificazione;
@@ -104,6 +109,10 @@ class LavoroPannello extends Div {
         schedaTesta.addClassName("boff-card");
         add(schedaTesta);
 
+        // --- pianificazione ---
+        if (aperto && l.getStato() != StatoLavoro.PRONTO) add(pianificazione(l));
+
+
         // --- interventi ---
         Div interventi = new Div(new H4("Interventi"));
         interventi.addClassName("boff-card");
@@ -119,26 +128,6 @@ class LavoroPannello extends Div {
         }
         add(interventi);
 
-        // --- calendario ---
-        if (StatoLavoro.IN_OFFICINA.contains(l.getStato())) {
-            Div cal = new Div(new H4("In calendario"));
-            cal.addClassName("boff-card");
-            var pezzi = pianificazione.diLavoro(id);
-            if (pezzi.isEmpty()) {
-                Paragraph p = new Paragraph("Non ancora in calendario (nessuna ora di officina disponibile?).");
-                p.addClassName("boff-testo-secondario");
-                cal.add(p);
-            }
-            pezzi.forEach(a -> {
-                Div v = new Div(new Span(Formati.giorno(a.getData()) + " " + a.getOraInizio() + "–" + a.getOraFine()
-                        + " · " + a.getUtente().getNome() + " · " + a.getRiga().getDescrizione()));
-                if (a.isBloccata()) v.add(VaadinIcon.LOCK.create());
-                v.addClassName("boff-riga-icona");
-                cal.add(v);
-            });
-            add(cal);
-        }
-
         // --- dettagli ---
         if (l.getNoteCliente() != null) {
             Div nc = new Div(new H4("Note del cliente"), new Paragraph(l.getNoteCliente()));
@@ -150,6 +139,80 @@ class LavoroPannello extends Div {
         schedaFoto.addClassName("boff-card");
         add(schedaFoto);
         add(dettagli(l, aperto));
+    }
+
+    /**
+     * Quando si fa il lavoro, detto in chiaro: chi, che giorno, a che ora, se l'ha deciso il sistema o è
+     * fissato a mano; e i comandi per sceglierlo o restituirlo al calcolo automatico.
+     */
+    private Component pianificazione(Lavoro l) {
+        Div card = new Div(new H4("Quando si fa"));
+        card.addClassNames("boff-card", "boff-pianificazione");
+        if (l.getStato() == StatoLavoro.ANNUNCIATO) {
+            Paragraph p = new Paragraph("Va in calendario quando la bici arriva in negozio: premi "
+                    + "\"Bici arrivata in negozio\" e il sistema trova il primo spazio libero (poi puoi cambiarlo).");
+            p.addClassName("boff-testo-secondario");
+            card.add(p);
+            return card;
+        }
+        var pezzi = pianificazione.diLavoro(l.getId());
+        if (pezzi.isEmpty()) {
+            Paragraph p = new Paragraph(l.minutiDaFare() == 0
+                    ? "Tutti gli interventi sono fatti: segna la bici come pronta."
+                    : "Non c'è spazio nelle ore di lavoro dei prossimi 90 giorni. Controlla gli orari in Impostazioni → Orari.");
+            p.addClassName(l.minutiDaFare() == 0 ? "boff-testo-secondario" : "boff-avviso");
+            card.add(p);
+            return card;
+        }
+        boolean fissato = pezzi.stream().allMatch(it.boff.bike.pianificazione.Assegnazione::isBloccata);
+        boolean qualcunoFissato = pezzi.stream().anyMatch(it.boff.bike.pianificazione.Assegnazione::isBloccata);
+        var primo = pezzi.get(0);
+        var ultimo = pezzi.get(pezzi.size() - 1);
+        boolean unGiorno = pezzi.stream().allMatch(a -> a.getData().equals(primo.getData()) && a.getUtente().getId().equals(primo.getUtente().getId()));
+        Paragraph riepilogo = new Paragraph();
+        riepilogo.addClassName("boff-dettaglio-quando");
+        if (unGiorno) {
+            riepilogo.setText(AppuntamentoDialog.capitale(Formati.giorno(primo.getData())) + ", " + primo.getOraInizio() + "–"
+                    + ultimo.getOraFine() + " · " + primo.getUtente().getNome());
+            card.add(riepilogo);
+        } else {
+            riepilogo.setText("In più momenti, finisce " + Formati.giorno(ultimo.getData()) + " alle " + ultimo.getOraFine());
+            card.add(riepilogo);
+            com.vaadin.flow.component.html.UnorderedList elenco = new com.vaadin.flow.component.html.UnorderedList();
+            elenco.addClassName("boff-dettaglio-interventi");
+            pezzi.forEach(a -> elenco.add(new com.vaadin.flow.component.html.ListItem(
+                    AppuntamentoDialog.capitale(Formati.giorno(a.getData())) + " " + a.getOraInizio() + "–" + a.getOraFine()
+                            + " · " + a.getUtente().getNome() + " · " + a.getRiga().getDescrizione())));
+            card.add(elenco);
+        }
+        Span chi = new Span(fissato ? "Fissato a mano: resta lì anche se il calendario cambia."
+                : qualcunoFissato ? "In parte fissato a mano." : "Deciso dal sistema: può spostarsi se il calendario cambia.");
+        chi.addClassName("boff-testo-secondario");
+        Div stato = new Div(fissato ? VaadinIcon.LOCK.create() : VaadinIcon.MAGIC.create(), chi);
+        stato.addClassName("boff-riga-icona");
+        card.add(stato);
+
+        Div comandi = new Div();
+        comandi.addClassName("boff-azioni");
+        Button scegli = new Button("Scegli giorno e ora", VaadinIcon.CALENDAR_CLOCK.create(), e ->
+                new PianificaDialog(pianificazione, l, pezzi, personale.get(), oggi.get(), () -> {
+                    mostra(lavoroId);
+                    dopoModifica.run();
+                }).open());
+        scegli.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        comandi.add(scegli);
+        if (qualcunoFissato) {
+            Button libera = new Button("Lascia decidere al sistema", VaadinIcon.UNLOCK.create(), e -> esegui(() ->
+                    pezzi.stream().filter(it.boff.bike.pianificazione.Assegnazione::isBloccata)
+                            .forEach(a -> pianificazione.sblocca(a.getId())), "Ora lo pianifica il sistema"));
+            libera.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            comandi.add(libera);
+        }
+        com.vaadin.flow.router.RouterLink vedi = new com.vaadin.flow.router.RouterLink("Vedi nel calendario", CalendarioView.class);
+        vedi.setQueryParameters(com.vaadin.flow.router.QueryParameters.of("data", primo.getData().toString()));
+        comandi.add(vedi);
+        card.add(comandi);
+        return card;
     }
 
     private Component azioni(Lavoro l) {

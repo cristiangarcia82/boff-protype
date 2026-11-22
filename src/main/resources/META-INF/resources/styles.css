@@ -472,3 +472,26 @@ html { --boff-colore-appuntamento: #6b46c1; }
         color-mix(in srgb, var(--boff-colore-vendita) 6%, var(--lumo-base-color)) 6px 12px);
 }
 .boff-fascia > vaadin-select[hidden] { display: none; }
+
+/* Pagina Appuntamenti: schede con azioni dirette, agenda per giorno, dettaglio a griglia */
+.boff-appuntamenti .boff-voce-appuntamento { cursor: default; display: flex; flex-wrap: wrap; gap: var(--lumo-space-s); align-items: center; justify-content: space-between; }
+.boff-appuntamenti .boff-voce-testo { cursor: pointer; flex: 1 1 260px; min-width: 0; }
+.boff-voce-chi { font-weight: 600; }
+.boff-voce-nota { margin: var(--lumo-space-xs) 0; font-style: italic; color: var(--lumo-secondary-text-color); overflow-wrap: anywhere; }
+.boff-azioni-voce { display: flex; flex-wrap: wrap; gap: var(--lumo-space-xs); align-items: center; }
+.boff-voce-richiesta { flex-direction: column; align-items: stretch !important; }
+.boff-voce-richiesta .boff-voce-testo { flex: none; }
+.boff-azioni-voce .boff-avviso { margin: 0; flex-basis: 100%; }
+.boff-giorno-agenda { margin: var(--lumo-space-m) 0 var(--lumo-space-xs); font-size: var(--lumo-font-size-s); text-transform: uppercase; letter-spacing: .03em; color: var(--lumo-secondary-text-color); }
+.boff-giorno-agenda:first-child { margin-top: 0; }
+.boff-info-griglia { display: grid; grid-template-columns: max-content 1fr; gap: var(--lumo-space-xs) var(--lumo-space-m); margin-bottom: var(--lumo-space-m); }
+.boff-info-etichetta { color: var(--lumo-secondary-text-color); }
+.boff-dettaglio-appuntamento .boff-scelte { display: flex; flex-wrap: wrap; gap: var(--lumo-space-xs); }
+
+/* Scelta di giorno e ora per un lavoro ("Quando lo facciamo?") */
+.boff-pianifica h4 { margin: var(--lumo-space-m) 0 var(--lumo-space-xs); }
+.boff-scelte-giorni vaadin-button { height: auto; padding-block: var(--lumo-space-xs); text-transform: none; }
+.boff-scelte-giorni vaadin-button::part(label) { display: flex; flex-direction: column; line-height: 1.25; }
+.boff-scelta-nota { font-size: var(--lumo-font-size-xs); opacity: .8; }
+.boff-pianificazione .boff-azioni { margin-top: var(--lumo-space-s); align-items: center; }
+.boff-dettaglio-appuntamento .boff-scelte + .boff-scelte { margin-top: var(--lumo-space-s); }

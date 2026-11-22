@@ -162,6 +162,18 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         parametri.getSingleParameter("vista").flatMap(Vista::da).ifPresent(v -> {
             if (v != vista) cambiaVista(v);
         });
+        // ?data=AAAA-MM-GG (es. "Vedi nel calendario" dalla scheda del lavoro): apre la settimana di quel giorno
+        parametri.getSingleParameter("data").ifPresent(x -> {
+            try {
+                LocalDate d = LocalDate.parse(x).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                if (!d.equals(lunedi)) {
+                    lunedi = d;
+                    mostra();
+                }
+            } catch (java.time.format.DateTimeParseException ignorato) {
+                // parametro sbagliato: resta sulla settimana corrente
+            }
+        });
     }
 
     private void cambiaVista(Vista nuova) {
@@ -705,36 +717,21 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
             dialog.add(n);
         }
 
-        Select<Utente> persona = new Select<>();
-        persona.setLabel("Sposta a");
-        List<Utente> personale = calendario.disponibilita(lunedi, lunedi).personale();
-        persona.setItems(personale);
-        persona.setItemLabelGenerator(Utente::getNomeCompleto);
-        personale.stream().filter(u -> u.getId().equals(primo.getUtente().getId())).findFirst().ifPresent(persona::setValue);
-        DatePicker giorno = CampoData.crea("Giorno");
-        giorno.setValue(primo.getData());
-        giorno.setMin(calendario.oggi());
-        TimePicker ora = new TimePicker("Alle (facoltativo)");
-        ora.setStep(java.time.Duration.ofMinutes(15));
-        ora.setLocale(Locale.ITALY);
-        ora.setHelperText("Vuoto = primo spazio libero");
         List<Long> ids = gruppo.stream().map(Assegnazione::getId).toList();
-        Button sposta = new Button("Sposta", e -> {
-            if (persona.getValue() != null && giorno.getValue() != null) {
-                dialog.close();
-                spostaGruppo(ids, persona.getValue().getId(), giorno.getValue(), ora.getValue());
-            }
+        List<Utente> personale = calendario.disponibilita(lunedi, lunedi).personale();
+        Button cambia = new Button("Cambia giorno o ora", VaadinIcon.CALENDAR_CLOCK.create(), e -> {
+            dialog.close();
+            new PianificaDialog(pianificazione, lavoro, gruppo, personale, calendario.oggi(), this::mostra).open();
         });
-        sposta.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        Div spostamento = new Div(persona, giorno, ora, sposta);
-        spostamento.addClassName("boff-modulo-riga");
-        com.vaadin.flow.component.details.Details sezioneSposta =
-                new com.vaadin.flow.component.details.Details("Sposta", spostamento);
-        dialog.add(sezioneSposta);
 
         boolean bloccato = gruppo.stream().allMatch(Assegnazione::isBloccata);
         if (bloccato) {
-            Paragraph nota = new Paragraph("Fissato a mano: la ripianificazione automatica non lo sposta.");
+            Paragraph nota = new Paragraph("Fissato a mano: resta qui anche se il calendario cambia.");
+            nota.addClassName("boff-testo-secondario");
+            dialog.add(nota);
+        } else {
+            Paragraph nota = new Paragraph("Deciso dal sistema: può spostarsi se il calendario cambia. "
+                    + "Per tenerlo qui premi \"Fissa qui\"; per spostarlo trascinalo o premi \"Cambia giorno o ora\".");
             nota.addClassName("boff-testo-secondario");
             dialog.add(nota);
         }
@@ -744,7 +741,7 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
         });
         apri.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         Button blocco = bloccato
-                ? new Button("Sblocca", VaadinIcon.UNLOCK.create(), e -> {
+                ? new Button("Lascia decidere al sistema", VaadinIcon.UNLOCK.create(), e -> {
                     ids.forEach(pianificazione::sblocca);
                     dialog.close();
                     mostra();
@@ -755,7 +752,13 @@ public class CalendarioView extends Div implements com.vaadin.flow.router.Before
                     mostra();
                 });
         blocco.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        dialog.getFooter().add(blocco, new Button("Chiudi", e -> dialog.close()), apri);
+        apri.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        cambia.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button chiudi = new Button(VaadinIcon.CLOSE_SMALL.create(), e -> dialog.close());
+        chiudi.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        chiudi.setAriaLabel("Chiudi");
+        dialog.getHeader().add(chiudi);
+        dialog.getFooter().add(blocco, apri, cambia);
         dialog.open();
     }
 

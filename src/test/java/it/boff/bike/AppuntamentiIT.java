@@ -238,4 +238,56 @@ class AppuntamentiIT {
         assertThatThrownBy(() -> appuntamenti.crea(cliente, consulenza.getId(), luca, calendario.oggi().minusDays(1), LocalTime.of(10, 0), null))
                 .isInstanceOf(ErroreDominio.class).hasMessageContaining("già passato");
     }
+
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Test
+    void richiestaScadutaNonSiConfermaESvoltoSoloDopoLInizio() {
+        LocalDate g = giornoLibero(7);
+        Appuntamento futuro = appuntamenti.crea(cliente, consulenza.getId(), mario, g, LocalTime.of(9, 0), null);
+        assertThatThrownBy(() -> appuntamenti.segnaSvolto(futuro.getId()))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("non è ancora iniziato");
+
+        Appuntamento richiesta = appuntamenti.richiedi(cliente, consulenza.getId(), g, LocalTime.of(9, 30), null, null);
+        // la richiesta resta senza risposta e il giorno passa
+        LocalDate ieri = calendario.oggi().minusDays(1);
+        jdbc.update("UPDATE appuntamento SET data = ? WHERE id IN (?, ?)", ieri, richiesta.getId(), futuro.getId());
+        assertThatThrownBy(() -> appuntamenti.conferma(richiesta.getId()))
+                .isInstanceOf(ErroreDominio.class).hasMessageContaining("già passato");
+        assertThat(appuntamenti.daConfermare()).as("resta in elenco per rifiutarla o spostarla")
+                .extracting(Appuntamento::getId).contains(richiesta.getId());
+        assertThat(appuntamenti.daChiudere()).extracting(Appuntamento::getId)
+                .contains(futuro.getId()).doesNotContain(richiesta.getId());
+        appuntamenti.segnaSvolto(futuro.getId());
+        assertThat(appuntamenti.dettaglio(futuro.getId()).getStato()).isEqualTo(StatoAppuntamento.SVOLTO);
+        assertThat(appuntamenti.daChiudere()).extracting(Appuntamento::getId).doesNotContain(futuro.getId());
+        appuntamenti.annulla(richiesta.getId());
+    }
+
+    @Test
+    void spaziLiberiPerScegliereQuandoFareUnLavoro() {
+        LocalDate g = giornoLibero(9);
+        var prima = pianificazione.spaziLiberi(List.of(), luca, g, 1, 60).get(0);
+        appuntamenti.crea(cliente, consulenza.getId(), luca, g, LocalTime.of(9, 0), null);
+        var dopo = pianificazione.spaziLiberi(List.of(), luca, g, 1, 60).get(0);
+        assertThat(dopo.giorno()).isEqualTo(g);
+        assertThat(dopo.minutiLiberi()).as("l'appuntamento toglie 45 minuti").isEqualTo(prima.minutiLiberi() - 45);
+        assertThat(dopo.inizi()).doesNotContain(LocalTime.of(9, 0), LocalTime.of(9, 30))
+                .allSatisfy(t -> assertThat(t.getMinute() % 15).isZero());
+        if (!dopo.inizi().isEmpty()) {
+            // un orario proposto si può davvero usare
+            Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Bianchi", "Via Nirone", Tipologia.STRADA)).getId();
+            Long lavoro = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+            var pezzi = pianificazione.diLavoro(lavoro).stream().map(it.boff.bike.pianificazione.Assegnazione::getId).toList();
+            long durata = pianificazione.diLavoro(lavoro).stream().mapToLong(a -> a.intervallo().minuti()).sum();
+            var spazi = pianificazione.spaziLiberi(pezzi, luca, g, 1, durata).get(0);
+            if (!spazi.inizi().isEmpty()) {
+                LocalTime ora = spazi.inizi().get(0);
+                pianificazione.spostaTutti(pezzi, luca, g, ora);
+                assertThat(pianificazione.diLavoro(lavoro).get(0).getOraInizio()).isEqualTo(ora);
+                assertThat(pianificazione.diLavoro(lavoro)).allMatch(it.boff.bike.pianificazione.Assegnazione::isBloccata);
+            }
+            lavori.annulla(lavoro);
+        }
+    }
 }

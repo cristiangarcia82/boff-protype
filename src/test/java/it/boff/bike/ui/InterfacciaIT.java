@@ -425,8 +425,10 @@ class InterfacciaIT extends SpringBrowserlessTest {
         var voci = $(com.vaadin.flow.component.html.Div.class).withClassName("boff-voce-appuntamento").all();
         var voce = voci.stream().filter(v -> v.getElement().getTextRecursively().contains("Giulia Verdi")
                 && v.getElement().getClassList().contains("richiesto")).findFirst().orElseThrow();
-        test(voce).click();
-        test($(Button.class).withText("Conferma").single()).click();
+        // la richiesta si conferma direttamente dalla sua scheda, senza aprire il dettaglio
+        Button conferma = discendenti(voce).filter(c -> c instanceof Button b && "Conferma".equals(b.getText()))
+                .map(Button.class::cast).findFirst().orElseThrow();
+        test(conferma).click();
         assertThat(appuntamentiService.dettaglio(a.getId()).getStato())
                 .isEqualTo(it.boff.bike.appuntamento.StatoAppuntamento.CONFERMATO);
 
@@ -434,5 +436,9 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat($(com.vaadin.flow.component.html.Div.class).withClassName("appuntamento").all())
                 .as("gli appuntamenti compaiono nel calendario").isNotEmpty();
         appuntamentiService.annulla(a.getId());
+    }
+
+    private static java.util.stream.Stream<com.vaadin.flow.component.Component> discendenti(com.vaadin.flow.component.Component c) {
+        return java.util.stream.Stream.concat(java.util.stream.Stream.of(c), c.getChildren().flatMap(InterfacciaIT::discendenti));
     }
 }
