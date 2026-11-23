@@ -535,3 +535,31 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-storico-bici h4 { margin: var(--lumo-space-m) 0 var(--lumo-space-xs); }
 .boff-bici-con-storico { display: flex; flex-direction: column; gap: var(--lumo-space-xs); }
 .boff-bici-con-storico > vaadin-button { align-self: flex-start; }
+
+/* Foglio lavori: pagina da stampare o salvare in PDF */
+.boff-foglio { max-width: 900px; margin: 0 auto; padding: var(--lumo-space-l); background: var(--lumo-base-color); color: var(--lumo-body-text-color); }
+.boff-foglio h1 { font-size: var(--lumo-font-size-xxl); margin: 0; }
+.boff-foglio h2 { font-size: var(--lumo-font-size-l); margin: var(--lumo-space-l) 0 var(--lumo-space-s); border-bottom: 2px solid var(--lumo-contrast-20pct); padding-bottom: 4px; }
+.boff-foglio-comandi { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--lumo-space-l); }
+.boff-foglio-testa { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--lumo-space-m); flex-wrap: wrap; }
+.boff-foglio-testa > div:last-child { text-align: right; }
+.boff-foglio-negozio { display: flex; align-items: center; gap: var(--lumo-space-s); font-weight: 600; font-size: var(--lumo-font-size-l); }
+.boff-foglio-logo { width: 40px; height: 40px; border-radius: 8px; }
+.boff-foglio-stato { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 4px; background: var(--lumo-contrast-10pct); font-size: var(--lumo-font-size-s); }
+.boff-foglio-due { display: grid; grid-template-columns: 1fr 1fr; gap: var(--lumo-space-l); margin-top: var(--lumo-space-l); }
+@media (max-width: 600px) { .boff-foglio-due { grid-template-columns: 1fr; } }
+.boff-foglio-blocco .etichetta { display: block; font-size: var(--lumo-font-size-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--lumo-secondary-text-color); }
+.boff-foglio-blocco .principale { display: block; font-weight: 600; font-size: var(--lumo-font-size-l); }
+.boff-foglio-tabella { display: grid; grid-template-columns: 1fr auto; font-size: var(--lumo-font-size-s); }
+.boff-foglio-tabella.cinque { grid-template-columns: minmax(10em, 2fr) auto minmax(8em, 1.4fr) auto auto; }
+.boff-foglio-tabella > .intestazione, .boff-foglio-tabella > .riga { display: contents; }
+.boff-foglio-tabella > div > span { padding: 6px 8px; border-bottom: 1px solid var(--lumo-contrast-10pct); }
+.boff-foglio-tabella > .intestazione > span { font-weight: 600; color: var(--lumo-secondary-text-color); border-bottom: 1px solid var(--lumo-contrast-30pct); }
+.boff-foglio-totale { text-align: right; font-weight: 600; }
+.boff-foglio-piede { margin-top: var(--lumo-space-xl); font-size: var(--lumo-font-size-xs); color: var(--lumo-secondary-text-color); }
+@media print {
+    .boff-no-print { display: none !important; }
+    .boff-foglio { max-width: none; padding: 0; }
+    html, body { background: white !important; }
+    @page { size: A4; margin: 15mm; }
+}

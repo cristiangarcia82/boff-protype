@@ -98,6 +98,11 @@ class LavoroPannello extends Div {
         if (l.getCheckinIl() != null) date.add(new Span(" · in negozio dal " + Formati.quando(l.getCheckinIl())));
         if (l.getFinePrevista() != null) date.add(new Span(" · pronta prevista " + Formati.giorno(l.getFinePrevista())));
         date.addClassName("boff-testo-secondario");
+        Anchor foglio = new Anchor("foglio-lavoro/" + l.getId(), "Foglio lavori");
+        foglio.setTarget("_blank");
+        foglio.addClassName("boff-link-foglio");
+        foglio.getElement().setAttribute("title", "Date, interventi fatti e da chi: da stampare o salvare in PDF");
+        date.add(new Span(" · "), foglio);
         Div schedaTesta = new Div(testa, bici, clienteRiga, date);
         if (!cliente.usaApp() && l.getStato() == StatoLavoro.PRONTO) {
             Paragraph chiama = new Paragraph("Il cliente non usa l'app: chiamalo per dirgli che la bici è pronta"

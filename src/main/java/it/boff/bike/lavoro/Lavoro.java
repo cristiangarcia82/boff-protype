@@ -166,12 +166,17 @@ public class Lavoro {
 
     /** Segna la bici come pronta: tutte le righe risultano completate. */
     void segnaPronto(OffsetDateTime adesso) {
+        segnaPronto(adesso, null);
+    }
+
+    /** Come sopra; gli interventi non ancora spuntati risultano fatti adesso da {@code chi}. */
+    void segnaPronto(OffsetDateTime adesso, Long chi) {
         richiedi(StatoLavoro.IN_OFFICINA, "segnare la bici come pronta");
         if (haApprovazioniInAttesa()) {
             throw new ErroreDominio("C'è un intervento in attesa della risposta del cliente: "
                     + "aspetta la sua risposta o rimuovilo");
         }
-        righe.stream().filter(RigaLavoro::isValida).forEach(r -> r.setCompletata(true));
+        righe.stream().filter(RigaLavoro::isValida).forEach(r -> r.segna(true, adesso, chi));
         stato = StatoLavoro.PRONTO;
         prontoIl = adesso;
     }

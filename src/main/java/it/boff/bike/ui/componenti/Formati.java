@@ -17,6 +17,7 @@ public class Formati {
     private static final DateTimeFormatter GIORNO = DateTimeFormatter.ofPattern("EEE d MMM", IT);
     private static final DateTimeFormatter GIORNO_ANNO = DateTimeFormatter.ofPattern("d MMM yyyy", IT);
     private static final DateTimeFormatter GIORNO_ORA = DateTimeFormatter.ofPattern("d MMM, HH:mm", IT);
+    private static final DateTimeFormatter GIORNO_ANNO_ORA = DateTimeFormatter.ofPattern("EEE d MMM yyyy, HH:mm", IT);
     private static volatile ZoneId zona = ZoneId.of("Europe/Zurich");
 
     public Formati(BoffProperties properties) {
@@ -56,5 +57,10 @@ public class Formati {
         if (mesi < 12) return mesi == 1 ? "1 mese fa" : mesi + " mesi fa";
         int anni = mesi / 12, resto = mesi % 12;
         return (anni == 1 ? "1 anno" : anni + " anni") + (resto == 0 ? "" : resto == 1 ? " e 1 mese" : " e " + resto + " mesi") + " fa";
+    }
+
+    /** "mar 24 nov 2026, 10:30" (fogli lavori, documenti da conservare). */
+    public static String dataOra(OffsetDateTime t) {
+        return t == null ? "–" : GIORNO_ANNO_ORA.format(t.atZoneSameInstant(zona));
     }
 }

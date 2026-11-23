@@ -68,7 +68,11 @@ public class StoricoBiciDialog extends Dialog {
         for (Lavoro l : elenco) {
             var data = l.getProntoIl() != null ? l.getProntoIl() : l.getChiusoIl() != null ? l.getChiusoIl() : l.getAnnunciatoIl();
             RouterLink apri = new RouterLink(Formati.data(data), LavoriView.class, LavoriView.parametri(l.getId()));
-            Div testa = new Div(apri, new BadgeStato(l.getStato()));
+            com.vaadin.flow.component.html.Anchor foglio = new com.vaadin.flow.component.html.Anchor(
+                    "foglio-lavoro/" + l.getId(), "Foglio lavori");
+            foglio.setTarget("_blank");
+            Div sinistra = new Div(apri, new Span(" · "), foglio);
+            Div testa = new Div(sinistra, new BadgeStato(l.getStato()));
             testa.addClassName("boff-intestazione");
             Div voce = new Div(testa);
             for (RigaLavoro r : l.getRighe()) {

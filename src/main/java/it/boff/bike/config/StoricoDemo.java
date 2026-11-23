@@ -197,9 +197,10 @@ class StoricoDemo {
             int effettivi = Math.max(5, t.getDurataStandardMin() + (caso.nextInt(5) - 2) * 5);
             Long riga = jdbc.queryForObject("""
                     INSERT INTO riga_lavoro (lavoro_id, tipo_intervento_id, descrizione, durata_min, completata, ordine,
-                                             minuti_effettivi)
-                    VALUES (?, ?, ?, ?, TRUE, ?, ?) RETURNING id
-                    """, Long.class, lavoro, t.getId(), t.getNome(), t.getDurataStandardMin(), ordine++, effettivi);
+                                             minuti_effettivi, completata_il, completata_da)
+                    VALUES (?, ?, ?, ?, TRUE, ?, ?, ?, ?) RETURNING id
+                    """, Long.class, lavoro, t.getId(), t.getNome(), t.getDurataStandardMin(), ordine++, effettivi,
+                    ts(LocalDateTime.of(g, posto.fine()), zona), chi.getId());
             jdbc.update("""
                     INSERT INTO assegnazione (riga_lavoro_id, utente_id, data, ora_inizio, ora_fine, bloccata)
                     VALUES (?, ?, ?, ?, ?, FALSE)

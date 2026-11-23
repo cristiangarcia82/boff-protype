@@ -402,4 +402,40 @@ class AppuntamentiIT {
         assertThat(lavori.ultimiInterventi(bici, recente)).first()
                 .satisfies(u -> assertThat(u.intervento()).isEqualTo("Regolazione freni"));
     }
+
+    @Test
+    void ogniInterventoFattoRicordaQuandoEChi() {
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Ganna", "Strada", Tipologia.STRADA)).getId();
+        var tipi = catalogo.attivi().stream().limit(2).map(t -> t.getId()).toList();
+        Long lavoro = lavori.creaAlBanco(bici, tipi, null).getId();
+        var righe = lavori.dettaglio(lavoro).getRighe();
+        var ctx = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        ctx.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                "collaboratore@demo.it", null, List.of()));
+        try {
+            lavori.segnaRiga(righe.get(0).getId(), true);
+            var prima = lavori.dettaglio(lavoro).getRighe().get(0);
+            assertThat(prima.getCompletataIl()).isNotNull();
+            assertThat(prima.getCompletataDa()).isEqualTo(luca);
+            // tolta la spunta: niente data; rimessa: data nuova
+            lavori.segnaRiga(righe.get(0).getId(), false);
+            assertThat(lavori.dettaglio(lavoro).getRighe().get(0).getCompletataIl()).isNull();
+            lavori.segnaRiga(righe.get(0).getId(), true);
+            // la bici pronta: anche l'intervento non spuntato risulta fatto adesso, da chi l'ha segnata pronta
+            lavori.segnaPronto(lavoro);
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        lavori.ritira(lavoro);
+        var l = lavori.dettaglio(lavoro);
+        assertThat(l.getRighe()).allSatisfy(r -> {
+            assertThat(r.isCompletata()).isTrue();
+            assertThat(r.getCompletataIl()).isNotNull();
+            assertThat(r.getCompletataDa()).isEqualTo(luca);
+        });
+        assertThat(l.getAnnunciatoIl()).isNotNull();
+        assertThat(l.getCheckinIl()).isNotNull();
+        assertThat(l.getProntoIl()).isNotNull();
+        assertThat(l.getChiusoIl()).isNotNull();
+    }
 }

@@ -54,6 +54,13 @@ public class RigaLavoro {
     @Column(name = "minuti_effettivi")
     private Integer minutiEffettivi;
 
+    /** Quando è stato segnato fatto, e da chi (id del personale; null se non noto). */
+    @Column(name = "completata_il")
+    private java.time.OffsetDateTime completataIl;
+
+    @Column(name = "completata_da")
+    private Long completataDa;
+
     protected RigaLavoro() {
     }
 
@@ -100,7 +107,23 @@ public class RigaLavoro {
 
     void setDurataMin(int durataMin) { this.durataMin = durataMin; }
     void setCompletata(boolean completata) {
-        this.completata = completata;
-        if (!completata) this.minutiEffettivi = null;
+        segna(completata, null, null);
     }
+
+    /** Fatto (con quando e chi) o da rifare. Se era già fatto, quando e chi restano quelli della prima volta. */
+    void segna(boolean fatto, java.time.OffsetDateTime quando, Long chi) {
+        if (fatto && completata && completataIl != null) return;
+        this.completata = fatto;
+        if (fatto) {
+            this.completataIl = quando;
+            this.completataDa = chi;
+        } else {
+            this.minutiEffettivi = null;
+            this.completataIl = null;
+            this.completataDa = null;
+        }
+    }
+
+    public java.time.OffsetDateTime getCompletataIl() { return completataIl; }
+    public Long getCompletataDa() { return completataDa; }
 }

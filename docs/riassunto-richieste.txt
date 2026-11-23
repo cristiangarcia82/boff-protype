@@ -177,3 +177,8 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 45. Promemoria per intervento: non ora
     Niente avvisi tipo "catena cambiata 12 mesi fa" per adesso; annotato tra le
     idee per il futuro (docs/PIANO.md).
+
+46. Foglio lavori
+    Per ogni lavoro un foglio con i dettagli: quando è stato annunciato, quando
+    la bici è stata consegnata, quando sono stati fatti i singoli interventi e
+    quando la bici è stata ritirata.

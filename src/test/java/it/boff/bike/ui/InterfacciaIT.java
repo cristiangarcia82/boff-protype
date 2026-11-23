@@ -505,6 +505,25 @@ class InterfacciaIT extends SpringBrowserlessTest {
         lavori.annulla(lavoro);
     }
 
+    @Test
+    @WithMockUser(username = "titolare@demo.it", roles = {"STAFF", "TITOLARE"})
+    void ilFoglioLavoriRiportaDateEInterventi() {
+        Long cliente = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Pinarello", "Paris", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.annuncia(cliente, bici, List.of(catalogo.attivi().get(0).getId()), "Rumore al movimento centrale").getId();
+        lavori.checkIn(lavoro);
+        lavori.dettaglio(lavoro).getRighe().forEach(r -> lavori.segnaRiga(r.getId(), true));
+        lavori.segnaPronto(lavoro);
+        lavori.ritira(lavoro);
+        navigate("foglio-lavoro/" + lavoro, it.boff.bike.ui.views.FoglioLavoroView.class);
+        String testo = $(com.vaadin.flow.component.html.Div.class).withClassName("boff-foglio").single()
+                .getElement().getTextRecursively();
+        assertThat(testo).contains("Foglio lavori n. " + lavoro, "Pinarello Paris", "Giulia Verdi",
+                "Annunciato dal cliente", "Bici consegnata in negozio", "Bici pronta", "Ritirata dal cliente",
+                catalogo.attivi().get(0).getNome(), "Rumore al movimento centrale");
+        assertThat(testo).contains("Mattia Bettagno"); // chi ha fatto l'intervento
+    }
+
     private static java.util.stream.Stream<com.vaadin.flow.component.Component> discendenti(com.vaadin.flow.component.Component c) {
         return java.util.stream.Stream.concat(java.util.stream.Stream.of(c), c.getChildren().flatMap(InterfacciaIT::discendenti));
     }

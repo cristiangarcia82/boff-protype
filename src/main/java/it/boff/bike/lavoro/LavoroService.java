@@ -37,11 +37,14 @@ public class LavoroService {
     private final Clock clock;
     private final Ripianificazione ripianificazione;
     private final it.boff.bike.funzionalita.FunzionalitaService funzionalita;
+    private final it.boff.bike.utente.UtenteRepository utenti;
 
     public LavoroService(LavoroRepository lavori, RigaLavoroRepository righe, BiciclettaRepository biciclette,
                          TipoInterventoRepository catalogo, ApplicationEventPublisher eventi, Clock clock,
                          Ripianificazione ripianificazione,
-                         it.boff.bike.funzionalita.FunzionalitaService funzionalita) {
+                         it.boff.bike.funzionalita.FunzionalitaService funzionalita,
+                         it.boff.bike.utente.UtenteRepository utenti) {
+        this.utenti = utenti;
         this.ripianificazione = ripianificazione;
         this.funzionalita = funzionalita;
         this.lavori = lavori;
@@ -50,6 +53,14 @@ public class LavoroService {
         this.catalogo = catalogo;
         this.eventi = eventi;
         this.clock = clock;
+    }
+
+    /** Id della persona del negozio collegata (per il foglio lavori: chi ha fatto l'intervento); null se non nota. */
+    private Long chiStaLavorando() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) return null;
+        return utenti.findByEmail(auth.getName()).filter(u -> u.getRuolo() == it.boff.bike.utente.Ruolo.STAFF)
+                .map(it.boff.bike.utente.Utente::getId).orElse(null);
     }
 
     // =====================================================================
@@ -149,7 +160,8 @@ public class LavoroService {
     }
 
     public void segnaPronto(Long lavoroId) {
-        cambia(dettaglio(lavoroId), l -> l.segnaPronto(adesso()));
+        Long chi = chiStaLavorando();
+        cambia(dettaglio(lavoroId), l -> l.segnaPronto(adesso(), chi));
     }
 
     public void riapri(Long lavoroId) {
@@ -249,7 +261,7 @@ public class LavoroService {
         if (!StatoLavoro.IN_OFFICINA.contains(l.getStato())) {
             throw new ErroreDominio("Gli interventi si segnano come fatti solo mentre la bici è in officina");
         }
-        r.setCompletata(completata);
+        r.segna(completata, adesso(), chiStaLavorando());
         if (completata && l.getStato() != StatoLavoro.IN_LAVORAZIONE) {
             cambia(l, Lavoro::inizia);
         }
