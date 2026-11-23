@@ -198,6 +198,13 @@ public class PianificazioneService {
         Map<Long, Integer> minutiBloccatiPerRiga = new HashMap<>();
         Map<Long, LocalDateTime> fineBloccatePerLavoro = new HashMap<>();
         List<Occupato> occupati = new ArrayList<>(appuntamentiAttivi);
+        // gli interventi di oggi già fatti restano dove sono e il loro tempo non si riassegna
+        java.util.Set<Long> giaContati = bloccate.stream().map(Assegnazione::getId).collect(Collectors.toSet());
+        for (Assegnazione a : assegnazioni.fattiIl(oggi)) {
+            if (!giaContati.contains(a.getId())) {
+                occupati.add(new Occupato(a.getUtente().getId(), a.getData(), a.intervallo(), a.getRiga().getLavoro().getId()));
+            }
+        }
         for (Assegnazione a : bloccate) {
             Long lavoroId = a.getRiga().getLavoro().getId();
             occupati.add(new Occupato(a.getUtente().getId(), a.getData(), a.intervallo(), lavoroId));

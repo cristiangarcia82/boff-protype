@@ -352,4 +352,22 @@ class AppuntamentiIT {
                 .anyMatch(a -> a.getData().equals(ieri));
         lavori.annulla(lavoro);
     }
+
+    @Test
+    void unInterventoFattoOggiRestaInCalendario() {
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Olmo", "Bicicapace", Tipologia.CITTA)).getId();
+        Long lavoro = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+        Long riga = lavori.dettaglio(lavoro).getRighe().get(0).getId();
+        LocalDate oggi = calendario.oggi();
+        // il calcolo lo aveva messo oggi (qualunque sia l'orario di oggi nei test)
+        jdbc.update("DELETE FROM assegnazione WHERE riga_lavoro_id = ?", riga);
+        jdbc.update("INSERT INTO assegnazione (riga_lavoro_id, utente_id, data, ora_inizio, ora_fine, bloccata) VALUES (?, ?, ?, '06:00', '06:30', FALSE)",
+                riga, mario, oggi);
+        lavori.segnaRiga(riga, true);
+        pianificazione.aggiorna();
+        pianificazione.ripianifica();
+        assertThat(pianificazione.diLavoro(lavoro)).as("spuntato, resta visibile dove era")
+                .anyMatch(a -> a.getData().equals(oggi) && a.getOraInizio().equals(LocalTime.of(6, 0)));
+        lavori.annulla(lavoro);
+    }
 }

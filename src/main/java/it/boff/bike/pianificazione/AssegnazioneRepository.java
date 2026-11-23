@@ -37,12 +37,14 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
     /**
      * Toglie dal calendario tutto ciò che va ricalcolato (mantiene le future bloccate dei lavori in officina).
      * Il passato non si tocca mai: resta com'era, per rivedere a posteriori come è andata la settimana.
+     * Nemmeno gli interventi di oggi già fatti: restano visibili (spuntati) dove erano.
      */
     @Modifying
     @Query("""
             delete from Assegnazione a where a.id in (
               select x.id from Assegnazione x join x.riga r join r.lavoro l
               where x.data >= :oggi
+                and not (r.completata = true and x.data = :oggi)
                 and (l.id not in :lavori or x.bloccata = false or r.completata = true))
             """)
     int eliminaDaRicalcolare(Collection<Long> lavori, LocalDate oggi);
@@ -59,7 +61,8 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
     @Query("""
             delete from Assegnazione a where a.id in (
               select x.id from Assegnazione x join x.riga r join r.lavoro l
-              where x.data >= :oggi and (l.id not in :lavori or x.id not in :conserva))
+              where x.data >= :oggi and not (r.completata = true and x.data = :oggi)
+                and (l.id not in :lavori or x.id not in :conserva))
             """)
     int eliminaTranne(Collection<Long> lavori, LocalDate oggi, Collection<Long> conserva);
 
@@ -76,4 +79,11 @@ public interface AssegnazioneRepository extends JpaRepository<Assegnazione, Long
             where l.stato = it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO and a.data >= :oggi
             """)
     List<Long> lavoriAnnunciatiFissati(LocalDate oggi);
+
+    /** Interventi di un giorno già fatti (restano in calendario e occupano il loro tempo). */
+    @Query("""
+            select a from Assegnazione a join fetch a.riga r join fetch r.lavoro l
+            where a.data = :giorno and r.completata = true
+            """)
+    List<Assegnazione> fattiIl(LocalDate giorno);
 }

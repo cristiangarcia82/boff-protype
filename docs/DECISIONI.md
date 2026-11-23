@@ -304,3 +304,10 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
   - i giorni futuri hanno lavori fissati: in negozio nei prossimi due giorni, annunciati con la bici non ancora arrivata più avanti;
   - si creano una volta sola, anche su un database demo già esistente;
   - nei test sono spenti (`boff.demo-storico=false`).
+
+## D55 – Gli interventi spuntati restano in calendario (segnalazione del titolare)
+- **Problema**: spuntando un intervento come fatto, il ricalcolo lo toglieva dal calendario.
+- **Ora**:
+  - un intervento fatto resta al suo posto, in grigio con la spunta, nel giorno in cui era previsto (oggi o nei giorni passati);
+  - il suo tempo resta occupato, così il calcolo non ci mette sopra altro;
+  - se era previsto in un giorno successivo (fatto in anticipo), quel blocco futuro si toglie e lo spazio si libera.

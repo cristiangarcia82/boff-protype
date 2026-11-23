@@ -166,3 +166,6 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 42. Autenticazione a due fattori (proposte)
     Proporre soluzioni per un secondo fattore di accesso, almeno per il titolare.
+
+43. Interventi spuntati che sparivano dal calendario
+    Una volta spuntata un'attività spariva dal calendario: ora resta, grigia con la spunta.
