@@ -42,4 +42,19 @@ public class Formati {
     public static ZoneId zona() {
         return zona;
     }
+
+    /** "oggi", "ieri", "3 settimane fa", "5 mesi fa", "1 anno e 2 mesi fa". */
+    public static String tempoFa(java.time.LocalDate quando, java.time.LocalDate oggi) {
+        if (quando == null) return "–";
+        long giorni = java.time.temporal.ChronoUnit.DAYS.between(quando, oggi);
+        if (giorni <= 0) return "oggi";
+        if (giorni == 1) return "ieri";
+        if (giorni < 14) return giorni + " giorni fa";
+        java.time.Period p = java.time.Period.between(quando, oggi);
+        int mesi = p.getYears() * 12 + p.getMonths();
+        if (mesi < 1) return (giorni / 7) + " settimane fa";
+        if (mesi < 12) return mesi == 1 ? "1 mese fa" : mesi + " mesi fa";
+        int anni = mesi / 12, resto = mesi % 12;
+        return (anni == 1 ? "1 anno" : anni + " anni") + (resto == 0 ? "" : resto == 1 ? " e 1 mese" : " e " + resto + " mesi") + " fa";
+    }
 }

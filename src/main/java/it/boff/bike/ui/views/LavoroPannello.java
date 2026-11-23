@@ -134,6 +134,9 @@ class LavoroPannello extends Div {
         }
         add(interventi);
 
+        // --- questa bici in passato: per decidere cosa proporre (es. catena cambiata 14 mesi fa) ---
+        add(passato(l));
+
         // --- dettagli ---
         if (l.getNoteCliente() != null) {
             Div nc = new Div(new H4("Note del cliente"), new Paragraph(l.getNoteCliente()));
@@ -246,6 +249,18 @@ class LavoroPannello extends Div {
         vedi.setQueryParameters(com.vaadin.flow.router.QueryParameters.of("data", primo.getData().toString()));
         comandi.add(vedi);
         card.add(comandi);
+        return card;
+    }
+
+    private Component passato(Lavoro l) {
+        var ultimi = service.ultimiInterventi(l.getBicicletta().getId(), l.getId()).stream().limit(4).toList();
+        Div card = new Div(new H4("Questa bici in passato"));
+        card.addClassName("boff-card");
+        card.add(StoricoBiciDialog.ultimi(ultimi, oggi.get()));
+        Button tutto = new Button("Storico completo", VaadinIcon.TIME_BACKWARD.create(), e -> new StoricoBiciDialog(service,
+                l.getBicicletta(), l.getBicicletta().getProprietario().getNomeCompleto(), oggi.get()).open());
+        tutto.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        card.add(tutto);
         return card;
     }
 

@@ -169,3 +169,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 
 43. Interventi spuntati che sparivano dal calendario
     Una volta spuntata un'attività spariva dal calendario: ora resta, grigia con la spunta.
+
+44. Storico degli interventi della bici
+    Vedere dalla bici del cliente gli interventi fatti, per sapere per esempio
+    quanto tempo è passato dall'ultimo cambio catena e pianificare il prossimo.

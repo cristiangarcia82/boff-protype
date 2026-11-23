@@ -525,3 +525,13 @@ html { --boff-colore-appuntamento: #6b46c1; }
 .boff-quadrato.fatto { background: var(--lumo-contrast-30pct); }
 .boff-slot-orario { white-space: nowrap; }
 .boff-slot-riga { flex-wrap: wrap; }
+
+/* Storico della bici (negozio) */
+.boff-ultimi-interventi > div { display: grid; grid-template-columns: 1fr auto; column-gap: var(--lumo-space-m);
+    padding: var(--lumo-space-xs) 0; border-bottom: 1px solid var(--lumo-contrast-10pct); }
+.boff-ultimi-interventi .nome { font-weight: 600; }
+.boff-ultimi-interventi .quanto { text-align: right; font-variant-numeric: tabular-nums; }
+.boff-ultimi-interventi .boff-testo-secondario { grid-column: 1 / -1; font-size: var(--lumo-font-size-s); }
+.boff-storico-bici h4 { margin: var(--lumo-space-m) 0 var(--lumo-space-xs); }
+.boff-bici-con-storico { display: flex; flex-direction: column; gap: var(--lumo-space-xs); }
+.boff-bici-con-storico > vaadin-button { align-self: flex-start; }

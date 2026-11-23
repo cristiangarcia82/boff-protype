@@ -279,6 +279,55 @@ public class LavoroService {
         return lavori.dellaBici(biciId);
     }
 
+    /** L'ultima volta che su una bici è stato fatto un certo intervento, e quante volte in tutto. */
+    public record UltimoIntervento(String intervento, LocalDate quando, int volte, Long lavoroId) {
+    }
+
+    /**
+     * Per ogni tipo di intervento fatto su una bici: quando è stato fatto l'ultima volta (giorno in cui la bici
+     * è stata pronta, o ritirata) e quante volte in tutto; i più recenti prima. Esclusi i lavori annullati.
+     * Serve per decidere il prossimo (es. quanto tempo è passato dall'ultimo cambio catena).
+     */
+    @Transactional(readOnly = true)
+    public List<UltimoIntervento> ultimiInterventi(Long biciId) {
+        return ultimiInterventi(biciId, null);
+    }
+
+    /** Come {@link #ultimiInterventi(Long)}, senza contare un lavoro (es. quello che si sta guardando). */
+    @Transactional(readOnly = true)
+    public List<UltimoIntervento> ultimiInterventi(Long biciId, Long escluso) {
+        Map<String, UltimoIntervento> perTipo = new java.util.LinkedHashMap<>();
+        for (Lavoro l : lavori.dellaBici(biciId)) {
+            if (l.getStato() == StatoLavoro.ANNULLATO || l.getId().equals(escluso)) continue;
+            LocalDate quando = dataLavoroFatto(l);
+            if (quando == null) continue;
+            for (RigaLavoro r : l.getRighe()) {
+                if (!r.isCompletata()) continue;
+                String chiave = r.getTipoIntervento() != null ? "t" + r.getTipoIntervento().getId()
+                        : "d" + r.getDescrizione().trim().toLowerCase(java.util.Locale.ITALY);
+                UltimoIntervento prima = perTipo.get(chiave);
+                if (prima == null) {
+                    perTipo.put(chiave, new UltimoIntervento(r.getDescrizione(), quando, 1, l.getId()));
+                } else {
+                    boolean piuRecente = quando.isAfter(prima.quando());
+                    perTipo.put(chiave, new UltimoIntervento(piuRecente ? r.getDescrizione() : prima.intervento(),
+                            piuRecente ? quando : prima.quando(), prima.volte() + 1, piuRecente ? l.getId() : prima.lavoroId()));
+                }
+            }
+        }
+        return perTipo.values().stream()
+                .sorted(java.util.Comparator.comparing(UltimoIntervento::quando).reversed()
+                        .thenComparing(UltimoIntervento::intervento))
+                .toList();
+    }
+
+    /** Il giorno in cui il lavoro si può dire fatto: pronto, ritirato o, se ancora in corso, oggi. */
+    private LocalDate dataLavoroFatto(Lavoro l) {
+        OffsetDateTime t = l.getProntoIl() != null ? l.getProntoIl() : l.getChiusoIl();
+        if (t != null) return t.atZoneSameInstant(clock.getZone()).toLocalDate();
+        return StatoLavoro.IN_OFFICINA.contains(l.getStato()) ? LocalDate.now(clock) : null;
+    }
+
     /** Lavori (con righe) negli stati indicati: usato dalla pianificazione. */
     @Transactional(readOnly = true)
     public List<Lavoro> conRighe(Collection<StatoLavoro> stati) {

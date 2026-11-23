@@ -57,8 +57,12 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
     private final TextField cerca = new TextField();
     private final Div dettaglio = new Div();
 
+    private final it.boff.bike.calendario.CalendarioService calendario;
+
     public ClientiView(UtenteService utenti, BiciclettaService biciclette, LavoroService lavori,
-                       UtenteCorrente utenteCorrente, RecuperoPasswordService recupero, PrivacyService privacy) {
+                       UtenteCorrente utenteCorrente, RecuperoPasswordService recupero, PrivacyService privacy,
+                       it.boff.bike.calendario.CalendarioService calendario) {
+        this.calendario = calendario;
         this.recupero = recupero;
         this.privacy = privacy;
         this.utenti = utenti;
@@ -199,7 +203,15 @@ public class ClientiView extends Div implements com.vaadin.flow.router.BeforeEnt
         if (bici.isEmpty()) {
             elencoBici.add(new Paragraph("Nessuna bici registrata."));
         }
-        bici.forEach(b -> elencoBici.add(new SchedaBici(b, () -> modificaBici(c, b))));
+        bici.forEach(b -> {
+            // tocco sulla scheda = modifica; sotto, lo storico degli interventi fatti su quella bici
+            Button storico = new Button("Storico interventi", VaadinIcon.TIME_BACKWARD.create(),
+                    e -> new StoricoBiciDialog(lavori, b, c.getNomeCompleto(), calendario.oggi()).open());
+            storico.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            Div voce = new Div(new SchedaBici(b, () -> modificaBici(c, b)), storico);
+            voce.addClassName("boff-bici-con-storico");
+            elencoBici.add(voce);
+        });
 
         Div elencoLavori = new Div(new H3("Lavori"));
         elencoLavori.addClassName("boff-card");

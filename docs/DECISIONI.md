@@ -311,3 +311,16 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
   - un intervento fatto resta al suo posto, in grigio con la spunta, nel giorno in cui era previsto (oggi o nei giorni passati);
   - il suo tempo resta occupato, così il calcolo non ci mette sopra altro;
   - se era previsto in un giorno successivo (fatto in anticipo), quel blocco futuro si toglie e lo spazio si libera.
+
+## D56 – Storico della bici per il negozio (richiesta del titolare)
+- **Perché**: vedere quando è stato fatto l'ultima volta un intervento (es. il cambio catena) per proporre il prossimo.
+- **Dove**:
+  - *Clienti*: sotto ogni bici c'è il pulsante **Storico interventi**;
+  - scheda del lavoro: c'è il riquadro **Questa bici in passato**, con i 4 interventi più recenti (escluso il lavoro aperto) e il pulsante **Storico completo**.
+- **Cosa mostra**:
+  - per ogni intervento, l'ultima volta che è stato fatto ("5 mesi fa · 12 giu 2026 · 3 volte"), dal più recente;
+  - sotto, tutti i lavori della bici con gli interventi fatti e il link al lavoro.
+- **Regole**:
+  - per la data conta il giorno in cui la bici è stata pronta, o ritirata; per un lavoro ancora in corso, oggi;
+  - i lavori annullati non contano;
+  - gli interventi del catalogo si riconoscono anche se rinominati; quelli liberi si raggruppano per descrizione.

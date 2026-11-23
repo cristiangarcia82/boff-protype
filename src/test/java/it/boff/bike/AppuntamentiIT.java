@@ -13,6 +13,7 @@ import it.boff.bike.common.ErroreDominio;
 import it.boff.bike.privacy.PrivacyService;
 import it.boff.bike.utente.UtenteRepository;
 import it.boff.bike.utente.UtenteService;
+import it.boff.bike.lavoro.LavoroService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -369,5 +370,36 @@ class AppuntamentiIT {
         assertThat(pianificazione.diLavoro(lavoro)).as("spuntato, resta visibile dove era")
                 .anyMatch(a -> a.getData().equals(oggi) && a.getOraInizio().equals(LocalTime.of(6, 0)));
         lavori.annulla(lavoro);
+    }
+
+    @Test
+    void lUltimaVoltaPerOgniInterventoDellaBici() {
+        Long bici = biciclette.aggiungi(cliente, DatiBicicletta.di("Bianchi", "Infinito", Tipologia.STRADA)).getId();
+        var catena = catalogo.attivi().stream().filter(t -> t.getNome().equals("Sostituzione catena")).findFirst().orElseThrow();
+        var freni = catalogo.attivi().stream().filter(t -> t.getNome().equals("Regolazione freni")).findFirst().orElseThrow();
+        // un anno fa catena e freni, cinque mesi fa di nuovo la catena
+        Long vecchio = lavori.creaAlBanco(bici, List.of(catena.getId(), freni.getId()), null).getId();
+        lavori.dettaglio(vecchio).getRighe().forEach(r -> lavori.segnaRiga(r.getId(), true));
+        lavori.segnaPronto(vecchio);
+        lavori.ritira(vecchio);
+        Long recente = lavori.creaAlBanco(bici, List.of(catena.getId()), null).getId();
+        lavori.dettaglio(recente).getRighe().forEach(r -> lavori.segnaRiga(r.getId(), true));
+        lavori.segnaPronto(recente);
+        lavori.ritira(recente);
+        LocalDate oggi = calendario.oggi();
+        jdbc.update("UPDATE lavoro SET pronto_il = now() - interval '365 days' WHERE id = ?", vecchio);
+        jdbc.update("UPDATE lavoro SET pronto_il = now() - interval '150 days' WHERE id = ?", recente);
+        Long annullato = lavori.creaAlBanco(bici, List.of(freni.getId()), null).getId();
+        lavori.annulla(annullato);
+
+        var ultimi = lavori.ultimiInterventi(bici);
+        assertThat(ultimi).extracting(LavoroService.UltimoIntervento::intervento)
+                .containsExactly("Sostituzione catena", "Regolazione freni");
+        assertThat(ultimi.get(0).volte()).isEqualTo(2);
+        assertThat(ultimi.get(0).quando()).isBetween(oggi.minusDays(152), oggi.minusDays(148));
+        assertThat(ultimi.get(1).quando()).isBetween(oggi.minusDays(367), oggi.minusDays(363));
+        assertThat(it.boff.bike.ui.componenti.Formati.tempoFa(ultimi.get(0).quando(), oggi)).isEqualTo("4 mesi fa");
+        assertThat(lavori.ultimiInterventi(bici, recente)).first()
+                .satisfies(u -> assertThat(u.intervento()).isEqualTo("Regolazione freni"));
     }
 }
