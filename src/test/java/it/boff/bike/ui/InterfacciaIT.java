@@ -524,6 +524,30 @@ class InterfacciaIT extends SpringBrowserlessTest {
         assertThat(testo).contains("Mattia Bettagno"); // chi ha fatto l'intervento
     }
 
+    @Test
+    @WithMockUser(username = "cliente@demo.it", roles = "CLIENTE")
+    void ilClienteVedeIlFoglioLavoriDelleSueBiciSenzaDatiInterni() {
+        Long giulia = utenti.findByEmail("cliente@demo.it").orElseThrow().getId();
+        Long bici = biciclette.aggiungi(giulia, DatiBicicletta.di("Colnago", "Master", Tipologia.STRADA)).getId();
+        Long lavoro = lavori.creaAlBanco(bici, List.of(catalogo.attivi().get(0).getId()), "Cigolio").getId();
+        lavori.impostaDettagli(lavoro, false, null, "Cliente esigente");
+        lavori.dettaglio(lavoro).getRighe().forEach(r -> lavori.segnaRiga(r.getId(), true));
+        navigate("foglio-lavoro/" + lavoro, it.boff.bike.ui.views.FoglioLavoroView.class);
+        String testo = $(com.vaadin.flow.component.html.Div.class).withClassName("boff-foglio").single()
+                .getElement().getTextRecursively();
+        assertThat(testo).contains("Foglio lavori n. " + lavoro, "Colnago Master", "Bici consegnata in negozio",
+                catalogo.attivi().get(0).getNome(), "Le tue note: Cigolio", "Torna alla bici");
+        assertThat(testo).doesNotContain("Cliente esigente", "In calendario", "Totale previsto", " min");
+
+        // il lavoro di un altro cliente non si apre
+        Long altro = utenti.findByEmail("paolo.ferri@demo.it").orElseThrow().getId();
+        Long suaBici = biciclette.aggiungi(altro, DatiBicicletta.di("Atala", "Vintage", Tipologia.CITTA)).getId();
+        Long suo = lavori.creaAlBanco(suaBici, List.of(catalogo.attivi().get(0).getId()), null).getId();
+        navigate("foglio-lavoro/" + suo, it.boff.bike.ui.views.LeMieBiciView.class);
+        lavori.annulla(lavoro);
+        lavori.annulla(suo);
+    }
+
     private static java.util.stream.Stream<com.vaadin.flow.component.Component> discendenti(com.vaadin.flow.component.Component c) {
         return java.util.stream.Stream.concat(java.util.stream.Stream.of(c), c.getChildren().flatMap(InterfacciaIT::discendenti));
     }

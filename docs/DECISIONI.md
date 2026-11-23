@@ -326,14 +326,15 @@ la **decisione** e le **alternative scartate**. Quelle marcate ⚠️ meritano u
   - gli interventi del catalogo si riconoscono anche se rinominati; quelli liberi si raggruppano per descrizione.
 
 ## D57 – Foglio lavori per ogni lavoro (richiesta del titolare)
-- **Cosa**: ogni lavoro ha il suo **foglio lavori** (`/foglio-lavoro/<n>`). È una pagina da stampare o salvare in PDF (pulsante *Stampa o salva PDF*) e contiene:
+- **Cosa**: ogni lavoro ha il suo **foglio lavori** (`/foglio-lavoro/<n>`). È una scheda dell'app, non un documento da stampare (precisazione del titolare), e contiene:
   - cliente e bici, con il numero di telaio se c'è;
   - la **cronologia**: annunciato dal cliente (o aperto al banco), consegna concordata, bici consegnata in negozio, data promessa, primo intervento fatto, bici pronta, ritirata dal cliente (o annullato);
   - gli **interventi**: tempo previsto e reale, quando erano in calendario e con chi, **quando sono stati fatti e da chi**, extra approvati o rifiutati, totali;
   - le note del cliente e del negozio.
-- **Dove**: link *Foglio lavori* nella scheda del lavoro e accanto a ogni lavoro nello storico della bici. Si apre in una nuova scheda. Solo per il personale.
+- **Dove**: link *Foglio lavori* nella scheda del lavoro e accanto a ogni lavoro nello storico della bici.
+- **Cliente** (dalla pagina della sua bici, per il lavoro in corso e per lo storico): vede solo i lavori delle sue bici, con cronologia e interventi fatti (quando e da chi, solo il nome). Non vede tempi, calendario e note interne, come nel resto della sua app.
 - **Dati nuovi** (V17): `riga_lavoro.completata_il` e `completata_da`.
   - Si salvano quando si spunta un intervento. Quando si segna la bici pronta, gli interventi non spuntati risultano fatti in quel momento da chi l'ha segnata.
   - Togliendo la spunta si cancellano.
   - Per gli interventi fatti prima di questa versione la migrazione li ricava dall'ultimo blocco in calendario (fine e persona) o dal momento in cui la bici è stata segnata pronta.
-- **Generato, non archiviato**: il foglio si compone dai dati del lavoro, quindi è sempre aggiornato e resta disponibile anche dopo il ritiro. Esempio: `docs/Esempio-foglio-lavori.pdf`.
+- **Generato, non archiviato**: il foglio si compone dai dati del lavoro, quindi è sempre aggiornato e resta disponibile anche dopo il ritiro.

@@ -120,10 +120,18 @@ public class BiciView extends Div implements BeforeEnterObserver {
         }
         chiusi.forEach(l -> {
             Div voce = new Div(new Div(new Span(Formati.data(l.getChiusoIl())), new BadgeStato(l.getStato())),
-                    elencoRighe(l, false));
+                    elencoRighe(l, false), linkFoglio(l));
             voce.addClassNames("boff-card", "boff-storico");
             add(voce);
         });
+    }
+
+    /** Il foglio lavori: date del lavoro e quando è stato fatto ogni intervento. */
+    private static RouterLink linkFoglio(Lavoro l) {
+        RouterLink r = new RouterLink("Foglio lavori", FoglioLavoroView.class,
+                new com.vaadin.flow.router.RouteParameters("id", String.valueOf(l.getId())));
+        r.addClassName("boff-link-foglio");
+        return r;
     }
 
     private Div schedaLavoroInCorso(Lavoro l) {
@@ -134,6 +142,7 @@ public class BiciView extends Div implements BeforeEnterObserver {
         card.add(testa, new Paragraph(messaggioPer(l)));
         l.getRighe().stream().filter(RigaLavoro::isInAttesaDiApprovazione).forEach(r -> card.add(richiesta(l, r)));
         card.add(elencoRighe(l, true));
+        if (l.getStato() != it.boff.bike.lavoro.StatoLavoro.ANNUNCIATO) card.add(linkFoglio(l));
         if (l.getNoteCliente() != null) {
             Paragraph note = new Paragraph("Le tue note: " + l.getNoteCliente());
             note.addClassName("boff-testo-secondario");

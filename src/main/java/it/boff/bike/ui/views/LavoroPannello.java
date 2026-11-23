@@ -98,10 +98,9 @@ class LavoroPannello extends Div {
         if (l.getCheckinIl() != null) date.add(new Span(" · in negozio dal " + Formati.quando(l.getCheckinIl())));
         if (l.getFinePrevista() != null) date.add(new Span(" · pronta prevista " + Formati.giorno(l.getFinePrevista())));
         date.addClassName("boff-testo-secondario");
-        Anchor foglio = new Anchor("foglio-lavoro/" + l.getId(), "Foglio lavori");
-        foglio.setTarget("_blank");
-        foglio.addClassName("boff-link-foglio");
-        foglio.getElement().setAttribute("title", "Date, interventi fatti e da chi: da stampare o salvare in PDF");
+        com.vaadin.flow.router.RouterLink foglio = new com.vaadin.flow.router.RouterLink("Foglio lavori", FoglioLavoroView.class,
+                new com.vaadin.flow.router.RouteParameters("id", String.valueOf(l.getId())));
+        foglio.getElement().setAttribute("title", "Date del lavoro, interventi fatti, quando e da chi");
         date.add(new Span(" · "), foglio);
         Div schedaTesta = new Div(testa, bici, clienteRiga, date);
         if (!cliente.usaApp() && l.getStato() == StatoLavoro.PRONTO) {

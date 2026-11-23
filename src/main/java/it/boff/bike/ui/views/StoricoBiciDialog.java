@@ -37,6 +37,11 @@ public class StoricoBiciDialog extends Dialog {
         add(chi, new H4("Ultima volta per intervento"), ultimi(lavori.ultimiInterventi(bici.getId()), oggi),
                 new H4("Lavori"), elencoLavori(lavori.storicoBici(bici.getId())));
         Button chiudi = new Button("Chiudi", e -> close());
+        // un link porta a un'altra pagina: la finestra si chiude
+        addAttachListener(ev -> {
+            var reg = ev.getUI().addAfterNavigationListener(n -> close());
+            addDetachListener(d -> reg.remove());
+        });
         getFooter().add(chiudi);
     }
 
@@ -68,9 +73,8 @@ public class StoricoBiciDialog extends Dialog {
         for (Lavoro l : elenco) {
             var data = l.getProntoIl() != null ? l.getProntoIl() : l.getChiusoIl() != null ? l.getChiusoIl() : l.getAnnunciatoIl();
             RouterLink apri = new RouterLink(Formati.data(data), LavoriView.class, LavoriView.parametri(l.getId()));
-            com.vaadin.flow.component.html.Anchor foglio = new com.vaadin.flow.component.html.Anchor(
-                    "foglio-lavoro/" + l.getId(), "Foglio lavori");
-            foglio.setTarget("_blank");
+            com.vaadin.flow.router.RouterLink foglio = new com.vaadin.flow.router.RouterLink("Foglio lavori",
+                    FoglioLavoroView.class, new com.vaadin.flow.router.RouteParameters("id", String.valueOf(l.getId())));
             Div sinistra = new Div(apri, new Span(" · "), foglio);
             Div testa = new Div(sinistra, new BadgeStato(l.getStato()));
             testa.addClassName("boff-intestazione");

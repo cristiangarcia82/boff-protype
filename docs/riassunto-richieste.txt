@@ -182,3 +182,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
     Per ogni lavoro un foglio con i dettagli: quando è stato annunciato, quando
     la bici è stata consegnata, quando sono stati fatti i singoli interventi e
     quando la bici è stata ritirata.
+
+47. Foglio lavori: una scheda nell'app, visibile anche al cliente
+    Il foglio lavori non è un PDF ma una scheda logica con i dettagli; visibile
+    anche al cliente nella sua app.

@@ -131,6 +131,12 @@ public class LavoroService {
         return lavori.dellaBici(biciId);
     }
 
+    /** Foglio lavori visto dal cliente: solo un lavoro di una sua bici. */
+    @Transactional(readOnly = true)
+    public Lavoro lavoroDelCliente(Long clienteId, Long lavoroId) {
+        return delCliente(clienteId, lavoroId);
+    }
+
     private Lavoro delCliente(Long clienteId, Long lavoroId) {
         Lavoro l = dettaglio(lavoroId);
         if (!l.getBicicletta().getProprietario().getId().equals(clienteId)) {

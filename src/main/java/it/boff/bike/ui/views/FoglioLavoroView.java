@@ -1,15 +1,10 @@
 package it.boff.bike.ui.views;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
@@ -38,12 +33,13 @@ import java.util.stream.Collectors;
 
 /**
  * Foglio lavori di un lavoro: chi, quale bici, quando è stata annunciata, consegnata, pronta e ritirata,
- * e per ogni intervento quando è stato fatto e da chi. Pagina a sé (senza menu), pronta da stampare o
- * salvare in PDF dal browser.
+ * e per ogni intervento quando è stato fatto e da chi. È una scheda dell'app (non un documento da stampare),
+ * sempre composta dai dati del lavoro. Il cliente vede solo i lavori delle sue bici, senza tempi, calendario e
+ * note interne (come nel resto della sua app).
  */
-@Route(value = "foglio-lavoro/:id", autoLayout = false)
+@Route("foglio-lavoro/:id")
 @PageTitle("Foglio lavori | Boff Bike")
-@RolesAllowed(Ruoli.STAFF)
+@RolesAllowed({Ruoli.STAFF, Ruoli.CLIENTE})
 public class FoglioLavoroView extends Div implements BeforeEnterObserver {
 
     private final LavoroService lavori;
@@ -51,25 +47,30 @@ public class FoglioLavoroView extends Div implements BeforeEnterObserver {
     private final UtenteService utenti;
     private final BoffProperties properties;
     private final it.boff.bike.calendario.CalendarioService calendario;
+    private final it.boff.bike.security.UtenteCorrente utenteCorrente;
+    private boolean perCliente;
 
     public FoglioLavoroView(LavoroService lavori, PianificazioneService pianificazione, UtenteService utenti,
-                            BoffProperties properties, it.boff.bike.calendario.CalendarioService calendario) {
+                            BoffProperties properties, it.boff.bike.calendario.CalendarioService calendario,
+                            it.boff.bike.security.UtenteCorrente utenteCorrente) {
+        this.utenteCorrente = utenteCorrente;
         this.lavori = lavori;
         this.pianificazione = pianificazione;
         this.utenti = utenti;
         this.properties = properties;
         this.calendario = calendario;
-        addClassName("boff-foglio");
+        addClassNames("boff-pagina", "boff-colonna", "boff-foglio");
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         Long id = event.getRouteParameters().getLong("id").orElse(null);
+        perCliente = !utenteCorrente.isStaff();
         Lavoro l;
         try {
-            l = lavori.dettaglio(id);
-        } catch (ErroreDominio | NullPointerException e) {
-            event.forwardTo(LavoriView.class);
+            l = perCliente ? lavori.lavoroDelCliente(utenteCorrente.get().orElseThrow().getId(), id) : lavori.dettaglio(id);
+        } catch (ErroreDominio | NullPointerException | java.util.NoSuchElementException e) {
+            if (perCliente) event.forwardTo(LeMieBiciView.class); else event.forwardTo(LavoriView.class);
             return;
         }
         mostra(l);
@@ -79,27 +80,16 @@ public class FoglioLavoroView extends Div implements BeforeEnterObserver {
         removeAll();
         Map<Long, String> persone = utenti.personale().stream()
                 .collect(Collectors.toMap(Utente::getId, Utente::getNomeCompleto, (a, b) -> a));
-        Map<Long, List<Assegnazione>> pianificato = pianificazione.diLavoro(l.getId()).stream()
+        Map<Long, List<Assegnazione>> pianificato = perCliente ? Map.of() : pianificazione.diLavoro(l.getId()).stream()
                 .collect(Collectors.groupingBy(a -> a.getRiga().getId()));
 
-        // comandi (non si stampano)
-        RouterLink torna = new RouterLink("← Torna al lavoro", LavoriView.class, LavoriView.parametri(l.getId()));
-        Button stampa = new Button("Stampa o salva PDF", VaadinIcon.PRINT.create(),
-                e -> getElement().executeJs("window.print()"));
-        stampa.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        Div comandi = new Div(torna, stampa);
-        comandi.addClassNames("boff-foglio-comandi", "boff-no-print");
-
-        // intestazione
-        Image logo = new Image("icons/logo.png", "");
-        logo.addClassName("boff-foglio-logo");
-        Div negozio = new Div(logo, new Span(properties.nomeNegozio()));
-        negozio.addClassName("boff-foglio-negozio");
-        H1 titolo = new H1("Foglio lavori n. " + l.getId());
-        Span stato = new Span(l.getStato().getEtichetta());
-        stato.addClassName("boff-foglio-stato");
-        Div testa = new Div(negozio, new Div(titolo, stato));
-        testa.addClassName("boff-foglio-testa");
+        RouterLink torna = perCliente
+                ? new RouterLink("← Torna alla bici", BiciView.class,
+                        new com.vaadin.flow.router.RouteParameters("id", String.valueOf(l.getBicicletta().getId())))
+                : new RouterLink("← Torna al lavoro", LavoriView.class, LavoriView.parametri(l.getId()));
+        torna.addClassName("boff-indietro");
+        Div testa = new Div(new H2("Foglio lavori n. " + l.getId()), new it.boff.bike.ui.componenti.BadgeStato(l.getStato()));
+        testa.addClassName("boff-intestazione");
 
         // chi e cosa
         Utente cliente = l.getBicicletta().getProprietario();
@@ -111,18 +101,21 @@ public class FoglioLavoroView extends Div implements BeforeEnterObserver {
         Div chiCosa = new Div(schedaCliente, schedaBici);
         chiCosa.addClassName("boff-foglio-due");
 
-        add(comandi, testa, chiCosa, new H2("Cronologia"), cronologia(l), new H2("Interventi"),
-                interventi(l, persone, pianificato));
+        chiCosa.addClassName("boff-card");
+        add(torna, testa, chiCosa, scheda("Cronologia", cronologia(l)), scheda("Interventi", interventi(l, persone, pianificato)));
 
-        if (l.getNoteCliente() != null || l.getNoteInterne() != null) {
-            add(new H2("Note"));
-            if (l.getNoteCliente() != null) add(new Paragraph("Del cliente: " + l.getNoteCliente()));
-            if (l.getNoteInterne() != null) add(new Paragraph("Del negozio: " + l.getNoteInterne()));
+        if (l.getNoteCliente() != null || (l.getNoteInterne() != null && !perCliente)) {
+            Div note = new Div();
+            if (l.getNoteCliente() != null) note.add(new Paragraph((perCliente ? "Le tue note: " : "Del cliente: ") + l.getNoteCliente()));
+            if (l.getNoteInterne() != null && !perCliente) note.add(new Paragraph("Del negozio: " + l.getNoteInterne()));
+            add(scheda("Note", note));
         }
-        Paragraph piede = new Paragraph("Foglio generato il " + Formati.dataOra(calendario.adesso().atZone(Formati.zona())
-                .toOffsetDateTime()) + " · " + properties.nomeNegozio());
-        piede.addClassName("boff-foglio-piede");
-        add(piede);
+    }
+
+    private static Div scheda(String titolo, Component contenuto) {
+        Div d = new Div(new com.vaadin.flow.component.html.H3(titolo), contenuto);
+        d.addClassName("boff-card");
+        return d;
     }
 
     private static Div blocco(String titolo, String principale, String... righe) {
@@ -157,6 +150,17 @@ public class FoglioLavoroView extends Div implements BeforeEnterObserver {
     }
 
     private Component interventi(Lavoro l, Map<Long, String> persone, Map<Long, List<Assegnazione>> pianificato) {
+        if (perCliente) {
+            // al cliente: cosa è stato fatto, quando e da chi (nome); mai tempi né calendario
+            Div t = tabella("Intervento", "Fatto il", "Da");
+            t.addClassName("tre");
+            for (RigaLavoro r : l.getRighe()) {
+                if (r.getApprovazione() == it.boff.bike.lavoro.Approvazione.RIFIUTATA) continue;
+                String chi = r.getCompletataDa() == null ? "" : persone.getOrDefault(r.getCompletataDa(), "").split(" ")[0];
+                riga(t, r.getDescrizione(), r.isCompletata() ? Formati.dataOra(r.getCompletataIl()) : "da fare", chi);
+            }
+            return t;
+        }
         Div t = tabella("Intervento", "Tempo", "In calendario", "Fatto il", "Da");
         t.addClassName("cinque");
         long previsti = 0, reali = 0;
