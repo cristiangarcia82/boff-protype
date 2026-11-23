@@ -173,3 +173,7 @@ BOFF BIKE - RIASSUNTO DELLE RICHIESTE
 44. Storico degli interventi della bici
     Vedere dalla bici del cliente gli interventi fatti, per sapere per esempio
     quanto tempo è passato dall'ultimo cambio catena e pianificare il prossimo.
+
+45. Promemoria per intervento: non ora
+    Niente avvisi tipo "catena cambiata 12 mesi fa" per adesso; annotato tra le
+    idee per il futuro (docs/PIANO.md).

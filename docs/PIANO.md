@@ -82,3 +82,12 @@ Web Push (VAPID) · Spring Mail · JUnit 5 + Testcontainers · Docker
 | 10. Clienti senza app | Clienti con solo nome e telefono, cliente e bici creati da *Nuovo lavoro*, badge "Senza app", promemoria di chiamata, risposte registrate dal negozio | ✅ completata |
 | 11. Accesso senza password | Codice via email, Face ID / Touch ID (passkey), accesso del personale di 12 ore per il Mac condiviso | ✅ completata |
 | 12. Calendario e consulenze | Calendario leggibile (tre visualizzazioni, due settimane), ricalcolo facoltativo, appuntamenti di consulenza nelle ore di vendita, logo | ✅ completata |
+| 13. Uso quotidiano | Appuntamenti e pianificazione più semplici, lavori annunciati fissati prima dell'arrivo, calendario per il debriefing, storico della bici, festività dei Grigioni | ✅ completata |
+
+## Idee per il futuro (non ora)
+Annotate su richiesta del titolare: da riprendere quando servirà.
+
+| Idea | Cosa farebbe | Da dove nasce |
+|---|---|---|
+| Promemoria per intervento | Avvisi basati sullo storico della bici, es. "catena cambiata più di 12 mesi fa: proponila", come suggerimento nella scheda del lavoro e/o promemoria al cliente, con intervalli per tipo di intervento nel catalogo | Storico della bici (D56), 23 nov 2026: "al momento non aggiungere reminder; magari in futuro" |
+| Accesso a due fattori | Secondo passaggio obbligatorio per il titolare (Face ID / Touch ID o app di autenticazione, codici di recupero) | Proposte in `docs/Boff-Bike-Accesso-due-fattori-proposte.pdf`, in attesa delle decisioni |
